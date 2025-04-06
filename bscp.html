@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>产品信息</title>
+  <style>
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      width: 96%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #dcdfe6;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 10px 24px;
+      cursor: pointer;
+      border: 1px solid #409eff;
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      margin-right: 5px;
+      background-color: #ffffff;
+      color: #409eff;
+      font-weight: normal;
+      transition: all 0.3s;
+    }
+
+    .tab:hover {
+      background-color: #ecf5ff;
+    }
+
+    .tab.active {
+      background-color: #409eff;
+      color: #ffffff;
+      font-weight: bold;
+      border: 1px solid #409eff;
+      border-bottom: none;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .table-wrapper {
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-spacing: 0;
+      border-collapse: collapse;
+      font-size: 14px;
+      color: #606266;
+      background-color: #ffffff;
+    }
+
+    th {
+      background-color: #f5f7fa;
+      color: #303133;
+      text-align: left;
+      text-align: center; /* 👈 加这一行让表头居中 */
+      padding: 12px;
+      font-weight: bold;
+      font-family: "SimHei", "黑体", sans-serif;
+      border-bottom: 1px solid #ebeef5;
+      border-right: 1px solid #ebeef5;
+    }
+
+    td {
+      text-align: center; /* 👈 加这一行让内容居中 */
+      padding: 12px;
+      border-bottom: 1px solid #ebeef5;
+      border-right: 1px solid #ebeef5;
+    }
+
+    /* 让表格中第2列（系统名称或涂料名称）左对齐 */
+    table th:nth-child(2),
+    table td:nth-child(2) {
+    text-align: left;
+   }
+
+    th:last-child,
+    td:last-child {
+      border-right: none;
+    }
+
+    tr:hover td {
+      background-color: #f5f7fa;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    a {
+      color: #409eff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .search-box {
+      margin-bottom: 10px;
+    }
+
+    .search-box input {
+      padding: 6px 10px;
+      width: 300px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(0)">保温系统</div>
+      <div class="tab" onclick="switchTab(1)">涂料</div>
+    </div>
+
+    <!-- 保温系统 -->
+    <div class="tab-content active" id="tab-0">
+      <div class="search-box">
+        <label>名称：</label>
+        <input type="text" placeholder="请输入关键词" onkeyup="filterTable(0, 1, this.value)" />
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 80px;">序号</th>
+              <th style="width: 500px;">系统名称</th>
+              <th style="width: 250px;">检验报告（附件）</th>
+              <th style="width: 200px;">备注</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>有机保温板（EPS 板）外墙内保温系统</td>
+              <td><a href="docs/2022.6月EPS板薄抹灰外墙内保温系统.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>有机保温板（XPS 板）外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>复合板（无石棉纤维水泥平板复合EPS板）外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>复合板（无石棉纤维水泥平板复合XPS板）外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>复合板（纸面石膏板复合EPS板）外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>复合板（纸面石膏板复合XPS板）外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td>保温装饰复合板（无石棉纤维增强硅酸钙板复合热固复合聚苯乙烯泡沫保温板）外墙外保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>外墙</td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td>保温装饰复合板（铝板复合热固复合聚苯乙烯泡沫保温板）外墙外保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>外墙</td>
+            </tr>
+            <tr>
+              <td>9</td>
+              <td>泡沫玻璃板外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>10</td>
+              <td>无机轻集料保温板外墙保温系统（珍珠岩板）</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>外墙</td>
+            </tr>
+            <tr>
+              <td>11</td>
+              <td>水泥基无机保温砂浆外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>12</td>
+              <td>石膏基无机保温砂浆外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>13</td>
+              <td>无机轻集料保温砂浆外墙保温系统（浙江地标）</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>外墙</td>
+            </tr>
+            <tr>
+              <td>14</td>
+              <td>外墙保温一体化系统和配套材料（现浇混凝土保温外墙）</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>外墙</td>
+            </tr>
+            <tr>
+              <td>15</td>
+              <td>外墙保温一体化系统和配套材料（预制混凝土反打保温外墙）</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>外墙</td>
+            </tr>
+            <tr>
+              <td>16</td>
+              <td>岩棉板（带）薄抹灰外墙外保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>外墙</td>
+            </tr>
+            <tr>
+              <td>17</td>
+              <td>岩棉组合板薄抹灰外墙外保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>外墙</td>
+            </tr>
+            <tr>
+              <td>18</td>
+              <td>无机改性不燃保温板外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>19</td>
+              <td>BE气凝胶无机保温膏料外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>20</td>
+              <td>无机保温膏料外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>21</td>
+              <td>真空绝热板（STP）外墙内保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>内墙</td>
+            </tr>
+            <tr>
+              <td>22</td>
+              <td>FC楼板隔声保温系统</td>
+              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td>楼地面</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 涂料 -->
+    <div class="tab-content" id="tab-1">
+      <div class="search-box">
+        <label>名称：</label>
+        <input type="text" placeholder="请输入关键词" onkeyup="filterTable(1, 1, this.value)" />
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 80px;">序号</th>
+              <th style="width: 400px;">涂料名称</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>乳胶漆</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>抗碱底漆</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(index) {
+      const tabs = document.querySelectorAll(".tab");
+      const contents = document.querySelectorAll(".tab-content");
+      tabs.forEach((tab, i) => {
+        tab.classList.toggle("active", i === index);
+        contents[i].classList.toggle("active", i === index);
+      });
+    }
+
+    function filterTable(tabIndex, columnIndex, keyword) {
+      const table = document.querySelectorAll(".tab-content")[tabIndex].querySelector("table");
+      const rows = table.querySelectorAll("tbody tr");
+      keyword = keyword.trim().toLowerCase();
+      rows.forEach(row => {
+        const cell = row.cells[columnIndex];
+        const text = cell.textContent.toLowerCase();
+        row.style.display = text.includes(keyword) ? "" : "none";
+      });
+    }
+  </script>
+</body>
+</html>

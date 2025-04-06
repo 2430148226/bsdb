@@ -141,6 +141,8 @@
     <div class="tabs">
       <div class="tab active" onclick="switchTab(0)">保温系统</div>
       <div class="tab" onclick="switchTab(1)">涂料</div>
+      <div class="tab" onclick="switchTab(2)">防水材料</div>
+      <div class="tab" onclick="switchTab(3)">特种砂浆</div>
     </div>
 
     <!-- 保温系统 -->
@@ -169,7 +171,7 @@
             <tr>
               <td>2</td>
               <td>有机保温板（XPS 板）外墙内保温系统</td>
-              <td><a href="docs/systemB-check.pdf" target="_blank">检验报告.pdf</a></td>
+              <td><a href="docs/2022年6月XPS板薄抹灰外墙内保温系统-副本.pdf" target="_blank">检验报告.pdf</a></td>
               <td>内墙</td>
             </tr>
             <tr>
@@ -309,21 +311,191 @@
             <tr>
               <th style="width: 80px;">序号</th>
               <th style="width: 400px;">涂料名称</th>
+              <th style="width: 200px;">备注</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>1</td>
-              <td>乳胶漆</td>
+              <td>砂璧状建筑涂料（真石漆）</td>
+              <td></td>
             </tr>
             <tr>
               <td>2</td>
-              <td>抗碱底漆</td>
+              <td>仿石真石漆</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>内外墙乳胶漆</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>内墙防霉涂料</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>水包砂多彩涂料</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>水包水多彩涂料</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td>弹性平涂</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td>金属漆</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>9</td>
+              <td>氟碳漆</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>10</td>
+              <td>反射隔热涂料</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>11</td>
+              <td>无机液态防火涂料</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>12</td>
+              <td>抗碱渗透底漆</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>13</td>
+              <td>罩面漆</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>14</td>
+              <td>中空玻璃玻珠保温隔热材料</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>15</td>
+              <td>拉毛涂料</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>16</td>
+              <td>硅藻泥</td>
+              <td></td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
+
+     <!-- 装饰线条 -->
+<div class="tab-content" id="tab-2">
+  <div class="search-box">
+    <label>名称：</label>
+    <input type="text" placeholder="请输入关键词" onkeyup="filterTable(2, 1, this.value)" />
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 80px;">序号</th>
+          <th style="width: 400px;">涂料名称</th>
+          <th style="width: 200px;">备注</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>水泥基渗透结晶型防水涂料</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>聚合物水泥 JS 防水涂料</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>K11防水涂料</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>瓷砖背胶（单组份）</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 腻子材料 -->
+<div class="tab-content" id="tab-3">
+  <div class="search-box">
+    <label>名称：</label>
+    <input type="text" placeholder="请输入关键词" onkeyup="filterTable(3, 1, this.value)" />
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 80px;">序号</th>
+          <th style="width: 400px;">砂浆名称</th>
+          <th style="width: 200px;">备注</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>外墙柔性腻子</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>面砖粘结剂</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>面砖勾缝剂</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>界面砂浆</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>抗裂砂浆</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>胶黏剂</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>抹面胶浆</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
   </div>
 
   <script>

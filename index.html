@@ -10,15 +10,46 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     :root {
-      --primary: #3498db;
-      --primary-dark: #2980b9;
-      --secondary: #2c3e50;
-      --secondary-dark: #1a252f;
-      --light: #ecf0f1;
-      --gray: #95a5a6;
+      --primary: #4361ee;
+      --primary-light: #4895ef;
+      --primary-dark: #3a0ca3;
+      --secondary: #2b2d42;
+      --secondary-light: #8d99ae;
+      --secondary-dark: #14213d;
+      --light: #f8f9fa;
+      --light-gray: #e9ecef;
+      --gray: #adb5bd;
       --white: #ffffff;
-      --accent: #e74c3c;
-      --success: #2ecc71;
+      --accent: #f72585;
+      --success: #06d6a0;
+      --warning: #ffd166;
+      --danger: #ef476f;
+      --text: #2b2d42;
+      --text-muted: #6c757d;
+      
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+      
+      --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 16px;
+    }
+    
+    [data-theme="dark"] {
+      --primary: #4cc9f0;
+      --primary-light: #4895ef;
+      --primary-dark: #3a0ca3;
+      --secondary: #2b2d42;
+      --secondary-light: #8d99ae;
+      --secondary-dark: #14213d;
+      --light: #2b2d42;
+      --light-gray: #343a40;
+      --gray: #6c757d;
+      --white: #212529;
+      --text: #f8f9fa;
+      --text-muted: #adb5bd;
     }
     
     * {
@@ -29,23 +60,53 @@
     
     body {
       font-family: 'Nunito', 'Microsoft YaHei', sans-serif;
-      background-color: #f8f9fa;
+      background-color: var(--light);
       display: flex;
       flex-direction: column;
       height: 100vh;
-      color: #333;
+      color: var(--text);
+      transition: var(--transition);
     }
     
     header {
-      height: 60px;
-      background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
+      height: 64px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
       color: white;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       padding: 0 24px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-md);
       position: relative;
       z-index: 10;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .theme-toggle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .theme-toggle:hover {
+      background-color: rgba(255, 255, 255, 0.2);
     }
     
     .logo {
@@ -68,21 +129,43 @@
     }
     
     .sidebar {
-      width: 250px;
+      width: 260px;
       background: linear-gradient(180deg, var(--secondary) 0%, var(--secondary-dark) 100%);
       color: white;
       overflow-y: auto;
-      box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
+      box-shadow: var(--shadow-lg);
+      transition: var(--transition);
+      position: relative;
     }
     
-    .sidebar h2 {
-      padding: 24px 0;
+    .sidebar-header {
+      padding: 24px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .sidebar-header h2 {
       margin: 0;
       font-weight: 700;
       font-size: 18px;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .sidebar-toggle {
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      background-color: rgba(255, 255, 255, 0.1);
+      transition: var(--transition);
+    }
+    
+    .sidebar-toggle:hover {
+      background-color: rgba(255, 255, 255, 0.2);
     }
     
     .menu-list {
@@ -93,30 +176,53 @@
     .menu-item {
       padding: 14px 24px;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: var(--transition);
       margin: 4px 12px;
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       gap: 12px;
       font-weight: 600;
       position: relative;
+      overflow: hidden;
     }
     
     .menu-item i {
       font-size: 18px;
       width: 24px;
       text-align: center;
+      transition: var(--transition);
+    }
+    
+    .menu-item span {
+      transition: var(--transition);
+    }
+    
+    .menu-item::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 3px;
+      background-color: var(--primary-light);
+      transition: var(--transition);
+      border-radius: var(--radius-sm);
     }
     
     .menu-item:hover {
       background-color: rgba(255, 255, 255, 0.1);
     }
     
+    .menu-item:hover::after {
+      width: 100%;
+    }
+    
     .menu-item.active {
       background-color: var(--primary);
       color: white;
-      box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+      box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+      transform: translateY(-2px);
     }
     
     .menu-item.active::before {
@@ -136,28 +242,78 @@
       overflow: hidden;
       background-color: var(--light);
       position: relative;
-      border-radius: 20px 0 0 0;
+      border-radius: var(--radius-lg) 0 0 0;
       margin-left: -20px;
       padding-left: 20px;
       box-shadow: -10px 0 20px rgba(0, 0, 0, 0.05);
+      transition: var(--transition);
+    }
+    
+    .breadcrumb {
+      padding: 16px 24px;
+      background-color: var(--white);
+      border-radius: var(--radius-lg) 0 0 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--text-muted);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .breadcrumb-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .breadcrumb-separator {
+      font-size: 10px;
+      color: var(--gray);
+    }
+    
+    .breadcrumb-current {
+      color: var(--primary);
+    }
+    
+    .page-container {
+      height: calc(100% - 56px);
+      position: relative;
     }
     
     .page {
       display: none;
       height: 100%;
       background-color: var(--white);
-      border-radius: 20px 0 0 0;
       overflow: hidden;
+      transition: var(--transition);
+      opacity: 0;
+      transform: translateY(10px);
     }
     
     .page.active {
       display: block;
+      opacity: 1;
+      transform: translateY(0);
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
     
     iframe {
       width: 100%;
       height: 100%;
       border: none;
+      transition: var(--transition);
     }
     
     .loading-overlay {
@@ -166,34 +322,89 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255,255,255,0.9);
+      background: rgba(248, 249, 250, 0.9);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 1000;
       display: none;
+      transition: var(--transition);
+    }
+    
+    [data-theme="dark"] .loading-overlay {
+      background: rgba(33, 37, 41, 0.9);
     }
     
     .spinner {
-      width: 50px;
-      height: 50px;
-      border: 5px solid rgba(52, 152, 219, 0.2);
-      border-top: 5px solid var(--primary);
+      display: inline-block;
+      position: relative;
+      width: 64px;
+      height: 64px;
+    }
+    
+    .spinner div {
+      position: absolute;
+      top: 27px;
+      width: 11px;
+      height: 11px;
       border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 16px;
+      background: var(--primary);
+      animation-timing-function: cubic-bezier(0, 1, 1, 0);
+    }
+    
+    .spinner div:nth-child(1) {
+      left: 6px;
+      animation: spinner1 0.6s infinite;
+    }
+    
+    .spinner div:nth-child(2) {
+      left: 6px;
+      animation: spinner2 0.6s infinite;
+    }
+    
+    .spinner div:nth-child(3) {
+      left: 26px;
+      animation: spinner2 0.6s infinite;
+    }
+    
+    .spinner div:nth-child(4) {
+      left: 45px;
+      animation: spinner3 0.6s infinite;
+    }
+    
+    @keyframes spinner1 {
+      0% {
+        transform: scale(0);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+    
+    @keyframes spinner3 {
+      0% {
+        transform: scale(1);
+      }
+      100% {
+        transform: scale(0);
+      }
+    }
+    
+    @keyframes spinner2 {
+      0% {
+        transform: translate(0, 0);
+      }
+      100% {
+        transform: translate(19px, 0);
+      }
     }
     
     .loading-text {
       font-size: 16px;
       font-weight: 600;
-      color: var(--primary-dark);
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      color: var(--primary);
+      margin-top: 16px;
     }
     
     /* 响应式设计 */
@@ -206,7 +417,7 @@
       }
       
       .sidebar.show {
-        width: 250px;
+        width: 260px;
       }
       
       .main-content {
@@ -214,7 +425,7 @@
         border-radius: 0;
       }
       
-      .page {
+      .breadcrumb {
         border-radius: 0;
       }
       
@@ -229,34 +440,87 @@
     .menu-toggle {
       display: none;
     }
+    
+    /* 侧边栏折叠状态 */
+    .sidebar.collapsed {
+      width: 70px;
+    }
+    
+    .sidebar.collapsed .menu-item {
+      padding: 14px 0;
+      justify-content: center;
+    }
+    
+    .sidebar.collapsed .menu-item span {
+      display: none;
+    }
+    
+    .sidebar.collapsed + .main-content {
+      margin-left: 50px;
+    }
+    
+    .sidebar.collapsed .sidebar-header h2 {
+      display: none;
+    }
+    
+    /* 主题适配 */
+    [data-theme="dark"] body {
+      background-color: var(--light);
+    }
+    
+    [data-theme="dark"] .main-content {
+      background-color: var(--light);
+    }
+    
+    [data-theme="dark"] .breadcrumb {
+      background-color: var(--white);
+    }
+    
+    [data-theme="dark"] .page {
+      background-color: var(--white);
+    }
   </style>
 </head>
 <body>
   <header>
-    <div class="menu-toggle" id="menu-toggle">
-      <i class="fas fa-bars"></i>
+    <div class="header-left">
+      <div class="menu-toggle" id="menu-toggle">
+        <i class="fas fa-bars"></i>
+      </div>
+      <div class="logo">
+        <i class="fas fa-chart-line"></i>
+        <span>集合平台</span>
+      </div>
     </div>
-    <div class="logo">
-      <i class="fas fa-chart-line"></i>
-      <span>集合平台</span>
+    <div class="header-right">
+      <div class="theme-toggle" id="theme-toggle">
+        <i class="fas fa-moon"></i>
+      </div>
     </div>
   </header>
   
   <div class="container">
     <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>功能导航</h2>
+        <div class="sidebar-toggle" id="sidebar-toggle">
+          <i class="fas fa-chevron-left"></i>
+        </div>
+      </div>
       <ul class="menu-list">
-        <li class="menu-item" onclick="showPage('page-kl', 'bscp.html?page=input', this)">
-        <i class="fas fa-calculator"></i>
-        <span>公司产品</span>
-        <li class="menu-item active" onclick="showPage('page-ydhz', 'ydhz.html?page=main', this)">
+        <li class="menu-item" onclick="showPage('page-kl', 'bscp.html?page=input', this, '公司产品')">
+          <i class="fas fa-calculator"></i>
+          <span>公司产品</span>
+        </li>
+        <li class="menu-item active" onclick="showPage('page-ydhz', 'ydhz.html?page=main', this, '月度报表')">
           <i class="fas fa-file-alt"></i>
           <span>月度报表</span>
         </li>
-        <li class="menu-item" onclick="showPage('page-kl', 'kl.html?page=input', this)">
+        <li class="menu-item" onclick="showPage('page-kl', 'kl.html?page=input', this, '抗拉计算')">
           <i class="fas fa-calculator"></i>
           <span>抗拉计算</span>
         </li>
-        <li class="menu-item" onclick="showPage('page-bsbz', 'bsbz.html?page=default', this)">
+        <li class="menu-item" onclick="showPage('page-bsbz', 'bsbz.html?page=default', this, '计价标准')">
           <i class="fas fa-clipboard-list"></i>
           <span>计价标准</span>
         </li>
@@ -264,24 +528,47 @@
     </div>
     
     <div class="main-content">
-      <div id="loading" class="loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text">页面加载中...</div>
+      <div class="breadcrumb">
+        <div class="breadcrumb-item">
+          <i class="fas fa-home"></i>
+          <span>首页</span>
+        </div>
+        <div class="breadcrumb-separator">
+          <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="breadcrumb-item breadcrumb-current" id="current-page">
+          月度报表
+        </div>
       </div>
-      <div id="page-ydhz" class="page active">
-        <iframe id="iframe-ydhz" src="ydhz.html?page=main"></iframe>
-      </div>
-      <div id="page-kl" class="page">
-        <iframe id="iframe-kl" src=""></iframe>
-      </div>
-      <div id="page-bsbz" class="page">
-        <iframe id="iframe-bsbz" src=""></iframe>
+      
+      <div class="page-container">
+        <div id="loading" class="loading-overlay">
+          <div class="spinner">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+          <div class="loading-text">页面加载中...</div>
+        </div>
+        <div id="page-ydhz" class="page active">
+          <iframe id="iframe-ydhz" src="ydhz.html?page=main"></iframe>
+        </div>
+        <div id="page-kl" class="page">
+          <iframe id="iframe-kl" src=""></iframe>
+        </div>
+        <div id="page-bsbz" class="page">
+          <iframe id="iframe-bsbz" src=""></iframe>
+        </div>
       </div>
     </div>
   </div>
   
   <script>
-    function showPage(pageId, pageUrl, element) {
+    function showPage(pageId, pageUrl, element, pageName) {
+      // 更新面包屑
+      document.getElementById('current-page').textContent = pageName || element.querySelector('span').textContent;
+      
       // 隐藏所有页面
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       
@@ -306,6 +593,7 @@
 
       // 记住当前页面
       localStorage.setItem('lastPageId', pageId);
+      localStorage.setItem('lastPageName', pageName || element.querySelector('span').textContent);
       
       // 在移动端自动关闭侧边栏
       if (window.innerWidth <= 768) {
@@ -317,13 +605,75 @@
     document.getElementById('menu-toggle').addEventListener('click', function() {
       document.getElementById('sidebar').classList.toggle('show');
     });
+    
+    // 侧边栏折叠/展开
+    document.getElementById('sidebar-toggle').addEventListener('click', function() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+      
+      // 更新图标
+      const icon = this.querySelector('i');
+      if (sidebar.classList.contains('collapsed')) {
+        icon.classList.remove('fa-chevron-left');
+        icon.classList.add('fa-chevron-right');
+      } else {
+        icon.classList.remove('fa-chevron-right');
+        icon.classList.add('fa-chevron-left');
+      }
+      
+      // 保存状态
+      localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+    });
+    
+    // 暗色/亮色模式切换
+    document.getElementById('theme-toggle').addEventListener('click', function() {
+      const body = document.body;
+      const icon = this.querySelector('i');
+      
+      if (body.getAttribute('data-theme') === 'dark') {
+        body.removeAttribute('data-theme');
+        icon.classList.remove('fa-sun');
+        icon.classList.add('fa-moon');
+      } else {
+        body.setAttribute('data-theme', 'dark');
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+      }
+      
+      // 保存主题状态
+      localStorage.setItem('theme', body.getAttribute('data-theme') || 'light');
+    });
 
     // 页面加载时自动跳转到上次访问的页面
     window.onload = function() {
+      // 加载保存的主题
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        if (savedTheme === 'dark') {
+          document.body.setAttribute('data-theme', 'dark');
+          document.querySelector('#theme-toggle i').classList.remove('fa-moon');
+          document.querySelector('#theme-toggle i').classList.add('fa-sun');
+        }
+      }
+      
+      // 加载保存的侧边栏状态
+      const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+      if (sidebarCollapsed) {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.add('collapsed');
+        document.querySelector('#sidebar-toggle i').classList.remove('fa-chevron-left');
+        document.querySelector('#sidebar-toggle i').classList.add('fa-chevron-right');
+      }
+      
+      // 加载上次访问的页面
       const savedId = localStorage.getItem('lastPageId') || 'page-ydhz';
+      const savedName = localStorage.getItem('lastPageName') || '月度报表';
       const menu = document.querySelector(`.menu-item[onclick*='${savedId}']`);
       if (menu) {
         menu.click();
+      } else {
+        // 更新面包屑
+        document.getElementById('current-page').textContent = savedName;
       }
       
       // 初始化iframe onload事件

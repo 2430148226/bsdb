@@ -23,10 +23,14 @@
     }
 
     .tabs {
-      display: flex;
-      border-bottom: 2px solid #dcdfe6;
-      margin-bottom: 20px;
-    }
+     display: flex;
+     position: sticky;
+     top: 0;
+     background-color: white;
+     z-index: 10;
+     border-bottom: 2px solid #dcdfe6;
+     padding-top: 10px;
+  }
 
     .tab {
       padding: 10px 24px;
@@ -62,10 +66,18 @@
     }
 
     .table-wrapper {
-      border: 1px solid #dcdfe6;
-      border-radius: 4px;
-      overflow: hidden;
-    }
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    overflow-y: auto;
+    max-height: 400px; /* 根据实际调整高度 */
+   }
+
+   .table-wrapper thead th {
+   position: sticky;
+   top: 0;
+   background-color: #f5f7fa;
+   z-index: 5;
+  }
 
     table {
       width: 100%;
@@ -124,8 +136,9 @@
     }
 
     .search-box {
-      margin-bottom: 10px;
-    }
+    margin-top: 20px;   /* 上方空20px */
+    margin-bottom: 10px; /* 下方空10px（原有的） */
+   }
 
     .search-box input {
       padding: 6px 10px;

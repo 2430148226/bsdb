@@ -2,80 +2,253 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>月度生产发货报表</title>
+  <title>月度生产发货报表 (Supabase 规则存储)</title>
+  <!-- 引入 SheetJS 库 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- 引入 Supabase 客户端库 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    /* --- 样式部分保持不变，此处省略 --- */
     /* 页面和容器基本样式 */
     body {
-      font-family: "Microsoft YaHei", sans-serif;
+      font-family: "Microsoft YaHei", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f2f4f8;
       margin: 0;
+      padding: 20px;
+      font-size: 14px; /* Base font size */
     }
     .container {
-      max-width: 1200px;
-      margin: 40px auto;
+      max-width: 1400px; /* Increased width for rules */
+      margin: 20px auto;
       background-color: #fff;
-      padding: 20px;
+      padding: 30px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
       position: relative;
     }
     /* 按钮组样式 */
     .button-group {
-      position: absolute;
-      top: 20px;
-      right: 20px;
+      margin-bottom: 20px;
+      text-align: right;
     }
     .button-group label {
       background-color: #3498db;
       color: #fff;
-      padding: 8px 16px;
+      padding: 10px 20px;
       margin-left: 10px;
       border-radius: 6px;
       cursor: pointer;
+      transition: background-color 0.3s ease;
+      display: inline-block;
+    }
+    .button-group label:hover {
+      background-color: #2980b9;
     }
     input[type="file"] {
       display: none;
     }
-    h1 {
-      text-align: center;
+    h1, h2, h3, h4 {
       color: #2c3e50;
+      margin-top: 0;
     }
+     h1 { text-align: center; margin-bottom: 30px; }
+     h2 { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+     h3 { margin-top: 25px; margin-bottom: 10px; font-size: 1.1em;}
+     h4 { margin-top: 15px; margin-bottom: 8px; font-size: 1em; color: #34495e;}
+
     /* 固定数据表格样式 */
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 15px;
-      margin-top: 20px;
+      font-size: 14px;
+      margin-top: 10px; /* Reduced margin */
+      border: 1px solid #ddd;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
+      border: 1px solid #e0e6ed;
+      padding: 10px 8px; /* Adjusted padding */
       text-align: center;
+      vertical-align: middle;
     }
     th {
       background-color: #f5f7fa;
+      color: #5a6a7e;
+      font-weight: 600;
     }
-    tr:nth-child(even) {
+    tbody tr:nth-child(even) {
       background-color: #fbfcfd;
     }
-    tr:hover {
-      background-color: #f1f8ff;
+    tbody tr:hover {
+      background-color: #eef5ff;
     }
+    /* 高亮样式 */
+    .highlight {
+        color: #e74c3c;
+        font-weight: bold;
+    }
+
+    /* 规则管理区域样式 */
+    #rule-management {
+        margin-bottom: 30px;
+        border: 1px solid #ccc;
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #f9fafc;
+    }
+    #rule-management h2 button,
+    #rule-management button {
+        font-size: 0.9em;
+        padding: 5px 10px;
+        margin-left: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        background-color: #eee;
+        transition: background-color 0.2s ease;
+    }
+     #rule-management h2 button {
+        font-size: 0.8em;
+        padding: 3px 8px;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+    #rule-management button:hover:not(:disabled) {
+        background-color: #ddd;
+    }
+    #rule-management button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    #rule-management button[type="submit"] {
+        background-color: #2ecc71;
+        color: white;
+        border-color: #27ae60;
+    }
+    #rule-management button[type="submit"]:hover:not(:disabled) {
+        background-color: #27ae60;
+    }
+    #rule-management button#reset-rules-btn {
+        background-color: #e74c3c;
+        color: white;
+        border-color: #c0392b;
+        margin-bottom: 15px;
+    }
+    #rule-management button#reset-rules-btn:hover:not(:disabled) {
+        background-color: #c0392b;
+    }
+    #rule-management button.delete-btn {
+        background-color: #f1c40f;
+        border-color: #f39c12;
+        color: #333;
+    }
+     #rule-management button.delete-btn:hover:not(:disabled) {
+        background-color: #f39c12;
+    }
+     #rule-management button.cancel-btn {
+        background-color: #bdc3c7;
+        border-color: #95a5a6;
+     }
+      #rule-management button.cancel-btn:hover:not(:disabled) {
+        background-color: #95a5a6;
+     }
+
+
+    #rules-content {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+    }
+    #mapping-rules-table, #exclusion-rules-table {
+        font-size: 12px;
+        margin-bottom: 15px;
+    }
+     #mapping-rules-table th, #mapping-rules-table td,
+     #exclusion-rules-table th, #exclusion-rules-table td {
+         padding: 6px 4px;
+         word-break: break-word; /* Allow long keywords to wrap */
+     }
+    #add-mapping-rule-form input[type="text"],
+    #add-exclusion-rule-form input[type="text"] {
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        font-size: 0.9em;
+        min-width: 150px; /* Min width for inputs */
+    }
+     #add-mapping-rule-form, #add-exclusion-rule-form {
+        background-color: #ecf0f1;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 10px;
+    }
+
+
     /* 未匹配数据展示区域样式 */
     #unmatched-div {
       margin-top: 40px;
-      padding: 10px;
-      border: 1px dashed #999;
+      padding: 20px;
+      border: 1px solid #e0e6ed;
+      border-radius: 8px;
+      background-color: #fff9f9;
     }
     #unmatched-div h2 {
-      margin: 0 0 10px;
+      margin: 0 0 15px;
       font-size: 18px;
       color: #e74c3c;
+      text-align: center;
+      border-bottom: 1px solid #fde2e2;
+      padding-bottom: 10px;
+    }
+    #unmatched-table table {
+        font-size: 13px;
+        box-shadow: none;
+        border: 1px solid #fbc4c4;
+    }
+    #unmatched-table th {
+        background-color: #fcecec;
+        color: #c0392b;
+    }
+    #unmatched-table td {
+        border-color: #fddbdb;
+        word-break: break-all;
+    }
+     #unmatched-table td span { /* Style for empty cell marker */
+        color:#aaa;
+        font-style: italic;
+     }
+    #unmatched-table tr:nth-child(even) {
+        background-color: #fffafa;
+    }
+    #unmatched-table tr:hover {
+        background-color: #fbeeee;
+    }
+    /* Loading overlay style */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        font-size: 1.2em;
+        color: #333;
     }
   </style>
 </head>
 <body onload="console.log('页面加载完成')">
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <span>处理中，请稍候...</span>
+  </div>
+
   <div class="container">
     <!-- 文件上传按钮 -->
     <div class="button-group">
@@ -86,10 +259,93 @@
     </div>
 
     <h1>月度生产发货报表</h1>
-    
+
+    <!-- 规则管理区域 -->
+    <div id="rule-management">
+        <h2>规则管理 <button id="toggle-rules-btn">显示/隐藏</button></h2>
+        <div id="rules-content" style="display: none;"> <!-- 默认隐藏 -->
+            <button id="reset-rules-btn">恢复默认规则</button>
+
+            <h3>匹配规则 (Mapping Rules)</h3>
+            <p style="font-size: 0.85em; color: #555;">定义如何将 Excel 行映射到报表项。关键词用英文逗号 (,) 分隔。</p>
+            <table id="mapping-rules-table">
+                <thead>
+                    <tr>
+                        <th>报表项 (Key)</th>
+                        <th>匹配字段 (Field)</th>
+                        <th>关键词 (Keywords)</th>
+                        <th>次要字段</th>
+                        <th>次要关键词</th>
+                        <th>单位字段</th>
+                        <th>单位关键词</th>
+                        <th>父级关键词</th>
+                        <th style="width: 100px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 规则将由 JS 动态填充 -->
+                    <tr><td colspan="9" style="text-align: center;">正在加载规则...</td></tr>
+                </tbody>
+            </table>
+            <form id="add-mapping-rule-form">
+                <h4>添加/修改匹配规则</h4>
+                <input type="hidden" id="edit-mapping-id"> <!-- Changed from index to id -->
+                <input type="text" id="mapping-key" placeholder="报表项 (必填)" required>
+                <input type="text" id="mapping-field" placeholder="匹配字段 (必填)" required list="common-fields">
+                <input type="text" id="mapping-keywords" placeholder="关键词 (必填, 逗号分隔)" required>
+                <br>
+                <input type="text" id="mapping-secondaryField" placeholder="次要字段 (可选)">
+                <input type="text" id="mapping-secondaryKeywords" placeholder="次要关键词 (可选, 逗号分隔)">
+                <br>
+                <input type="text" id="mapping-unitField" placeholder="单位字段 (可选)">
+                <input type="text" id="mapping-unitKeywords" placeholder="单位关键词 (可选, 逗号分隔)">
+                <br>
+                <input type="text" id="mapping-parentKeywords" placeholder="父级关键词 (可选, 逗号分隔)">
+                <br>
+                <button type="submit" id="save-mapping-rule-btn">保存规则</button>
+                <button type="button" id="cancel-edit-mapping-btn" class="cancel-btn" style="display: none;">取消编辑</button>
+            </form>
+            <datalist id="common-fields">
+                <option value="商品名称"></option>
+                <option value="规格型号"></option>
+                <option value="单位"></option>
+                <option value="备注"></option>
+            </datalist>
+
+            <hr style="margin: 30px 0;">
+
+            <h3>特殊排除规则 (Special Exclusions)</h3>
+            <p style="font-size: 0.85em; color: #555;">定义哪些关键词即使匹配了，也应从某个报表项中排除。关键词用英文逗号 (,) 分隔。</p>
+            <table id="exclusion-rules-table">
+               <thead>
+                    <tr>
+                        <th>报表项 (Key)</th>
+                        <th>需排除的关键词</th>
+                        <th style="width: 100px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 排除规则将由 JS 动态填充 -->
+                    <tr><td colspan="3" style="text-align: center;">正在加载规则...</td></tr>
+                </tbody>
+            </table>
+             <form id="add-exclusion-rule-form">
+                <h4>添加/修改排除规则</h4>
+                <input type="hidden" id="edit-exclusion-key-original"> <!-- Store original key for updates -->
+                <input type="text" id="exclusion-key" placeholder="报表项 (必填)" required list="report-item-keys">
+                <input type="text" id="exclusion-keywords" placeholder="需排除的关键词 (必填, 逗号分隔)" required>
+                <button type="submit" id="save-exclusion-rule-btn">保存排除</button>
+                 <button type="button" id="cancel-edit-exclusion-btn" class="cancel-btn" style="display: none;">取消编辑</button>
+            </form>
+            <datalist id="report-item-keys">
+                <!-- Dynamically populated -->
+            </datalist>
+        </div>
+    </div>
+
     <!-- 固定数据表格 -->
     <table id="data-table">
-      <thead>
+       <thead>
         <tr>
           <th>车间</th>
           <th>产品名称</th>
@@ -99,493 +355,1159 @@
         </tr>
       </thead>
       <tbody>
-        <!-- 示例固定数据（请根据实际报表填写） -->
+        <!-- 表格行保持不变，此处省略 -->
+        <!-- 砂浆车间 -->
         <tr>
           <td rowspan="7">砂浆车间</td>
-          <td>无机类</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>无机类</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>FTC</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>FTC</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>胶粉聚苯颗粒</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>胶粉聚苯颗粒</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>石膏类</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>石膏类</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>砂浆类</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>砂浆类</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>膏料（干）</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>膏料（干）</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>腻子类</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>腻子类</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 膏料 -->
         <tr>
-          <td rowspan="1">膏料</td>
           <td>膏料</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>膏料</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 涂料 -->
         <tr>
           <td rowspan="7">涂料</td>
-          <td>其他涂料</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>其他涂料</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>抗碱底漆</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>抗碱底漆</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>乳胶漆</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>乳胶漆</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>多彩涂料</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>多彩涂料</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>真石漆</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>真石漆</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>质感</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>质感</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>弹性平涂</td>
-          <td>吨</td>
-          <td></td>
-          <td></td>
+          <td>弹性平涂</td><td>吨</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 复合板 -->
         <tr>
           <td rowspan="6">复合板</td>
-          <td>挤塑板+石膏板</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>挤塑板+石膏板</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>EPS板+石膏板</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>EPS板+石膏板</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>挤塑板+水泥板</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>挤塑板+水泥板</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>EPS板+水泥板</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>EPS板+水泥板</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>岩棉板+石膏板</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>岩棉板+石膏板</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>热固板+硅酸钙板</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>热固板+硅酸钙板</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 石墨不燃板 -->
         <tr>
           <td rowspan="2">石墨不燃板</td>
-          <td>白颗粒</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>白颗粒</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>黑颗粒</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>黑颗粒</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 真金板 -->
         <tr>
           <td rowspan="3">真金板</td>
-          <td>真金板</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>真金板</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>033级</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>033级</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>039级</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>039级</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 一体板 -->
         <tr>
           <td rowspan="7">一体板</td>
-          <td>真石漆饰面</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>真石漆饰面</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>弹性平涂</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>弹性平涂（平方）</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>金属漆</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>金属漆</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>水包水饰面</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>水包水饰面</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>水包砂饰面</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>水包砂饰面</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>乳胶漆饰面</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>乳胶漆饰面</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>无饰面</td>
-          <td>平方</td>
-          <td></td>
-          <td></td>
+          <td>无饰面</td><td>平方</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 免拆模板 -->
         <tr>
           <td rowspan="3">免拆模板</td>
-          <td>10cm</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>10cm</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>5cm</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>5cm</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>4cm</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>4cm</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 挤塑板 -->
         <tr>
-          <td rowspan="1">挤塑板</td>
           <td>挤塑板</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>挤塑板</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 无机轻集料 -->
        <tr>
-          <td rowspan="1">无机轻集料</td>
           <td>无机轻集料</td>
-          <td>立方</td>
-          <td></td>
-          <td></td>
+          <td>无机轻集料</td><td>立方</td><td>0.00</td><td>0.00</td>
         </tr>
+        <!-- 线条 -->
        <tr>
           <td rowspan="5">线条</td>
-          <td>EPS线条</td>
-          <td>米</td>
-          <td></td>
-          <td></td>
+          <td>EPS线条 (米)</td><td>米</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>EPS裸线条</td>
-          <td>米</td>
-          <td></td>
-          <td></td>
+          <td>EPS裸线条</td><td>米</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>A级线条</td>
-          <td>米</td>
-          <td></td>
-          <td></td>
+          <td>A级线条</td><td>米</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>石墨EPS线条</td>
-          <td>米</td>
-          <td></td>
-          <td></td>
+          <td>石墨EPS线条</td><td>米</td><td>0.00</td><td>0.00</td>
         </tr>
         <tr>
-          <td>EPS线条</td>
-          <td>根</td>
-          <td></td>
-          <td></td>
+          <td>EPS线条 (根)</td><td>根</td><td>0.00</td><td>0.00</td>
         </tr>
-        <!-- 其他固定数据行…… -->
       </tbody>
     </table>
 
     <!-- 未匹配数据展示区域 -->
     <div id="unmatched-div">
       <h2 id="unmatched-title">未匹配的数据</h2>
-      <div id="unmatched-table"></div>
+      <div id="unmatched-table"><p>请先导入 Excel 文件。</p></div>
     </div>
   </div>
 
   <script>
-    /*************** 1. 特殊情况设置 ***************/
-    // specialRules 对象：统一维护需要排除的特殊情况
-    // 这里新增了“无机类”的特殊排除规则，排除【商品名称】中包含“水泥基无机保温砂浆试块”
-    const specialRules = {
-      "砂浆类": {
-        exclusions: ["水泥基无机保温砂浆", "胶粉聚苯颗粒保温砂浆", "水泥基无机保温砂浆试块"]
-      },
-      "膏料": {
-        exclusions: ["无机保温膏料（干）"]
-      },
-      "无机类": {
-        exclusions: ["水泥基无机保温砂浆试块"]
-      }
-    };
+    /************************************************************************
+     *                           SUPABASE CONFIGURATION
+     ************************************************************************/
+    const SUPABASE_URL = 'https://kkisabzmyiouksfczsrt.supabase.co'; // <--- 替换!
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraXNhYnpteWlvdWtzZmN6c3J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1NTY5NjcsImV4cCI6MjA2MTEzMjk2N30.s_euUCvAyH9LQ-N7Oh4OiG7uTgQWFvbhDt8dwHdObOI'; // <--- 替换!
 
-    /*************** 2. 标准化函数 ***************/
-    function normalize(str) {
-      return str.toString().toLowerCase().trim()
-                .replace(/\s+/g, '')
-                .replace(/[^\u4e00-\u9fa5a-z0-9]/g, '');
-    }
-
-    /*************** 3. 固定数据表格填充函数 ***************/
-    function fillTable(resultMap, type) {
-      const rows = document.querySelectorAll("#data-table tbody tr");
-      rows.forEach(function(row, rowIndex) {
-        const cells = row.querySelectorAll("td");
-        let pname, prodIndex, shipIndex;
-        if (cells.length === 5) {
-          // 正常行：[车间, 产品名称, 单位, 生产量, 发货量]
-          pname = normalize(cells[1].innerText);
-          prodIndex = 3;
-          shipIndex = 4;
-        } else if (cells.length === 4) {
-          // 合并行：[产品名称, 单位, 生产量, 发货量]（车间由上一行合并）
-          pname = normalize(cells[0].innerText);
-          prodIndex = 2;
-          shipIndex = 3;
-        } else {
-          console.log(`第${rowIndex+1}行单元格数量异常：`, cells.length);
-          return;
+    // Initialize Supabase client
+    let supabaseClient;
+    try {
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+             throw new Error("Supabase URL 或 Anon Key 未配置。请在代码中替换占位符。");
         }
-        console.log(`第${rowIndex+1}行固定产品名称标准化后：`, pname);
-        if (resultMap[pname] !== undefined) {
-          if (type === "生产量") {
-            cells[prodIndex].innerText = resultMap[pname]["生产量"].toFixed(2);
-            cells[prodIndex].style.color = "red";
-          }
-          if (type === "发货量") {
-            cells[shipIndex].innerText = resultMap[pname]["发货量"].toFixed(2);
-            cells[shipIndex].style.color = "red";
-          }
-          console.log(`第${rowIndex+1}行产品 [${cells.length === 5 ? cells[1].innerText : cells[0].innerText}] 匹配到键 [${pname}] ->`, resultMap[pname]);
-        } else {
-          console.log(`第${rowIndex+1}行产品 [${cells.length === 5 ? cells[1].innerText : cells[0].innerText}] 未匹配到任何结果。`);
-        }
-      });
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log("Supabase client initialized.");
+    } catch (error) {
+        console.error("Supabase 初始化失败:", error);
+        alert(`Supabase 初始化失败: ${error.message}\n规则将无法从数据库加载或保存。`);
+        // Optionally disable rule management features if Supabase fails
+        // document.getElementById('rule-management').style.display = 'none';
     }
 
-    /*************** 4. 未匹配数据展示函数 ***************/
-    // 显示所有未匹配数据的所有字段（取所有记录的键的并集），空值显示为 "/"
-    function displayUnmatchedRows(unmatchedRows, type) {
-      let headerText = (type === "生产量") ? "未匹配的入库数据" : "未匹配的发货数据";
-      document.getElementById("unmatched-title").innerText = headerText;
-      
-      if (unmatchedRows.length === 0) {
-        document.getElementById("unmatched-table").innerHTML = "<p>无未匹配数据。</p>";
-        return;
-      }
-      
-      // 获取所有未匹配记录的所有字段（并集）
-      const allFieldsSet = new Set();
-      unmatchedRows.forEach(function(row) {
-        Object.keys(row).forEach(function(key) {
-          allFieldsSet.add(key);
-        });
-      });
-      const fields = Array.from(allFieldsSet);
-      
-      let html = "<table style='width:100%; border-collapse: collapse; font-size: 15px;'>";
-      // 表头
-      html += "<thead><tr>";
-      fields.forEach(function(field) {
-        html += "<th>" + field + "</th>";
-      });
-      html += "</tr></thead>";
-      // 表体
-      html += "<tbody>";
-      unmatchedRows.forEach(function(row) {
-        html += "<tr>";
-        fields.forEach(function(field) {
-          let value = row[field];
-          if (!value || value === "") {
-            value = "/";
-          }
-          html += "<td>" + value + "</td>";
-        });
-        html += "</tr>";
-      });
-      html += "</tbody></table>";
-      document.getElementById("unmatched-table").innerHTML = html;
-    }
+    /************************************************************************
+     *                           DEFAULT CONFIGURATION AREA
+     *      这些是初始的默认规则，用于恢复默认设置时写入数据库
+     ************************************************************************/
+     const DEFAULT_MAPPING_RULES = [
+        // ** 规格型号优先 **
+        { key: "挤塑板+石膏板", field: "规格型号", keywords: ["石膏板"] },
+        { key: "EPS板+石膏板", field: "规格型号", keywords: ["eps", "聚苯板"], parentKeywords: ["石膏板"] },
+        { key: "挤塑板+水泥板", field: "规格型号", keywords: ["水泥板"] },
+        { key: "EPS板+水泥板", field: "规格型号", keywords: ["eps", "聚苯板"], parentKeywords: ["水泥板"] },
+        { key: "岩棉板+石膏板", field: "规格型号", keywords: ["岩棉板"], parentKeywords: ["石膏板"] },
+        { key: "热固板+硅酸钙板", field: "规格型号", keywords: ["硅酸钙板"] },
+        { key: "真石漆饰面", field: "规格型号", keywords: ["真石漆"] },
+        { key: "弹性平涂（平方）", field: "规格型号", keywords: ["弹性平涂", "弹涂", "弹性涂料"] }, // Added （平方） to key to differentiate from 涂料 section if needed
+        { key: "金属漆", field: "规格型号", keywords: ["金属漆"] }, // 同上
+        { key: "水包水饰面", field: "规格型号", keywords: ["水包水"] },
+        { key: "水包砂饰面", field: "规格型号", keywords: ["水包砂"] },
+        { key: "乳胶漆饰面", field: "规格型号", keywords: ["乳胶漆"] }, // 同上
+        { key: "无饰面", field: "规格型号", keywords: ["无饰面"] },
 
-    /*************** 5. 匹配规则定义 ***************/
-    // 每个规则都指定 field 属性，决定使用哪一列进行匹配
-    const mapping = [
-      { key: "无机类", field: "商品名称", keywords: ["无机保温砂浆"] },
-      { key: "FTC", field: "商品名称", keywords: ["FTC"] },
-      { key: "胶粉聚苯颗粒", field: "商品名称", keywords: ["胶粉聚苯颗粒"] },
-      { key: "砂浆类", field: "商品名称", keywords: ["胶粘剂", "js粉料", "砂浆", "胶浆"] },
-      { key: "膏料（干）", field: "商品名称", keywords: ["膏料（干）"] },
-      { key: "腻子类", field: "商品名称", keywords: ["腻子"] },
-      { key: "膏料", field: "商品名称", keywords: ["膏料"] },
-      { key: "其他涂料", field: "商品名称", keywords: ["涂料", "界面剂"] },
-      { key: "挤塑板+石膏板", field: "规格型号", keywords: ["石膏板"] },
-      { key: "EPS板+石膏板", field: "规格型号", keywords: ["EPS板"] },
-      { key: "挤塑板+水泥板", field: "规格型号", keywords: ["水泥板"] },
-      { key: "岩棉板+石膏板", field: "规格型号", keywords: ["岩棉板"] },
-      { key: "热固板+硅酸钙板", field: "规格型号", keywords: ["硅酸钙板"] },
-      { key: "白颗粒", field: "商品名称", keywords: ["热固复合聚苯乙烯泡沫保温板"] },
-      { key: "黑颗粒", field: "商品名称", keywords: ["无机改性石墨不燃保温板"] },
-      { key: "真石漆饰面", field: "规格型号", keywords: ["真石漆"] },
-      { key: "10cm", field: "规格型号", keywords: ["3000*1200*100"] },
-      { key: "5cm", field: "规格型号", keywords: ["3000*1200*50"] },
-      { key: "033级", field: "商品名称", keywords: ["033级"] },
-      { key: "039级", field: "商品名称", keywords: ["039级"] },
-      { key: "无饰面", field: "规格型号", keywords: ["无饰面"] }
+        // ** 免拆模板规则 (商品名称 + 规格型号) **
+        { key: "10cm", field: "商品名称", keywords: ["外墙保温一体化（现浇混凝土保温板）"], secondaryField: "规格型号", secondaryKeywords: ["*100", "*10公分"] },
+        { key: "5cm", field: "商品名称", keywords: ["外墙保温一体化（现浇混凝土保温板）"], secondaryField: "规格型号", secondaryKeywords: ["*50", "*5公分"] },
+        { key: "4cm", field: "商品名称", keywords: ["外墙保温一体化（现浇混凝土保温板）"], secondaryField: "规格型号", secondaryKeywords: ["*40", "*4公分"] },
+
+        // ** 商品名称匹配 (按报表顺序大致排列) **
+        // * 砂浆车间 *
+        { key: "无机类", field: "商品名称", keywords: ["无机保温砂浆", "无机砂浆"] },
+        { key: "FTC", field: "商品名称", keywords: ["ftc"] },
+        { key: "胶粉聚苯颗粒", field: "商品名称", keywords: ["胶粉聚苯颗粒"] },
+        { key: "石膏类", field: "商品名称", keywords: ["石膏"] }, // 注意：这个可能需要排除规则配合
+        { key: "膏料（干）", field: "商品名称", keywords: ["膏料（干）", "干膏料", "干粉膏料"] },
+        { key: "腻子类", field: "商品名称", keywords: ["腻子"] },
+        { key: "砂浆类", field: "商品名称", keywords: ["胶粘剂", "js粉料", "砂浆", "胶浆", "粘结", "抹面"] }, // 这个比较泛，放后面点
+        // * 膏料 *
+        { key: "膏料", field: "商品名称", keywords: ["膏料"] }, // 可能需要排除规则配合
+        // * 涂料 (具体优先) *
+        { key: "抗碱底漆", field: "商品名称", keywords: ["抗碱底漆", "抗碱漆", "抗碱"] },
+        { key: "乳胶漆", field: "商品名称", keywords: ["乳胶漆"] }, // 可能已被规格型号匹配
+        { key: "多彩涂料", field: "商品名称", keywords: ["多彩涂料", "水包砂中涂", "多彩"] },
+        { key: "真石漆", field: "商品名称", keywords: ["真石漆"] }, // 可能已被规格型号匹配
+        { key: "质感", field: "商品名称", keywords: ["质感"] },
+        { key: "弹性平涂", field: "商品名称", keywords: ["弹性平涂", "弹涂", "弹性涂料"] }, // 可能已被规格型号匹配
+        // * 其他涂料 (放后面) *
+        { key: "其他涂料", field: "商品名称", keywords: ["罩面漆", "罩面", "金属漆", "勾缝漆", "防水涂料", "隔音涂料", "界面剂", "底涂", "中涂", "面涂"] }, // 需要排除规则配合
+        // * 石墨不燃板 *
+        { key: "白颗粒", field: "商品名称", keywords: ["热固复合聚苯乙烯泡沫保温板", "白颗粒"] },
+        { key: "黑颗粒", field: "商品名称", keywords: ["无机改性石墨不燃保温板", "石墨改性", "黑颗粒"] },
+        // * 真金板 (分级优先) *
+        { key: "033级", field: "商品名称", keywords: ["033级", "033"] },
+        { key: "039级", field: "商品名称", keywords: ["039级", "039"] },
+        { key: "真金板", field: "商品名称", keywords: ["真金板", "真金"] }, // 需要排除规则配合
+        // * 挤塑板 *
+        { key: "挤塑板", field: "商品名称", keywords: ["挤塑板", "xps"] },
+        // * 无机轻集料 *
+        { key: "无机轻集料", field: "商品名称", keywords: ["无机轻集料"] },
+        // * 线条 (具体优先) *
+        { key: "EPS裸线条", field: "商品名称", keywords: ["裸线条"] },
+        { key: "A级线条", field: "商品名称", keywords: ["a级线条"] },
+        { key: "石墨EPS线条", field: "商品名称", keywords: ["石墨eps线条", "石墨线条"] },
+        // * 线条 (区分单位，放后面) *
+        { key: "EPS线条 (米)", field: "商品名称", keywords: ["eps线条", "聚苯线条", "线条"], unitField: "单位", unitKeywords: ["m", "米"] }, // 需要排除规则配合
+        { key: "EPS线条 (根)", field: "商品名称", keywords: ["eps线条", "聚苯线条", "线条"], unitField: "单位", unitKeywords: ["根"] }, // 需要排除规则配合
     ];
 
-    /*************** 6. 导入数据处理及匹配逻辑 ***************/
+    const DEFAULT_EXCLUSIONS = {
+      "砂浆类": ["水泥基无机保温砂浆", "胶粉聚苯颗粒保温砂浆", "水泥基无机保温砂浆试块", "石膏", "腻子", "膏料"],
+      "膏料": ["（干）", "干", "干粉", "腻子"], // 排除干粉膏料和腻子
+      "无机类": ["水泥基无机保温砂浆试块", "石膏", "腻子"], // 石膏基的无机砂浆不归入此类
+      "真金板": ["033级", "039级", "033", "039"],
+      "EPS线条 (米)": ["裸线条", "a级线条", "石墨eps线条", "石墨线条"], // 注意 key 要和 mapping rule 的 key 完全一致
+      "EPS线条 (根)": ["裸线条", "a级线条", "石墨eps线条", "石墨线条"], // 同上
+      "其他涂料": [ // 这个排除列表很重要
+          "抗碱底漆", "抗碱漆", "抗碱",
+          "乳胶漆",
+          "多彩涂料", "水包砂中涂", "多彩",
+          "真石漆",
+          "质感",
+          "弹性平涂", "弹涂", "弹性涂料"
+      ],
+      "石膏类": ["复合石膏板", "石膏线条"], // 示例：避免复合板或线条计入纯石膏类
+      "挤塑板": ["石膏板", "水泥板"], // 避免复合板计入纯挤塑板
+      "腻子类": ["膏料", "砂浆", "胶粘剂"], // 避免膏料或砂浆误入腻子
+      "膏料（干）": ["湿"] // 避免湿膏料计入干膏料
+    };
+
+    /************************************************************************
+     *                          END OF DEFAULT CONFIGURATION AREA
+     ************************************************************************/
+
+    // --- Global State for Rules (Now loaded from DB) ---
+    let currentMappingRules = []; // Array of rule objects {id, key, field, keywords, ...}
+    let currentExclusions = {};   // Object { "key": ["keyword1", "keyword2"], ... }
+
+    // --- UI Helper Functions ---
+    const loadingOverlay = document.getElementById('loading-overlay');
+    function showLoading(message = "处理中，请稍候...") {
+        loadingOverlay.querySelector('span').textContent = message;
+        loadingOverlay.style.display = 'flex';
+        // Disable interactive elements during loading
+        document.querySelectorAll('button, input[type="file"], label[for="input-production"], label[for="input-shipment"]').forEach(el => el.disabled = true);
+    }
+    function hideLoading() {
+        loadingOverlay.style.display = 'none';
+         // Re-enable interactive elements
+        document.querySelectorAll('button, input[type="file"], label[for="input-production"], label[for="input-shipment"]').forEach(el => el.disabled = false);
+    }
+
+    // --- Helper Functions ---
+    function normalize(str) {
+      if (str === null || str === undefined) return "";
+      let normalized = str.toString().toLowerCase().trim();
+      normalized = normalized.replace(/\s+/g, ''); // Remove all spaces
+      normalized = normalized.replace(/[^\u4e00-\u9fa5a-z0-9\+\*\uff08\uff09\(\)]/g, ''); // Keep specified chars
+      normalized = normalized.replace(/（/g, '(').replace(/）/g, ')'); // Standardize parentheses
+      return normalized;
+    }
+
+    function parseKeywords(str) {
+        if (!str || typeof str !== 'string') return [];
+        return str.split(',')
+                  .map(k => k.trim())
+                  .filter(k => k !== '');
+    }
+
+    function formatKeywords(arr) {
+        if (!Array.isArray(arr)) return '';
+        return arr.join(', ');
+    }
+
+    // --- Rule Management Functions (Interacting with Supabase) ---
+
+    async function loadRules() {
+        if (!supabaseClient) {
+             console.warn("Supabase client not available, cannot load rules.");
+             renderMappingRulesTable(); // Render empty state
+             renderExclusionRulesTable();
+             return;
+        }
+        console.log("Loading rules from Supabase...");
+        showLoading("正在加载规则...");
+
+        try {
+            // Fetch mapping rules and exclusion rules concurrently
+            const [mappingResponse, exclusionResponse] = await Promise.all([
+                supabaseClient.from('mapping_rules').select('*').order('id'), // Order for consistency
+                supabaseClient.from('exclusion_rules').select('*')
+            ]);
+
+            // Process Mapping Rules
+            if (mappingResponse.error) throw mappingResponse.error;
+            // Map database structure to JS structure
+            currentMappingRules = mappingResponse.data.map(dbRule => ({
+                id: dbRule.id, // Store the database ID
+                key: dbRule.report_item_key,
+                field: dbRule.primary_field,
+                keywords: dbRule.primary_keywords || [], // Ensure array type
+                secondaryField: dbRule.secondary_field || undefined,
+                secondaryKeywords: dbRule.secondary_keywords || [],
+                unitField: dbRule.unit_field || undefined,
+                unitKeywords: dbRule.unit_keywords || [],
+                parentKeywords: dbRule.parent_keywords || [],
+            }));
+            console.log("Mapping rules loaded:", currentMappingRules.length);
+
+            // Process Exclusion Rules
+            if (exclusionResponse.error) throw exclusionResponse.error;
+            currentExclusions = {};
+            exclusionResponse.data.forEach(dbRule => {
+                // Ensure keywords is an array, even if DB returns null/empty
+                currentExclusions[dbRule.report_item_key] = dbRule.excluded_keywords || [];
+            });
+            console.log("Exclusion rules loaded for keys:", Object.keys(currentExclusions).length);
+
+            renderMappingRulesTable();
+            renderExclusionRulesTable();
+            updateReportItemDatalist();
+
+        } catch (error) {
+            console.error("Error loading rules from Supabase:", error);
+            alert(`加载规则失败: ${error.message}`);
+            // Keep potentially stale local data or clear it? Clearing is safer.
+            currentMappingRules = [];
+            currentExclusions = {};
+            renderMappingRulesTable(); // Render empty or error state
+            renderExclusionRulesTable();
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // No saveRules() needed anymore, saving happens directly on submit/delete
+
+    function renderMappingRulesTable() {
+        const tbody = document.getElementById('mapping-rules-table').querySelector('tbody');
+        tbody.innerHTML = ''; // Clear previous content or loading message
+        if (!supabaseClient && currentMappingRules.length === 0) {
+             tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Supabase未初始化，无法加载规则</td></tr>';
+             return;
+        }
+        if (currentMappingRules.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">暂无匹配规则。点击下方"添加/修改匹配规则"或"恢复默认规则"添加。</td></tr>';
+            return;
+        }
+
+        currentMappingRules.forEach((rule) => { // No index needed here
+            const tr = document.createElement('tr');
+            // Add data-id attribute to store the database primary key
+            tr.setAttribute('data-id', rule.id);
+            tr.innerHTML = `
+                <td>${rule.key || ''}</td>
+                <td>${rule.field || ''}</td>
+                <td>${formatKeywords(rule.keywords)}</td>
+                <td>${rule.secondaryField || ''}</td>
+                <td>${formatKeywords(rule.secondaryKeywords)}</td>
+                <td>${rule.unitField || ''}</td>
+                <td>${formatKeywords(rule.unitKeywords)}</td>
+                <td>${formatKeywords(rule.parentKeywords)}</td>
+                <td>
+                    <button onclick="editMappingRule(${rule.id})">编辑</button>
+                    <button class="delete-btn" onclick="deleteMappingRule(${rule.id}, '${rule.key.replace(/'/g, "\\'")}')">删除</button> <!-- Pass id and key -->
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+     function renderExclusionRulesTable() {
+        const tbody = document.getElementById('exclusion-rules-table').querySelector('tbody');
+        tbody.innerHTML = ''; // Clear previous content or loading message
+        const keys = Object.keys(currentExclusions).sort();
+
+        if (!supabaseClient && keys.length === 0) {
+             tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: red;">Supabase未初始化，无法加载规则</td></tr>';
+             return;
+        }
+        if (keys.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">暂无排除规则。</td></tr>';
+            return;
+        }
+
+        keys.forEach(key => {
+            const tr = document.createElement('tr');
+            const keywords = currentExclusions[key];
+            // Add data-key attribute to store the database primary key (which is the report_item_key)
+            tr.setAttribute('data-key', key);
+            tr.innerHTML = `
+                <td>${key}</td>
+                <td>${formatKeywords(keywords)}</td>
+                <td>
+                    <button onclick="editExclusionRule('${key.replace(/'/g, "\\'")}')">编辑</button> <!-- Pass key -->
+                    <button class="delete-btn" onclick="deleteExclusionRule('${key.replace(/'/g, "\\'")}')">删除</button> <!-- Pass key -->
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateReportItemDatalist() {
+        const datalist = document.getElementById('report-item-keys');
+        datalist.innerHTML = '';
+        const keys = new Set();
+        document.querySelectorAll("#data-table tbody tr").forEach(row => {
+             const cells = row.querySelectorAll("td");
+             let productNameCellIndex = (cells.length >= 4) ? (cells.length === 5 ? 1 : 0) : -1;
+             if (productNameCellIndex !== -1) {
+                 keys.add(cells[productNameCellIndex].innerText.trim());
+             }
+        });
+        currentMappingRules.forEach(rule => keys.add(rule.key.trim()));
+        Object.keys(currentExclusions).forEach(key => keys.add(key.trim()));
+
+        Array.from(keys).sort().forEach(key => {
+            if (key) {
+                const option = document.createElement('option');
+                option.value = key;
+                datalist.appendChild(option);
+            }
+        });
+    }
+
+    // --- Event Listeners for Rule Forms ---
+
+    document.getElementById('add-mapping-rule-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        if (!supabaseClient) return alert("Supabase 未初始化，无法保存规则。");
+
+        const ruleId = document.getElementById('edit-mapping-id').value; // This now holds the DB ID
+        const key = document.getElementById('mapping-key').value.trim();
+        const field = document.getElementById('mapping-field').value.trim();
+        const keywords = parseKeywords(document.getElementById('mapping-keywords').value);
+        const secondaryField = document.getElementById('mapping-secondaryField').value.trim() || null; // Use null for DB
+        const secondaryKeywords = parseKeywords(document.getElementById('mapping-secondaryKeywords').value);
+        const unitField = document.getElementById('mapping-unitField').value.trim() || null; // Use null for DB
+        const unitKeywords = parseKeywords(document.getElementById('mapping-unitKeywords').value);
+        const parentKeywords = parseKeywords(document.getElementById('mapping-parentKeywords').value);
+
+        if (!key || !field || keywords.length === 0) {
+            alert("报表项、匹配字段和关键词不能为空！");
+            return;
+        }
+
+        // Prepare data for Supabase (map JS names to DB column names)
+        const ruleData = {
+            report_item_key: key,
+            primary_field: field,
+            primary_keywords: keywords,
+            secondary_field: secondaryField,
+            secondary_keywords: (secondaryField && secondaryKeywords.length > 0) ? secondaryKeywords : null, // Only save if field exists
+            unit_field: unitField,
+            unit_keywords: (unitField && unitKeywords.length > 0) ? unitKeywords : null, // Only save if field exists
+            parent_keywords: parentKeywords.length > 0 ? parentKeywords : null
+        };
+
+        showLoading("正在保存匹配规则...");
+        document.getElementById('save-mapping-rule-btn').disabled = true;
+
+        try {
+            let response;
+            if (ruleId) { // Edit mode - Update existing rule by ID
+                console.log("Updating mapping rule with ID:", ruleId);
+                response = await supabaseClient
+                    .from('mapping_rules')
+                    .update(ruleData)
+                    .eq('id', ruleId)
+                    .select(); // Select to confirm update
+            } else { // Add mode - Insert new rule
+                console.log("Inserting new mapping rule:", ruleData);
+                response = await supabaseClient
+                    .from('mapping_rules')
+                    .insert(ruleData)
+                    .select(); // Select to get the new rule data (including ID)
+            }
+
+            if (response.error) throw response.error;
+            console.log("Mapping rule saved successfully:", response.data);
+
+            await loadRules(); // Reload rules from DB to refresh the table and state
+            resetMappingForm();
+            alert("匹配规则保存成功！");
+
+        } catch (error) {
+            console.error("Error saving mapping rule:", error);
+            alert(`保存匹配规则失败: ${error.message}`);
+        } finally {
+            hideLoading();
+             document.getElementById('save-mapping-rule-btn').disabled = false;
+        }
+    });
+
+    document.getElementById('add-exclusion-rule-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        if (!supabaseClient) return alert("Supabase 未初始化，无法保存规则。");
+
+        const key = document.getElementById('exclusion-key').value.trim();
+        const keywords = parseKeywords(document.getElementById('exclusion-keywords').value);
+        // const originalKey = document.getElementById('edit-exclusion-key-original').value; // Needed if key itself could change, upsert handles this
+
+        if (!key || keywords.length === 0) {
+            alert("报表项和排除关键词不能为空！");
+            return;
+        }
+
+        const ruleData = {
+            report_item_key: key,
+            excluded_keywords: keywords
+        };
+
+        showLoading("正在保存排除规则...");
+        document.getElementById('save-exclusion-rule-btn').disabled = true;
+
+        try {
+            // Use upsert: inserts if key doesn't exist, updates if it does.
+            const { error } = await supabaseClient
+                .from('exclusion_rules')
+                .upsert(ruleData);
+
+            if (error) throw error;
+            console.log("Exclusion rule saved successfully for key:", key);
+
+            await loadRules(); // Reload rules from DB
+            resetExclusionForm();
+            alert("排除规则保存成功！");
+
+        } catch (error) {
+            console.error("Error saving exclusion rule:", error);
+            alert(`保存排除规则失败: ${error.message}`);
+        } finally {
+            hideLoading();
+             document.getElementById('save-exclusion-rule-btn').disabled = false;
+        }
+    });
+
+    // --- Edit and Delete Functions ---
+
+    function editMappingRule(ruleId) {
+        const rule = currentMappingRules.find(r => r.id === ruleId);
+        if (!rule) {
+            console.error("Cannot find mapping rule with ID:", ruleId);
+            return;
+        }
+        console.log("Editing mapping rule:", rule);
+
+        document.getElementById('edit-mapping-id').value = rule.id; // Store the ID
+        document.getElementById('mapping-key').value = rule.key || '';
+        document.getElementById('mapping-field').value = rule.field || '';
+        document.getElementById('mapping-keywords').value = formatKeywords(rule.keywords);
+        document.getElementById('mapping-secondaryField').value = rule.secondaryField || '';
+        document.getElementById('mapping-secondaryKeywords').value = formatKeywords(rule.secondaryKeywords);
+        document.getElementById('mapping-unitField').value = rule.unitField || '';
+        document.getElementById('mapping-unitKeywords').value = formatKeywords(rule.unitKeywords);
+        document.getElementById('mapping-parentKeywords').value = formatKeywords(rule.parentKeywords);
+        document.getElementById('cancel-edit-mapping-btn').style.display = 'inline-block';
+        document.getElementById('add-mapping-rule-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function editExclusionRule(key) {
+        if (!currentExclusions.hasOwnProperty(key)) {
+             console.error("Cannot find exclusion rule with key:", key);
+             return;
+        }
+        console.log("Editing exclusion rule for key:", key);
+        const keywords = currentExclusions[key];
+
+        // document.getElementById('edit-exclusion-key-original').value = key; // Store original key if needed
+        document.getElementById('exclusion-key').value = key;
+        document.getElementById('exclusion-keywords').value = formatKeywords(keywords);
+        document.getElementById('cancel-edit-exclusion-btn').style.display = 'inline-block';
+        document.getElementById('add-exclusion-rule-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function deleteMappingRule(ruleId, ruleKey) {
+        if (!supabaseClient) return alert("Supabase 未初始化，无法删除规则。");
+
+        if (confirm(`确定要删除这条匹配规则吗？\n报表项: ${ruleKey}\n(ID: ${ruleId})`)) {
+            showLoading("正在删除匹配规则...");
+            try {
+                const { error } = await supabaseClient
+                    .from('mapping_rules')
+                    .delete()
+                    .eq('id', ruleId);
+
+                if (error) throw error;
+                console.log("Mapping rule deleted successfully, ID:", ruleId);
+                alert("匹配规则删除成功！");
+                await loadRules(); // Reload rules from DB
+                resetMappingForm(); // Reset form if the deleted item was being edited
+
+            } catch (error) {
+                console.error("Error deleting mapping rule:", error);
+                alert(`删除匹配规则失败: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+    }
+
+    async function deleteExclusionRule(key) {
+        if (!supabaseClient) return alert("Supabase 未初始化，无法删除规则。");
+        if (!currentExclusions.hasOwnProperty(key)) return; // Should not happen if called from UI
+
+        if (confirm(`确定要删除报表项 "${key}" 的排除规则吗？`)) {
+            showLoading("正在删除排除规则...");
+            try {
+                 const { error } = await supabaseClient
+                    .from('exclusion_rules')
+                    .delete()
+                    .eq('report_item_key', key); // Delete by primary key
+
+                 if (error) throw error;
+                 console.log("Exclusion rule deleted successfully for key:", key);
+                 alert("排除规则删除成功！");
+                 await loadRules(); // Reload rules from DB
+                 resetExclusionForm(); // Reset form if the deleted item was being edited
+
+            } catch (error) {
+                 console.error("Error deleting exclusion rule:", error);
+                 alert(`删除排除规则失败: ${error.message}`);
+            } finally {
+                 hideLoading();
+            }
+        }
+    }
+
+    // --- Reset Forms and Reset to Default ---
+
+    function resetMappingForm() {
+        document.getElementById('add-mapping-rule-form').reset();
+        document.getElementById('edit-mapping-id').value = ''; // Clear the ID
+        document.getElementById('cancel-edit-mapping-btn').style.display = 'none';
+    }
+
+    function resetExclusionForm() {
+        document.getElementById('add-exclusion-rule-form').reset();
+        // document.getElementById('edit-exclusion-key-original').value = '';
+        document.getElementById('cancel-edit-exclusion-btn').style.display = 'none';
+    }
+
+    document.getElementById('cancel-edit-mapping-btn').addEventListener('click', resetMappingForm);
+    document.getElementById('cancel-edit-exclusion-btn').addEventListener('click', resetExclusionForm);
+
+    // Function to reset rules to default, now interacts with DB
+    async function resetRulesToDefault(showConfirmation = true) {
+         if (!supabaseClient) return alert("Supabase 未初始化，无法重置规则。");
+
+         const confirmed = !showConfirmation || confirm("警告：这将删除数据库中所有自定义规则，并恢复为系统内置的默认规则。\n此操作无法撤销！\n\n确定要恢复默认规则吗？");
+
+         if (confirmed) {
+             showLoading("正在恢复默认规则...");
+             try {
+                 console.log("Attempting to delete existing rules...");
+                 // Delete all existing rules first
+                 const [deleteMappingError, deleteExclusionError] = await Promise.all([
+                     supabaseClient.from('mapping_rules').delete().neq('id', -1), // Condition to delete all
+                     supabaseClient.from('exclusion_rules').delete().neq('report_item_key', '') // Condition to delete all
+                 ]);
+                 if (deleteMappingError) throw deleteMappingError;
+                 if (deleteExclusionError) throw deleteExclusionError;
+                 console.log("Existing rules deleted.");
+
+                 console.log("Attempting to insert default rules...");
+                 // Prepare default rules for insertion
+                 const defaultMappingData = DEFAULT_MAPPING_RULES.map(rule => ({
+                     report_item_key: rule.key,
+                     primary_field: rule.field,
+                     primary_keywords: rule.keywords || [],
+                     secondary_field: rule.secondaryField || null,
+                     secondary_keywords: (rule.secondaryField && rule.secondaryKeywords && rule.secondaryKeywords.length > 0) ? rule.secondaryKeywords : null,
+                     unit_field: rule.unitField || null,
+                     unit_keywords: (rule.unitField && rule.unitKeywords && rule.unitKeywords.length > 0) ? rule.unitKeywords : null,
+                     parent_keywords: (rule.parentKeywords && rule.parentKeywords.length > 0) ? rule.parentKeywords : null,
+                     // No need to specify ID for insertion
+                 }));
+
+                 const defaultExclusionData = Object.entries(DEFAULT_EXCLUSIONS).map(([key, keywords]) => ({
+                     report_item_key: key,
+                     excluded_keywords: keywords || []
+                 }));
+
+                 // Insert default rules
+                 const [insertMappingError, insertExclusionError] = await Promise.all([
+                      supabaseClient.from('mapping_rules').insert(defaultMappingData),
+                      supabaseClient.from('exclusion_rules').insert(defaultExclusionData)
+                 ]);
+                 if (insertMappingError.error) throw insertMappingError.error; // Note: insert returns { data, error }
+                 if (insertExclusionError.error) throw insertExclusionError.error; // Note: insert returns { data, error }
+
+                 console.log("Default rules inserted successfully.");
+                 alert("规则已成功恢复为默认设置并保存到数据库。");
+
+                 await loadRules(); // Reload the newly inserted default rules
+                 resetMappingForm();
+                 resetExclusionForm();
+
+             } catch (error) {
+                 console.error("Error resetting rules to default:", error);
+                 alert(`恢复默认规则失败: ${error.message}\n数据库可能处于不一致状态，请检查或重试。`);
+             } finally {
+                 hideLoading();
+             }
+         }
+    }
+
+    document.getElementById('reset-rules-btn').addEventListener('click', () => resetRulesToDefault(true));
+
+    document.getElementById('toggle-rules-btn').addEventListener('click', function() {
+        const content = document.getElementById('rules-content');
+        const isHidden = content.style.display === 'none';
+        content.style.display = isHidden ? 'block' : 'none';
+        this.textContent = isHidden ? '隐藏规则' : '显示规则';
+        console.log("Rules display toggled:", isHidden ? 'shown' : 'hidden');
+        // Load rules only when shown for the first time (if not already loaded)
+        if (isHidden && currentMappingRules.length === 0 && currentExclusions.length === 0 && supabaseClient) {
+            loadRules();
+        }
+    });
+
+
+    // --- Core Processing Logic (Uses current rules loaded from DB) ---
+    // !!! processData function remains unchanged as it uses the global vars !!!
+    function processData(jsonData, type) { // type is '生产量' or '发货量'
+      const resultMap = {};
+      const unmatchedRows = [];
+
+      // Pre-normalize exclusion keywords from currentExclusions (which is now from DB)
+      const normalizedExclusions = {};
+      for (const key in currentExclusions) {
+          const normKey = normalize(key);
+          if (Array.isArray(currentExclusions[key])) {
+             normalizedExclusions[normKey] = currentExclusions[key]
+                .map(ex => normalize(ex))
+                .filter(ex => ex);
+          } else {
+              normalizedExclusions[normKey] = [];
+          }
+      }
+
+      // Initialize resultMap with keys from the data table AND current mapping rules
+       const allKeys = new Set();
+       document.querySelectorAll("#data-table tbody tr").forEach(row => {
+         const cells = row.querySelectorAll("td");
+         let productNameCellIndex = (cells.length >= 4) ? (cells.length === 5 ? 1 : 0) : -1;
+         if (productNameCellIndex !== -1) {
+             const productName = cells[productNameCellIndex].innerText;
+             const normKey = normalize(productName);
+             if (normKey) allKeys.add(normKey);
+         }
+       });
+       // Use currentMappingRules loaded from DB
+       currentMappingRules.forEach(rule => {
+          const normKey = normalize(rule.key);
+          if (normKey) allKeys.add(normKey);
+       });
+       allKeys.forEach(normKey => {
+           resultMap[normKey] = { "生产量": 0, "发货量": 0 };
+       });
+
+      // Process each row from the Excel data
+      jsonData.forEach((row, rowIndex) => {
+        let matched = false;
+        const quantity = parseFloat(row["数量"]) || 0;
+        if (quantity === 0 || isNaN(quantity)) return;
+
+        // Iterate through the current mapping rules (loaded from DB)
+        for (const rule of currentMappingRules) {
+          const normRuleKey = normalize(rule.key);
+          if (!normRuleKey || !rule.field) continue;
+
+          const excelFieldValue = row[rule.field] || "";
+          const normExcelFieldValue = normalize(excelFieldValue);
+
+          // 1. Check Exclusions FIRST
+          let isExcluded = false;
+          const currentExclusionsList = normalizedExclusions[normRuleKey]; // Uses normalizedExclusions derived from DB data
+          if (currentExclusionsList && currentExclusionsList.length > 0) {
+             for (const exclusionKeyword of currentExclusionsList) {
+                if (normExcelFieldValue.includes(exclusionKeyword)) {
+                  isExcluded = true;
+                  break;
+                }
+             }
+          }
+          if (isExcluded) continue;
+
+          // 2. Check Primary Keywords
+          let primaryFieldMatched = false;
+          if (Array.isArray(rule.keywords) && rule.keywords.length > 0) {
+              const normKeywords = rule.keywords.map(normalize).filter(k => k);
+              if (normKeywords.length > 0) {
+                  for (const normKeyword of normKeywords) {
+                      if (normExcelFieldValue.includes(normKeyword)) {
+                          primaryFieldMatched = true;
+                          break;
+                      }
+                  }
+              } else { continue; }
+          } else { continue; }
+          if (!primaryFieldMatched) continue;
+
+          // 3. Check Secondary Keywords
+          let secondaryFieldMatched = true;
+          if (rule.secondaryField && Array.isArray(rule.secondaryKeywords) && rule.secondaryKeywords.length > 0) {
+              secondaryFieldMatched = false;
+              const excelSecondaryValue = row[rule.secondaryField] || "";
+              const normExcelSecondaryValue = normalize(excelSecondaryValue);
+              const normSecondaryKeywords = rule.secondaryKeywords.map(normalize).filter(k => k);
+              if (normExcelSecondaryValue && normSecondaryKeywords.length > 0) {
+                  for (const normSecondaryKeyword of normSecondaryKeywords) {
+                      if (normExcelSecondaryValue.includes(normSecondaryKeyword)) {
+                          secondaryFieldMatched = true;
+                          break;
+                      }
+                  }
+              }
+          }
+          if (!secondaryFieldMatched) continue;
+
+          // 4. Check Unit Keywords
+          let unitMatch = true;
+          if (rule.unitField && Array.isArray(rule.unitKeywords) && rule.unitKeywords.length > 0) {
+              unitMatch = false;
+              const excelUnitValue = row[rule.unitField] || "";
+              const normExcelUnitValue = normalize(excelUnitValue);
+              const normUnitKeywords = rule.unitKeywords.map(normalize).filter(k => k);
+              if (normExcelUnitValue && normUnitKeywords.length > 0) {
+                  for (const normUnitKeyword of normUnitKeywords) {
+                      if (normExcelUnitValue === normUnitKeyword) { // Exact match for unit
+                          unitMatch = true;
+                          break;
+                      }
+                  }
+              }
+          }
+          if (!unitMatch) continue;
+
+          // 5. Check Parent Keywords
+          let parentMatch = true;
+          if (Array.isArray(rule.parentKeywords) && rule.parentKeywords.length > 0) {
+              parentMatch = false;
+              const normParentKeywords = rule.parentKeywords.map(normalize).filter(k => k);
+              if (normParentKeywords.length > 0) {
+                  for (const normParentKeyword of normParentKeywords) {
+                      if (normExcelFieldValue.includes(normParentKeyword)) {
+                          parentMatch = true;
+                          break;
+                      }
+                  }
+              }
+          }
+          if (!parentMatch) continue;
+
+
+          // 6. All checks passed - Match found!
+          if (!resultMap[normRuleKey]) {
+              console.warn(`WARN: Matched key "${normRuleKey}" (from rule "${rule.key}") was not pre-initialized. Adding it now.`);
+              resultMap[normRuleKey] = { "生产量": 0, "发货量": 0 };
+          }
+          resultMap[normRuleKey][type] += quantity;
+          matched = true;
+          break; // Stop checking rules for this row
+        } // End of rules loop
+
+        if (!matched) {
+          unmatchedRows.push(row);
+        }
+      }); // End of jsonData loop
+
+      console.log(`[${type}] Processing complete using current rules. Matched results (non-zero):`, Object.fromEntries(Object.entries(resultMap).filter(([_, v]) => v.生产量 !== 0 || v.发货量 !== 0)));
+      console.log(`[${type}] Unmatched rows (${unmatchedRows.length}):`, unmatchedRows);
+      return { resultMap, unmatchedRows };
+    }
+
+    // --- UI Update Functions (Unchanged) ---
+    function fillTable(resultMap) {
+      const rows = document.querySelectorAll("#data-table tbody tr");
+      rows.forEach((row) => {
+        const cells = row.querySelectorAll("td");
+        let productNameCell, prodCell, shipCell;
+        if (cells.length === 5) {
+          productNameCell = cells[1]; prodCell = cells[3]; shipCell = cells[4];
+        } else if (cells.length === 4) {
+          productNameCell = cells[0]; prodCell = cells[2]; shipCell = cells[3];
+        } else { return; }
+
+        const productName = productNameCell.innerText;
+        const normKey = normalize(productName);
+
+        prodCell.innerText = '0.00';
+        shipCell.innerText = '0.00';
+        prodCell.classList.remove('highlight');
+        shipCell.classList.remove('highlight');
+
+        if (normKey && resultMap[normKey]) {
+          const productionValue = resultMap[normKey]["生产量"] || 0;
+          const shipmentValue = resultMap[normKey]["发货量"] || 0;
+
+          if (productionValue > 0) {
+             prodCell.innerText = productionValue.toFixed(2);
+             prodCell.classList.add('highlight');
+          }
+          if (shipmentValue > 0) {
+             shipCell.innerText = shipmentValue.toFixed(2);
+             shipCell.classList.add('highlight');
+          }
+        }
+      });
+       console.log("Report table populated.");
+    }
+
+    function displayUnmatchedRows(unmatchedProduction, unmatchedShipment) {
+        const container = document.getElementById("unmatched-table");
+        const titleElement = document.getElementById("unmatched-title");
+        container.innerHTML = "";
+
+        const hasUnmatchedProd = unmatchedProduction && unmatchedProduction.length > 0;
+        const hasUnmatchedShip = unmatchedShipment && unmatchedShipment.length > 0;
+
+        if (!hasUnmatchedProd && !hasUnmatchedShip) {
+            if (filesLoaded.production || filesLoaded.shipment) {
+                 titleElement.innerText = "所有数据均已匹配";
+                 container.innerHTML = "<p style='text-align:center; color: green; font-weight: bold;'>太棒了！所有导入的数据都成功匹配到了报告项目中。</p>";
+            } else {
+                 titleElement.innerText = "未匹配的数据";
+                 container.innerHTML = "<p style='text-align:center; color: #555;'>请先导入入库单和发货单 Excel 文件。</p>";
+            }
+            return;
+        }
+
+        titleElement.innerText = "未匹配的数据";
+        let html = "";
+
+        if (hasUnmatchedProd) {
+            html += `<h3>未匹配的入库数据 (${unmatchedProduction.length} 条)</h3>`;
+            html += createUnmatchedTable(unmatchedProduction);
+        } else if (filesLoaded.production) {
+            html += "<h3>未匹配的入库数据</h3><p>所有入库数据均已成功匹配。</p>";
+        }
+
+        if (hasUnmatchedShip) {
+            html += `<h3 style='margin-top: 20px;'>未匹配的发货数据 (${unmatchedShipment.length} 条)</h3>`;
+            html += createUnmatchedTable(unmatchedShipment);
+        } else if (filesLoaded.shipment) {
+            html += "<h3 style='margin-top: 20px;'>未匹配的发货数据</h3><p>所有发货数据均已成功匹配。</p>";
+        }
+        container.innerHTML = html;
+         console.log("Unmatched data table displayed.");
+    }
+
+    function createUnmatchedTable(unmatchedRows) {
+        if (!unmatchedRows || unmatchedRows.length === 0) return "<p>无未匹配数据。</p>";
+        const allFieldsSet = new Set();
+        unmatchedRows.forEach(row => { Object.keys(row).forEach(key => allFieldsSet.add(key)); });
+        const preferredFields = ['商品名称', '规格型号', '数量', '单位', '备注'];
+        const otherFields = Array.from(allFieldsSet).filter(f => !preferredFields.includes(f)).sort();
+        const fields = [...preferredFields.filter(f => allFieldsSet.has(f)), ...otherFields];
+        let tableHtml = "<table style='width:100%; border-collapse: collapse;'><thead><tr>";
+        fields.forEach(field => { tableHtml += `<th>${field}</th>`; });
+        tableHtml += "</tr></thead><tbody>";
+        unmatchedRows.forEach(row => {
+            tableHtml += "<tr>";
+            fields.forEach(field => {
+                let value = row[field];
+                let displayValue = (value === null || value === undefined || value === "") ? "<span>/</span>" : value.toString();
+                tableHtml += `<td title="${displayValue.replace(/"/g, '"').replace(/</g,'<')}">${displayValue}</td>`;
+            });
+            tableHtml += "</tr>";
+        });
+        tableHtml += "</tbody></table>";
+        return tableHtml;
+    }
+
+    // --- Main Event Handler & State (Unchanged logic, uses globalResults) ---
+    let globalResults = {
+        production: { resultMap: {}, unmatchedRows: [] },
+        shipment: { resultMap: {}, unmatchedRows: [] }
+    };
+    let filesLoaded = { production: false, shipment: false };
+
     function handleExcelImport(event, type) {
       const file = event.target.files[0];
       if (!file) return;
-      console.log("选择的文件:", file.name);
+      const typeName = type === 'production' ? '入库单' : '发货单';
+      console.log(`Starting import for ${typeName}:`, file.name);
+      // Use loading indicator
+      showLoading(`正在处理 ${typeName} 文件...`);
+
       const reader = new FileReader();
       reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet);
-        console.log("读取到的Excel内容:", json);
-        const resultMap = {};
-        const unmatchedRows = [];
-        
-        // 使用普通 for 循环，便于跳出内层循环
-        for (let i = 0; i < json.length; i++) {
-          const row = json[i];
-          let matched = false;
-          for (let j = 0; j < mapping.length; j++) {
-            const rule = mapping[j];
-            // 根据 rule.field 获取数据（例如：对于“无饰面”，使用规格型号字段）
-            const raw = normalize(row[rule.field] || "");
-            let ruleMatched = false;
-            for (let k = 0; k < rule.keywords.length; k++) {
-              const kw = normalize(rule.keywords[k]);
-              // 检查特殊排除条件
-              if (specialRules[rule.key] && specialRules[rule.key].exclusions) {
-                let exclude = false;
-                for (let m = 0; m < specialRules[rule.key].exclusions.length; m++) {
-                  const exKey = normalize(specialRules[rule.key].exclusions[m]);
-                  if (raw.indexOf(exKey) !== -1) {
-                    exclude = true;
-                    break;
-                  }
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const firstSheetName = workbook.SheetNames[0];
+          if (!firstSheetName) throw new Error("Excel 文件不包含工作表 (Sheet)。");
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+          console.log(`Read ${file.name} (${json.length} rows). Processing data...`);
+
+          const resultTypeKey = (type === 'production') ? '生产量' : '发货量';
+          // Process data using rules currently in memory (loaded from DB)
+          const { resultMap, unmatchedRows } = processData(json, resultTypeKey);
+
+          globalResults[type] = { resultMap, unmatchedRows };
+          filesLoaded[type] = true;
+
+          // Merge and display if both files are loaded
+          if (filesLoaded.production && filesLoaded.shipment) {
+            console.log("Both files processed. Merging results and updating UI...");
+            const finalResultMap = {};
+            const allFinalKeys = new Set();
+            // Initialize keys from table and current rules (from DB)
+            document.querySelectorAll("#data-table tbody tr").forEach(row => {
+                const cells = row.querySelectorAll("td");
+                let productNameCellIndex = (cells.length >= 4) ? (cells.length === 5 ? 1 : 0) : -1;
+                if (productNameCellIndex !== -1) {
+                    const normKey = normalize(cells[productNameCellIndex].innerText);
+                    if (normKey) allFinalKeys.add(normKey);
                 }
-                if (exclude) continue; // 跳过当前关键词
-              }
-              if (raw.indexOf(kw) !== -1) {
-                ruleMatched = true;
-                break; // 当前规则匹配成功，跳出关键词循环
-              }
+            });
+            currentMappingRules.forEach(rule => { // Use rules from DB
+                const normKey = normalize(rule.key);
+                if (normKey) allFinalKeys.add(normKey);
+            });
+            allFinalKeys.forEach(normKey => {
+                 finalResultMap[normKey] = { "生产量": 0, "发货量": 0 };
+            });
+
+            // Merge production results
+            for (const key in globalResults.production.resultMap) {
+                if (finalResultMap[key]) {
+                    finalResultMap[key]["生产量"] += globalResults.production.resultMap[key]["生产量"] || 0;
+                } else {
+                    console.warn(`Key "${key}" from production results not found during merge init.`);
+                    finalResultMap[key] = { "生产量": globalResults.production.resultMap[key]["生产量"] || 0, "发货量": 0 };
+                }
             }
-            if (ruleMatched) {
-              const normKey = normalize(rule.key);
-              if (!resultMap[normKey]) {
-                resultMap[normKey] = { 生产量: 0, 发货量: 0 };
-              }
-              resultMap[normKey][type] += parseFloat(row["数量"]) || 0;
-              matched = true;
-              break; // 当前记录只匹配一次，跳出规则循环
+            // Merge shipment results
+            for (const key in globalResults.shipment.resultMap) {
+                 if (finalResultMap[key]) {
+                    finalResultMap[key]["发货量"] += globalResults.shipment.resultMap[key]["发货量"] || 0;
+                 } else {
+                     console.warn(`Key "${key}" from shipment results not found during merge init.`);
+                     finalResultMap[key] = { "生产量": 0, "发货量": globalResults.shipment.resultMap[key]["发货量"] || 0 };
+                 }
             }
+            console.log("Final merged results:", finalResultMap);
+
+            fillTable(finalResultMap);
+            displayUnmatchedRows(globalResults.production.unmatchedRows, globalResults.shipment.unmatchedRows);
+            alert("入库单和发货单均已导入处理完成！报表已更新。");
+
+          } else {
+              alert(`${typeName} 已成功导入并处理。请导入另一个文件以生成完整报表。`);
+              displayUnmatchedRows(
+                  filesLoaded.production ? globalResults.production.unmatchedRows : [],
+                  filesLoaded.shipment ? globalResults.shipment.unmatchedRows : []
+              );
           }
-          if (!matched) {
-            unmatchedRows.push(row);
-          }
+        } catch (error) {
+          console.error(`Error processing ${file.name}:`, error);
+          alert(`处理文件 ${file.name} 时发生错误: ${error.message}\n请检查文件格式或内容是否正确。`);
+          filesLoaded[type] = false;
+           displayUnmatchedRows(
+              filesLoaded.production ? globalResults.production.unmatchedRows : [],
+              filesLoaded.shipment ? globalResults.shipment.unmatchedRows : []
+           );
+        } finally {
+            event.target.value = null; // Reset file input
+            hideLoading(); // Hide loading indicator
         }
-        console.log("匹配后的结果:", resultMap);
-        fillTable(resultMap, type);
-        displayUnmatchedRows(unmatchedRows, type);
-        alert("导入完成，请查看控制台日志和未匹配数据表。");
-      };
+      }; // End reader.onload
+
       reader.onerror = function(e) {
-        console.error("文件读取出错:", e);
-        alert("文件读取出错");
+        console.error("File reading error:", e);
+        alert("文件读取失败，请检查文件是否损坏或浏览器权限设置。");
+        event.target.value = null;
+        filesLoaded[type] = false;
+         displayUnmatchedRows(
+              filesLoaded.production ? globalResults.production.unmatchedRows : [],
+              filesLoaded.shipment ? globalResults.shipment.unmatchedRows : []
+           );
+         hideLoading(); // Hide loading on error too
       };
+
       reader.readAsArrayBuffer(file);
     }
 
-    /*************** 7. 事件绑定 ***************/
+    // --- Event Listeners & Initialization ---
     document.getElementById("input-production").addEventListener("change", function(e) {
-      handleExcelImport(e, "生产量");
+      handleExcelImport(e, "production");
     });
     document.getElementById("input-shipment").addEventListener("change", function(e) {
-      handleExcelImport(e, "发货量");
+      handleExcelImport(e, "shipment");
     });
+
+    // Initialize the page when the DOM is fully loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        if (supabaseClient) {
+            loadRules(); // Load rules from Supabase on page load
+        } else {
+            // Handle case where Supabase didn't initialize
+             renderMappingRulesTable(); // Show error/empty state
+             renderExclusionRulesTable();
+             updateReportItemDatalist(); // Still populate datalist from table if possible
+        }
+        displayUnmatchedRows([], []); // Initialize unmatched area
+        fillTable({}); // Initialize main table
+        console.log("Page initialized. Attempting to load rules from Supabase.");
+    });
+
   </script>
 </body>
 </html>

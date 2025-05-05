@@ -1,934 +1,610 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>车间人工工资统计 | 成本趋势分析</title>
-<!-- 引入 XLSX.js -->
-<script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- 引入 Chart.js -->
-<script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-<!-- 引入字体 -->
-<link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #3498db;
-      --primary-light: #ebf5fb;
-      --primary-dark: #2980b9;
-      --success: #2ecc71;
-      --warning: #f39c12;
-      --danger: #e74c3c;
-      --gray-dark: #34495e;
-      --gray: #7f8c8d;
-      --gray-light: #ecf0f1;
-      --border-radius: 8px;
-      --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>工作任务管理</title>
+    <!-- 1. Supabase 客户端库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 2. XLSX.js (保留以防未来需要导出功能) -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- 3. Chart.js for Monthly Summary Charts -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- 4. Font Awesome for Icons -->
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    <style>
+        /* --- Global & Reset Styles --- */
+        :root {
+            --primary-color: #3498db; --primary-dark: #2980b9; --accent-color: #f39c12;
+            --text-color: #333; --light-bg: #f9f9f9; --border-color: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1); --radius: 6px; --header-height: 68px;
+            --wrapper-padding: 24px; --loading-overlay-bg: rgba(255, 255, 255, 0.75);
+            --spinner-color: var(--primary-color); --primary-light: #ebf5fb; --success: #2ecc71;
+            --warning: #f39c12; --danger: #e74c3c; --gray-dark: #34495e; --gray: #7f8c8d;
+            --gray-light: #ecf0f1; --monthly-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif; color: var(--text-color); background-color: #f5f7fa; line-height: 1.6; }
 
-    body {
-      font-family: "Microsoft YaHei", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
-      color: #333;
-      background: #f9fafc;
-      line-height: 1.6;
-      padding: 20px;
-    }
+        /* --- Tab Structure Styles --- */
+        body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .tab-container { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+        .tab-buttons { display: flex; background-color: #ffffff; border-bottom: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex-shrink: 0; padding: 0 15px; }
+        .tab-button { padding: 12px 25px; cursor: pointer; border: none; background-color: transparent; font-size: 15px; font-weight: 500; color: var(--gray); border-bottom: 3px solid transparent; transition: all 0.2s ease; margin-bottom: -1px; }
+        .tab-button:hover { color: var(--primary-dark); }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+        .tab-content-wrapper { flex: 1; overflow: hidden; position: relative; background-color: #f5f7fa; }
+        .tab-content { display: none; height: 100%; overflow: auto; flex-direction: column; }
+        .tab-content.active { display: flex; }
 
-    .dashboard {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
+        /* --- Daily Report Specific Styles (#dailyReport) --- */
+        #dailyReport .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; background: white; border-bottom: 1px solid var(--border-color); height: auto; flex-shrink: 0; }
+        #dailyReport .header-title { font-size: 20px; font-weight: 600; color: var(--primary-dark); }
+        #dailyReport .controls-container { display: flex; align-items: center; gap: 15px; }
+        #dailyReport .date-picker-container { display: flex; align-items: center; }
+        #dailyReport .header label { margin-right: 12px; font-size: 15px; font-weight: 500; }
+        #dailyReport #datePicker { width: 160px; padding: 8px 12px; font-size: 14px; border: 1px solid var(--border-color); border-radius: var(--radius); outline: none; transition: all 0.2s; }
+        #dailyReport #datePicker:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+        #dailyReport #datePicker:disabled { background-color: #eee; cursor: not-allowed; }
+        #dailyReport .table-wrapper { flex: 1; padding: var(--wrapper-padding); overflow: hidden; position: relative; display: flex; flex-direction: column; min-height: 0; }
+        #dailyReport .table-container { flex: 1; background: white; border-radius: 8px; box-shadow: var(--shadow); overflow-y: auto; border: 1px solid var(--border-color); position: relative; }
+        #dailyReport table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        #dailyReport th, #dailyReport td { border: 1px solid var(--border-color); padding: 12px 16px; text-align: center; font-size: 14px; vertical-align: middle; word-break: break-word; }
+        #dailyReport thead th { background: #f0f8ff; font-weight: 600; color: var(--primary-dark); white-space: nowrap; padding: 14px 16px; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid var(--border-color); }
+        #dailyReport tbody tr:nth-child(even) { background-color: #f9fafc; }
+        #dailyReport tbody tr:hover { background-color: #f0f7ff; }
+        #dailyReport td.workshop, #dailyReport td.remark, #dailyReport td.operations { text-align: left; }
+        #dailyReport td.workshop { font-weight: 500; color: var(--primary-dark); background-color: #f8fbff; }
+        #dailyReport .serial-cell { font-weight: 600; background-color: #eef6fc; }
+        #dailyReport .cost-cell { font-weight: 500; color: var(--accent-color); background-color: #fffaf0; }
+        #dailyReport .cost-cell input[type="number"] { text-align: right; padding-right: 8px; }
+        #dailyReport .button { padding: 6px 12px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; color: white; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        #dailyReport .add-task-btn { background-color: var(--primary-color); color: white; }
+        #dailyReport .add-task-btn:hover { background-color: var(--primary-dark); }
+        #dailyReport .delete-btn { background-color: #e74c3c; color: white; }
+        #dailyReport .delete-btn:hover { background-color: #c0392b; }
+        #dailyReport #saveButton { background-color: #2ecc71; border-color: #2ecc71; }
+        #dailyReport #saveButton:hover:not(:disabled) { background-color: #27ae60 !important; }
+        #dailyReport #saveButton:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; opacity: 0.7; }
+        #dailyReport #saveButton .spinner-border { width: 1em; height: 1em; border-width: .2em; } /* Adjust spinner size */
+        #dailyReport textarea, #dailyReport input[type="text"], #dailyReport input[type="number"] { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-size: 14px; font-family: inherit; transition: all 0.2s; background-color: #fff; box-sizing: border-box; }
+        #dailyReport textarea { min-height: 70px; resize: vertical; display: block; }
+        #dailyReport input[type="number"] { text-align: right; padding-right: 8px; -moz-appearance: textfield; }
+        #dailyReport input[type="number"]::-webkit-outer-spin-button, #dailyReport input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        #dailyReport textarea:focus, #dailyReport input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); outline: none; }
+        #dailyReport .loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--loading-overlay-bg); display: flex; justify-content: center; align-items: center; z-index: 20; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
+        #dailyReport .loading-overlay.active { opacity: 1; visibility: visible; }
+        #dailyReport .spinner-border { display: inline-block; width: 3rem; height: 3rem; vertical-align: text-bottom; border: .25em solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spinner-border .75s linear infinite; color: var(--spinner-color); }
+        @keyframes spinner-border { to { transform: rotate(360deg); } }
+        #dailyReport .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid var(--gray-light);
-      flex-wrap: wrap; /* Allow wrapping on smaller screens */
-      gap: 15px; /* Add gap between items */
-    }
+        /* --- Monthly Summary Specific Styles (#monthlySummary) --- */
+        #monthlySummary { padding: 20px; }
+        #monthlySummary .dashboard { max-width: 1400px; margin: 0 auto; width: 100%; }
+        #monthlySummary .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--gray-light); flex-wrap: wrap; gap: 15px; }
+        #monthlySummary .header h1 { color: var(--gray-dark); font-size: 24px; font-weight: 600; flex-shrink: 0; }
+        #monthlySummary .controls-wrapper { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        #monthlySummary .date-selector-wrapper { display: flex; align-items: center; gap: 8px; background-color: #fff; padding: 5px 10px; border-radius: var(--radius); border: 1px solid var(--gray-light); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        #monthlySummary .date-selector-wrapper label { font-size: 14px; color: var(--gray-dark); margin-left: 5px; }
+        #monthlySummary .date-selector-wrapper select { padding: 4px 8px; border: 1px solid var(--gray-light); border-radius: 4px; font-size: 14px; background-color: #fff; cursor: pointer; }
+        #monthlySummary .card { background: white; border-radius: var(--radius); box-shadow: var(--monthly-shadow); padding: 25px; margin-bottom: 30px; }
+        #monthlySummary .card-title { font-size: 18px; font-weight: 500; color: var(--gray-dark); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        #monthlySummary .card-title i { color: var(--primary-color); }
+        #monthlySummary table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
+        #monthlySummary thead th { background: var(--primary-light); color: var(--primary-dark); font-weight: 500; text-align: left; padding: 12px 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #monthlySummary th.numeric-header { text-align: right; }
+        #monthlySummary thead th:first-child { border-top-left-radius: 6px; }
+        #monthlySummary thead th:last-child { border-top-right-radius: 6px; }
+        #monthlySummary tbody tr { border-bottom: 1px solid var(--gray-light); transition: background 0.2s; }
+        #monthlySummary tbody tr:hover { background: #fafbfc; }
+        #monthlySummary tbody tr:last-child { border-bottom: none; }
+        #monthlySummary tbody td { padding: 12px 15px; font-size: 14px; word-break: break-all; }
+        #monthlySummary td.wage, #monthlySummary td.cost { text-align: right; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+        #monthlySummary td.wage { color: var(--primary-dark); font-weight: 500; }
+        #monthlySummary .charts-container { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+        #monthlySummary .chart-card { background: white; border-radius: var(--radius); box-shadow: var(--monthly-shadow); padding: 25px; height: 480px; display: flex; flex-direction: column; overflow: hidden; }
+        #monthlySummary .chart-and-filter-wrapper { display: flex; flex: 1; gap: 20px; overflow: hidden; min-height: 0; }
+        #monthlySummary .chart-area { flex: 1; position: relative; min-width: 0; display: flex; justify-content: center; align-items: center; }
+        #monthlySummary .chart-area canvas { max-width: 100%; max-height: 100%; }
+        #monthlySummary #filterPanel { width: 150px; max-height: 100%; overflow-y: auto; background: white; border-radius: var(--radius); padding: 15px; box-shadow: none; flex: 0 0 150px; border-left: 1px solid var(--gray-light); margin-left: auto; }
+        #monthlySummary .filter-title { font-size: 14px; font-weight: 500; margin-bottom: 10px; color: var(--gray-dark); }
+        #monthlySummary #filterPanel label { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 13px; cursor: pointer; padding: 4px 0; }
+        #monthlySummary #filterPanel label:hover { color: var(--primary-color); }
+        #monthlySummary .checkbox-custom { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; border: 1px solid var(--gray); border-radius: 3px; margin: 0; position: relative; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+        #monthlySummary .checkbox-custom:checked { background-color: var(--primary-color); border-color: var(--primary-color); }
+        #monthlySummary .checkbox-custom:checked::after { content: ""; position: absolute; left: 5px; top: 2px; width: 4px; height: 8px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+        #monthlySummary .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: all 0.3s ease; z-index: 1050; }
+        #monthlySummary .modal-overlay.visible { visibility: visible; opacity: 1; }
+        #monthlySummary .modal-content { background: white; padding: 30px; border-radius: var(--radius); width: 90%; max-width: 800px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: scale(0.9); transition: transform 0.3s ease; }
+        #monthlySummary .modal-overlay.visible .modal-content { transform: scale(1); }
+        #monthlySummary .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        #monthlySummary .modal-title { font-size: 20px; font-weight: 500; color: var(--gray-dark); }
+        #monthlySummary .modal-close { background: transparent; border: none; color: var(--gray); font-size: 20px; cursor: pointer; transition: color 0.2s; }
+        #monthlySummary .modal-close:hover { color: var(--danger); }
+        #monthlySummary .modal-body { height: 400px; }
+        #monthlySummary .loading-indicator { display: none; text-align: center; padding: 40px 15px; font-size: 16px; color: var(--gray); }
+        #monthlySummary .loading-indicator.active { display: block; }
+        #monthlySummary .loading-indicator .spinner-border { width: 2rem; height: 2rem; border-width: .2em; color: var(--primary-color); margin-bottom: 10px; display: inline-block; vertical-align: text-bottom; border: .25em solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spinner-border .75s linear infinite; }
 
-    .header h1 {
-      color: var(--gray-dark);
-      font-size: 24px;
-      font-weight: 600;
-      flex-shrink: 0; /* Prevent title from shrinking too much */
-    }
-
-    /* --- Start: New Styles for Date Selector --- */
-    .controls-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 15px; /* Spacing between date selector and import button */
-        flex-wrap: wrap; /* Allow wrapping */
-    }
-
-    .date-selector-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background-color: #fff;
-        padding: 5px 10px;
-        border-radius: var(--border-radius);
-        border: 1px solid var(--gray-light);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .date-selector-wrapper label {
-        font-size: 14px;
-        color: var(--gray-dark);
-        margin-left: 5px; /* Add space before label */
-    }
-
-    .date-selector-wrapper select {
-        padding: 4px 8px;
-        border: 1px solid var(--gray-light);
-        border-radius: 4px;
-        font-size: 14px;
-        background-color: #fff;
-        cursor: pointer;
-    }
-     /* --- End: New Styles for Date Selector --- */
-
-
-    .file-input-wrapper {
-      position: relative;
-      display: inline-block; /* Keep this for the button layout */
-    }
-
-    .file-input-wrapper input[type="file"] {
-      position: absolute;
-      left: 0;
-      top: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-    }
-
-    .import-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      font-size: 14px;
-      color: white;
-      background: var(--primary);
-      border: none;
-      border-radius: var(--border-radius);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
-    }
-
-    .import-btn:hover {
-      background: var(--primary-dark);
-      box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
-    }
-
-    .card {
-      background: white;
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow);
-      padding: 25px;
-      margin-bottom: 30px;
-    }
-
-    .card-title {
-      font-size: 18px;
-      font-weight: 500;
-      color: var(--gray-dark);
-      margin-bottom: 20px; /* 调整标题和内容间距 */
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0; /* 防止标题被压缩 */
-    }
-
-    .card-title i {
-      color: var(--primary);
-    }
-
-    /* --- 表格样式修改 --- */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 10px;
-      table-layout: fixed; /* 让宽度设置更有效 */
-    }
-
-    thead th {
-      background: var(--primary-light);
-      color: var(--primary-dark);
-      font-weight: 500;
-      text-align: left; /* 默认左对齐 */
-      padding: 12px 15px;
-      overflow: hidden; /* 防止内容溢出 */
-      text-overflow: ellipsis; /* 溢出时显示省略号 */
-      white-space: nowrap; /* 防止表头文字换行 */
-    }
-
-    /* --- 新增: 数值列的表头右对齐 --- */
-    th.numeric-header {
-      text-align: right;
-    }
-
-    thead th:first-child {
-      border-top-left-radius: 6px;
-    }
-
-    thead th:last-child {
-      border-top-right-radius: 6px;
-    }
-
-    tbody tr {
-      border-bottom: 1px solid var(--gray-light);
-      transition: background 0.2s;
-    }
-
-    tbody tr:hover {
-      background: #fafbfc;
-    }
-
-    tbody tr:last-child {
-      border-bottom: none;
-    }
-
-    tbody td {
-      padding: 12px 15px;
-      font-size: 14px;
-      word-break: break-all; /* 防止长内容撑破单元格 */
-    }
-
-    /* 数值列数据右对齐 */
-    td.wage, td.cost {
-      text-align: right;
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-    }
-
-    td.wage {
-      color: var(--primary-dark);
-      font-weight: 500;
-    }
-    /* --- 结束: 表格样式修改 --- */
-
-
-    .charts-container {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 30px;
-    }
-
-    .chart-card {
-      background: white;
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow);
-      padding: 25px;
-      height: 480px; /* 稍微增加点高度给标题和间距 */
-      display: flex; /* 使用 flex 布局 */
-      flex-direction: column; /* 垂直排列标题和内容 */
-      overflow: hidden; /* 防止内容溢出卡片 */
-    }
-
-    .chart-and-filter-wrapper {
-        display: flex;          /* 内部使用 flex 布局 */
-        flex: 1;                /* 占据卡片剩余的所有高度 */
-        gap: 20px;              /* 图表和筛选器之间的间距 */
-        overflow: hidden;       /* 隐藏内部溢出内容 */
-        min-height: 0;          /* 解决 flex 布局在某些情况下的高度计算问题 */
-    }
-
-    .chart-area {
-        flex: 1;                /* 图表区域占据大部分宽度 */
-        position: relative;     /* 保持相对定位给 canvas */
-        min-width: 0;           /* 解决 flex 布局下内部元素可能不缩小的问题 */
-        display: flex;          /* 让 canvas 能够更好地填充 */
-        justify-content: center;
-        align-items: center;
-    }
-    .chart-area canvas {
-        max-width: 100%;       /* 确保 canvas 不会超出其容器 */
-        max-height: 100%;
-    }
-
-
-    #filterPanel {
-      width: 150px;
-      max-height: 100%; /* 高度限制为父容器高度 */
-      overflow-y: auto;
-      background: white; /* 可以保留背景色 */
-      border-radius: var(--border-radius); /* 可以保留圆角 */
-      padding: 15px; /* 保留内边距 */
-      box-shadow: none; /* 移除阴影，因为它现在在文档流中 */
-      flex: 0 0 150px;        /* 不放大，不缩小，固定宽度 150px */
-      border-left: 1px solid var(--gray-light); /* 左侧加一条分割线 */
-      margin-left: auto;      /* 将其推到右侧（如果需要的话，但 flex gap 已经创建了间距） */
-    }
-
-    .filter-title {
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 10px;
-      color: var(--gray-dark);
-    }
-
-    #filterPanel label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 8px;
-      font-size: 13px;
-      cursor: pointer;
-      padding: 4px 0;
-    }
-
-    #filterPanel label:hover {
-      color: var(--primary);
-    }
-
-    .checkbox-custom {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      border: 1px solid var(--gray);
-      border-radius: 3px;
-      margin: 0;
-      position: relative;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .checkbox-custom:checked {
-      background-color: var(--primary);
-      border-color: var(--primary);
-    }
-
-    .checkbox-custom:checked::after {
-      content: "";
-      position: absolute;
-      left: 5px;
-      top: 2px;
-      width: 4px;
-      height: 8px;
-      border: solid white;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-    }
-
-    /* 模态弹窗样式 (保持不变) */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
-      visibility: hidden; opacity: 0; transition: all 0.3s ease; z-index: 1000;
-    }
-    .modal-overlay.visible { visibility: visible; opacity: 1; }
-    .modal-content {
-      background: white; padding: 30px; border-radius: var(--border-radius);
-      width: 90%; max-width: 800px; position: relative;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      transform: scale(0.9); transition: transform 0.3s ease;
-    }
-    .modal-overlay.visible .modal-content { transform: scale(1); }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .modal-title { font-size: 20px; font-weight: 500; color: var(--gray-dark); }
-    .modal-close { background: transparent; border: none; color: var(--gray); font-size: 20px; cursor: pointer; transition: color 0.2s; }
-    .modal-close:hover { color: var(--danger); }
-    .modal-body { height: 400px; }
-
-    /* 响应式设计 */
-    @media (max-width: 1200px) {
-      .charts-container { grid-template-columns: 1fr; }
-      .header { justify-content: flex-start; } /* Align items to start on wrap */
-    }
-    @media (max-width: 768px) {
-      .header { flex-direction: column; align-items: flex-start; gap: 15px; }
-      /* Adjust date selector wrapping */
-      .controls-wrapper { flex-direction: column; align-items: stretch; width: 100%;}
-      .date-selector-wrapper { justify-content: space-around; width: 100%; }
-      .file-input-wrapper { width: 100%; } /* Make button full width */
-      .import-btn { width: 100%; justify-content: center; }
-
-      .card, .chart-card { padding: 15px; }
-      thead th, tbody td { padding: 10px; font-size: 13px; } /* 调整小屏幕下的表格内边距和字体 */
-      th.numeric-header { padding-right: 10px; } /* 小屏幕下右对齐表头增加右内边距 */
-      td.wage, td.cost { padding-right: 10px; } /* 小屏幕下右对齐数据增加右内边距 */
-      .chart-and-filter-wrapper { flex-direction: column; gap: 15px;} /* 在小屏幕上垂直堆叠 */
-      #filterPanel { width: 100%; flex-basis: auto; max-height: 200px; border-left: none; border-top: 1px solid var(--gray-light); padding-left: 15px; margin-left: 0;}
-    }
-  </style>
+        /* --- Responsive Styles --- */
+        @media (max-width: 1200px) {
+            #monthlySummary .charts-container { grid-template-columns: 1fr; }
+            #monthlySummary .header { justify-content: flex-start; }
+        }
+        @media (max-width: 768px) {
+            .tab-buttons { padding: 0 5px; }
+            .tab-button { padding: 10px 15px; font-size: 14px; }
+            #dailyReport .header { flex-direction: column; align-items: stretch; gap: 12px; height: auto; padding: 12px; }
+            #dailyReport .controls-container { flex-direction: column; align-items: stretch; gap: 10px; }
+            #dailyReport #datePicker { width: 100%; }
+            #dailyReport #saveButton { width: 100%; }
+            #dailyReport .table-wrapper { padding: 12px; --wrapper-padding: 12px; }
+            #dailyReport th, #dailyReport td { padding: 10px 8px; font-size: 13px; }
+            #dailyReport thead th { position: static; }
+             #monthlySummary { padding: 10px; }
+            #monthlySummary .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+            #monthlySummary .controls-wrapper { flex-direction: column; align-items: stretch; width: 100%;}
+            #monthlySummary .date-selector-wrapper { justify-content: space-around; width: 100%; padding: 8px; }
+            #monthlySummary .card, #monthlySummary .chart-card { padding: 15px; }
+             #monthlySummary .chart-card { height: auto; min-height: 350px; }
+            #monthlySummary thead th, #monthlySummary tbody td { padding: 10px; font-size: 13px; }
+            #monthlySummary th.numeric-header { padding-right: 10px; }
+            #monthlySummary td.wage, #monthlySummary td.cost { padding-right: 10px; }
+            #monthlySummary .charts-container { display: flex; flex-direction: column; gap: 15px; }
+            #monthlySummary .chart-and-filter-wrapper { flex-direction: column; gap: 15px; }
+            #monthlySummary #filterPanel { width: 100%; flex-basis: auto; max-height: 200px; border-left: none; border-top: 1px solid var(--gray-light); padding-left: 15px; margin-left: 0;}
+            #monthlySummary .modal-content { max-width: 95%; padding: 20px; }
+            #monthlySummary .modal-body { height: 300px; }
+        }
+    </style>
 </head>
 <body>
-  <div class="dashboard">
-    <div class="header">
-      <h1>车间人工工资统计分析平台</h1>
-      <!-- Moved date selector and import button into a wrapper -->
-      <div class="controls-wrapper">
-          <!-- Year/Month Selector -->
-          <div class="date-selector-wrapper">
-              <label for="selectYear">年份:</label>
-              <select id="selectYear"></select>
-              <label for="selectMonth">月份:</label>
-              <select id="selectMonth"></select>
-          </div>
-          <!-- Import Button -->
-          <div class="file-input-wrapper">
-            <button class="import-btn">
-              <i class="fas fa-file-excel"></i> 导入数据表
-            </button>
-            <input type="file" id="importBtn" accept=".xlsx, .xls, .xlsm">
-          </div>
-      </div>
+    <div class="tab-container">
+        <div class="tab-buttons">
+            <button class="tab-button active" data-tab="dailyReport">工作任务日报</button>
+            <button class="tab-button" data-tab="monthlySummary">月度汇总分析</button>
+        </div>
+
+        <div class="tab-content-wrapper">
+            <!-- ======================= -->
+            <!-- Daily Report Tab Content -->
+            <!-- ======================= -->
+            <div id="dailyReport" class="tab-content active">
+                <!-- Header Section -->
+                <div class="header">
+                    <div class="header-title">工作任务日报表</div>
+                    <div class="controls-container">
+                        <div class="date-picker-container">
+                            <label for="datePicker">选择日期：</label>
+                            <input type="date" id="datePicker" />
+                        </div>
+                        <button id="saveButton" class="button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-save" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v4.5h2a.5.5 0 0 1 .354.854l-2.5 2.5a.5.5 0 0 1-.708 0l-2.5-2.5A.5.5 0 0 1 5.5 6.5h2V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/></svg>
+                            <span>保存数据</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Table Section -->
+                <div class="table-wrapper">
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+                    </div>
+                    <div class="table-container" id="tableContainer">
+                        <!-- Daily table generated here by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================== -->
+            <!-- Monthly Summary Tab Content -->
+            <!-- ========================== -->
+            <div id="monthlySummary" class="tab-content">
+                <div class="dashboard">
+                    <div class="header">
+                        <h1>车间人工工资统计分析平台</h1>
+                        <div class="controls-wrapper">
+                            <div class="date-selector-wrapper">
+                                <label for="selectYear">年份:</label>
+                                <select id="selectYear"></select>
+                                <label for="selectMonth">月份:</label>
+                                <select id="selectMonth"></select>
+                            </div>
+                        </div>
+                    </div>
+
+                     <div id="monthlyLoadingIndicator" class="loading-indicator">
+                         <div class="spinner-border" role="status"></div>
+                         <div>正在加载汇总数据...</div>
+                     </div>
+
+                     <div id="monthlyDataDisplay">
+                        <div class="card">
+                            <div class="card-title">
+                                <i class="fas fa-table" aria-hidden="true"></i> 工资统计概览 (<span id="displaySelectedMonth">请选择年月</span>)
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th width="5%">序号</th>
+                                        <th width="20%">车间名称</th>
+                                        <th width="35%" class="numeric-header">人工工资总额 (元)</th>
+                                        <th width="40%" class="numeric-header">平均成本 (人·时)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monthlyTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="charts-container">
+                            <div class="chart-card">
+                                <div class="card-title"><i class="fas fa-chart-line" aria-hidden="true"></i> 每日成本指标趋势</div>
+                                <div class="chart-and-filter-wrapper">
+                                    <div class="chart-area"><canvas id="workshopCostChart"></canvas></div>
+                                    <div id="filterPanel"><div class="filter-title">车间筛选</div></div>
+                                </div>
+                            </div>
+                            <div class="chart-card">
+                                <div class="card-title"><i class="fas fa-chart-pie" aria-hidden="true"></i> 工资分布占比</div>
+                                <div class="chart-area"><canvas id="wagePieChart"></canvas></div>
+                            </div>
+                        </div>
+                     </div>
+                </div>
+
+                <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modalTitle" class="modal-title">车间每日工资明细</h3>
+                            <button id="modalClose" class="modal-close" aria-label="关闭弹窗"><i class="fas fa-times" aria-hidden="true"></i></button>
+                        </div>
+                        <div class="modal-body"><canvas id="barChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- 统计表格 -->
-    <div class="card">
-      <div class="card-title">
-        <i class="fas fa-table"></i> 工资统计概览 (<span id="displaySelectedMonth">请先选择年月并导入</span>)
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th width="5%">序号</th>
-            <th width="20%">车间名称</th>
-            <th width="35%" class="numeric-header">人工工资总额 (元)</th>
-            <th width="40%" class="numeric-header">平均成本 (人·时)</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          <!-- 表格内容由 JS 动态生成 -->
-        </tbody>
-      </table>
-    </div>
+    <!-- ======================= -->
+    <!-- Combined JavaScript     -->
+    <!-- ======================= -->
+    <script>
+        // ----- GLOBAL INITIALIZATION & CONFIG -----
+        const SUPABASE_URL = 'https://kkisabzmyiouksfczsrt.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraXNhYnpteWlvdWtzZmN6c3J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1NTY5NjcsImV4cCI6MjA2MTEzMjk2N30.s_euUCvAyH9LQ-N7Oh4OiG7uTgQWFvbhDt8dwHdObOI';
+        let supabase = null;
 
-    <!-- 两图并列容器 -->
-    <div class="charts-container">
-      <!-- 左侧折线图卡片 -->
-      <div class="chart-card">
-        <div class="card-title">
-          <i class="fas fa-chart-line"></i> 每日成本趋势
-        </div>
-        <div class="chart-and-filter-wrapper">
-          <div class="chart-area">
-            <canvas id="workshopCostChart"></canvas>
-          </div>
-          <div id="filterPanel">
-            <div class="filter-title">车间筛选</div>
-            <!-- 复选框将由 JS 动态添加到这里 -->
-          </div>
-        </div>
-      </div>
-      <!-- 右：工资饼图 -->
-      <div class="chart-card">
-        <div class="card-title">
-          <i class="fas fa-chart-pie"></i> 工资分布占比
-        </div>
-        <div class="chart-area">
-          <canvas id="wagePieChart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 弹窗 -->
-  <div id="modalOverlay" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modalTitle" class="modal-title">车间每日工资明细</h3>
-        <button id="modalClose" class="modal-close">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div class="modal-body">
-        <canvas id="barChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- 放在 </body> 结束标签之前 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    // Global Variables
-    const fixedWorkshops = [
-      "砂浆","无机膏料","真金板","石墨生产","切割",
-      "一体板","免拆模板","免拆板切割","化验室","线条","机修"
-    ];
-    const aliasMap = {
-      "免拆模板切割":"免拆板切割",
-      "免拆板切割":"免拆板切割"
-    };
-    let lineChart, pieChart, barChart;
-    let dailyWages = {};
-    const colors = [
-      '#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6',
-      '#1abc9c', '#34495e', '#e67e22', '#16a085', '#c0392b', '#8e44ad'
-    ];
-    let currentSelectedYear = null;
-    let currentSelectedMonth = null;
-
-    // --- Supabase 初始化 ---
-    const SUPABASE_URL = 'https://kkisabzmyiouksfczsrt.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraXNhYnpteWlvdWtzZmN6c3J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1NTY5NjcsImV4cCI6MjA2MTEzMjk2N30.s_euUCvAyH9LQ-N7Oh4OiG7uTgQWFvbhDt8dwHdObOI';
-    let supabase = null;
-    try {
-        const { createClient } = supabase; // Try direct access first
-        supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log("Supabase client initialized.");
-    } catch (error) {
-        console.warn("Direct supabase.createClient failed, trying window.supabase...", error);
-        if (window.supabase && typeof window.supabase.createClient === 'function') {
-             try {
+        try {
+            if (typeof window !== 'undefined' && window.supabase?.createClient) {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log("Supabase client initialized via window.supabase.");
-             } catch(e) {
-                console.error("Supabase 初始化失败 (window.supabase):", e);
-                alert("数据库客户端初始化失败，保存功能可能无法使用。");
-             }
-        } else {
-             alert("数据库客户端初始化失败，保存功能可能无法使用。请检查 Supabase 库是否正确加载。");
-             console.error("window.supabase 或 window.supabase.createClient 未找到。")
+                console.log('Supabase Client Initialized via window.supabase');
+            } else { throw new Error('Supabase client library (supabase-js) not loaded correctly.'); }
+        } catch (error) {
+            console.error('Error initializing Supabase client:', error);
+            alert(`数据库连接初始化失败！部分功能（数据加载/保存）将无法使用。\n错误: ${error.message}`);
         }
-    }
-    // --------------------
 
-    // --- DOM Elements ---
-    const selectYear = document.getElementById('selectYear');
-    const selectMonth = document.getElementById('selectMonth');
-    const tableBody = document.getElementById('tableBody');
-    const filterPanel = document.getElementById('filterPanel');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const modalClose = document.getElementById('modalClose');
-    const modalTitle = document.getElementById('modalTitle');
-    const importBtnElement = document.getElementById('importBtn');
-    const displaySelectedMonthSpan = document.getElementById('displaySelectedMonth');
+        const fixedWorkshops = [ "砂浆", "无机膏料", "真金板", "石墨生产", "切割", "一体板", "免拆模板", "免拆板切割", "化验室", "线条", "机修" ];
+        const chartColors = [ '#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6', '#1abc9c', '#34495e', '#e67e22', '#16a085', '#c0392b', '#8e44ad' ];
+        const dailyColWidths = ['50px','120px','200px','80px','100px','100px','200px','120px','100px'];
 
-    // --- Initialization Functions ---
-    function initDateSelectors() {
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth() + 1;
-      for (let year = 2020; year <= currentYear + 5; year++) {
-        const option = document.createElement('option');
-        option.value = year; option.textContent = year + '年';
-        selectYear.appendChild(option);
-      }
-      selectYear.value = currentYear;
-      for (let month = 1; month <= 12; month++) {
-        const option = document.createElement('option');
-        option.value = month; option.textContent = month + '月';
-        selectMonth.appendChild(option);
-      }
-      selectMonth.value = currentMonth;
-    }
+        let monthlyLineChart, monthlyPieChart, monthlyBarChart;
+        let monthlyDailyWages = {};
+        let monthlyCurrentSelectedYear = null;
+        let monthlyCurrentSelectedMonth = null;
 
-    function createTableSkeleton() {
-        tableBody.innerHTML = '';
-        fixedWorkshops.forEach((name, i) => {
-            const tr = document.createElement('tr');
-            tr.dataset.workshopName = name;
-            tr.innerHTML = `
-              <td>${i+1}</td>
-              <td>${name}</td>
-              <td class="wage">--</td>
-              <td class="cost">--</td>
-            `;
-            tableBody.appendChild(tr);
+        // ----- TAB SWITCHING LOGIC -----
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.dataset.tab;
+                if (button.classList.contains('active')) { return; } // Do nothing if already active
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                tabContents.forEach(content => content.classList.toggle('active', content.id === targetTab));
+
+                 // --- Added Refresh Logic ---
+                 if (targetTab === 'monthlySummary') {
+                     if (window.refreshMonthlySummary) {
+                         console.log("Switching to Monthly tab, triggering refresh...");
+                         window.refreshMonthlySummary(); // Call exposed refresh function
+                     } else { console.error("Refresh function for monthly summary not found!"); }
+                 }
+                 // --- End of Added Refresh Logic ---
+            });
         });
-    }
 
-    function updateTableData(monthlySummariesMap) {
-         tableBody.querySelectorAll('tr').forEach(tr => {
-            const workshopName = tr.dataset.workshopName;
-            const summary = monthlySummariesMap[workshopName];
-            const wageCell = tr.querySelector('.wage');
-            const costCell = tr.querySelector('.cost');
-            if (summary) {
-                wageCell.textContent = summary.total_wage.toFixed(2);
-                costCell.textContent = summary.average_cost.toFixed(2);
-            } else {
-                wageCell.textContent = '0.00';
-                costCell.textContent = '0.00';
+        // ----- DAILY REPORT JAVASCRIPT -----
+        (function() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const saveButton = document.getElementById('saveButton');
+            const datePicker = document.getElementById('datePicker');
+            const tableContainer = document.getElementById('tableContainer');
+            const tasksTableBodyId = 'tasksTableBody';
+
+            // --- [Start] Paste FULL Daily Report JS Functions (showDailyLoading to initDailyReport) ---
+            function showDailyLoading(show = true) {
+               if (loadingOverlay) loadingOverlay.classList.toggle('active', show);
+               if (saveButton) saveButton.disabled = show || !supabase;
+               if (datePicker) datePicker.disabled = show;
             }
-         });
-    }
 
-    // --- Event Listeners ---
-    importBtnElement.addEventListener('change', handleFileImport);
-    modalClose.addEventListener('click', () => modalOverlay.classList.remove('visible'));
-    modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) modalOverlay.classList.remove('visible'); });
-    selectYear.addEventListener('change', handleDateSelectionChange);
-    selectMonth.addEventListener('change', handleDateSelectionChange);
-
-    function handleDateSelectionChange() {
-        const year = selectYear.value;
-        const month = parseInt(selectMonth.value, 10);
-        if (year && month) {
-            fetchAndDisplayData(year, month);
-        }
-    }
-
-    // --- Core Logic: File Import Handling ---
-    async function handleFileImport(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const selectedYear = selectYear.value;
-      const selectedMonth = parseInt(selectMonth.value, 10);
-      currentSelectedYear = selectedYear; // Update global state for modal title
-      currentSelectedMonth = selectedMonth;
-
-      displaySelectedMonthSpan.textContent = '正在处理文件...';
-
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        try {
-            const wb = XLSX.read(new Uint8Array(ev.target.result), { type:'array' });
-            // --- Date Validation Step ---
-            let dateMismatchFound = false;
-            const mismatchedSheets = [];
-            const validSheetNames = [];
-            wb.SheetNames.forEach(sheetName => {
-                if (sheetName === '车间工资汇总' || !/^\d{1,2}-\d{1,2}$/.test(sheetName)) return;
-                const parts = sheetName.split('-');
-                const sheetMonth = parseInt(parts[0], 10);
-                if (isNaN(sheetMonth) || sheetMonth < 1 || sheetMonth > 12) return;
-                if (sheetMonth !== selectedMonth) {
-                    dateMismatchFound = true;
-                    mismatchedSheets.push(sheetName);
-                } else {
-                    validSheetNames.push(sheetName);
-                }
-            });
-            // --- Handle Validation Result ---
-            if (dateMismatchFound) {
-                alert(`日期不匹配！...\n${mismatchedSheets.join(', ')}...`);
-                initTable(); if (lineChart) lineChart.destroy(); if (pieChart) pieChart.destroy(); lineChart = null; pieChart=null; filterPanel.innerHTML = '<div class="filter-title">车间筛选</div>';
-                displaySelectedMonthSpan.textContent = '导入失败，日期不匹配'; return;
+            async function renderAndLoadDailyTable() {
+               console.log("Daily: renderAndLoadDailyTable called");
+               showDailyLoading(true);
+               try {
+                   renderDailyTableStructure();
+                   const selectedDate = datePicker?.value;
+                   if (selectedDate && supabase) { await fetchAndDisplayDailyTasks(selectedDate); }
+                   else if (!supabase) { if(tableContainer) tableContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--danger);">数据库连接失败，无法加载或保存日报数据。</p>'; }
+                   else if (!selectedDate) { if(tableContainer) tableContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--gray);">请选择日期以加载数据。</p>'; }
+               } catch (error) { console.error("Error during daily table rendering/loading:", error); alert(`加载日报表格数据时出错: ${error.message}`); if(tableContainer) tableContainer.innerHTML = `<p style="text-align: center; padding: 20px; color: var(--danger);">加载数据出错: ${error.message}</p>`; }
+               finally { showDailyLoading(false); }
             }
-            if (validSheetNames.length === 0) {
-                alert(`未找到与 ${selectedYear}年${selectedMonth}月 匹配的有效数据。`);
-                initTable(); if (lineChart) lineChart.destroy(); if (pieChart) pieChart.destroy(); lineChart = null; pieChart=null; filterPanel.innerHTML = '<div class="filter-title">车间筛选</div>';
-                displaySelectedMonthSpan.textContent = '导入失败，无匹配数据'; return;
+
+            function renderDailyTableStructure() {
+             if (!tableContainer) { console.error("Daily: Element 'tableContainer' not found."); return; }
+             tableContainer.innerHTML = '';
+             const table = document.createElement('table'); table.id = 'mainTaskTable';
+             const colgroup = document.createElement('colgroup'); dailyColWidths.forEach(w => { const col = document.createElement('col'); col.style.width = w; colgroup.appendChild(col); }); table.appendChild(colgroup);
+             const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>序号</th><th>车间</th><th>工作任务</th><th>人数</th><th>人工工资</th><th>时间</th><th>备注</th><th>成本（人.h）</th><th>操作</th></tr>`; table.appendChild(thead);
+             const tbody = document.createElement('tbody'); tbody.id = tasksTableBodyId;
+             fixedWorkshops.forEach((ws, idx) => { tbody.appendChild(createDailyRow(idx, ws, true, null)); }); table.appendChild(tbody); tableContainer.appendChild(table);
+             const newTbody = document.getElementById(tasksTableBodyId);
+              if (newTbody && !newTbody.dataset.listenerAttached) { newTbody.addEventListener('click', handleDailyTableClick); newTbody.dataset.listenerAttached = 'true'; console.log("Daily: table click listener attached."); }
+              else if (!newTbody) { console.error("Daily: Could not find tbody with ID", tasksTableBodyId, "after creation."); }
             }
-            // --- Proceed with Data Processing ---
-            displaySelectedMonthSpan.textContent = '正在计算数据...';
-            const stats = {}; const dailyDataForDB = []; const dailyCostsForChart = {}; dailyWages = {}; const labels = []; const wagesMonthly = [];
-            fixedWorkshops.forEach((wk, i) => { stats[wk] = { wageSum:0, effortSum:0, effortDays:0 }; dailyCostsForChart[wk] = []; wagesMonthly[i] = 0; dailyWages[wk] = []; });
 
-            validSheetNames.sort((a, b) => parseInt(a.split('-')[1], 10) - parseInt(b.split('-')[1], 10)); // Sort by day
+            function handleDailyTableClick(e) {
+                const target = e.target; const addButton = target.closest('.add-task-btn'); const deleteButton = target.closest('.delete-btn');
+                if (addButton) { addDailyTaskRowUI(Number(addButton.dataset.workshopIndex)); } else if (deleteButton) { deleteDailyTaskRowUI(deleteButton); }
+            }
 
-            validSheetNames.forEach((sheetName) => {
-                labels.push(sheetName);
-                const dayCost = {}; const dayWage = {}; fixedWorkshops.forEach(wk => { dayCost[wk] = { sum:0, days:0 }; dayWage[wk] = 0; });
-                const ws = wb.Sheets[sheetName]; const rows = XLSX.utils.sheet_to_json(ws, { header:1 }).slice(2);
-                rows.forEach(r => {
-                    if (!r || !r[1]) return; let wk = String(r[1]).trim(); wk = aliasMap[wk] || wk;
-                    if (fixedWorkshops.includes(wk)) {
-                        const wage = parseFloat(r[4]) || 0; const effortValue = parseFloat(r[7]);
-                        stats[wk].wageSum += wage; wagesMonthly[fixedWorkshops.indexOf(wk)] += wage; dayWage[wk] += wage;
-                        if (!isNaN(effortValue) && effortValue > 0) { stats[wk].effortSum += effortValue; stats[wk].effortDays += 1; dayCost[wk].sum += effortValue; dayCost[wk].days += 1; }
-                    } else { console.warn(`未识别车间: "${wk}" in sheet "${sheetName}"`); }
+            function createDailyRow(index, workshopName, isPrimaryRow, taskData = null) {
+               const tr = document.createElement('tr'); tr.dataset.workshopIndex = index; if (taskData?.id) { tr.dataset.taskId = taskData.id; }
+               const workshopCellContent = isPrimaryRow ? workshopName : ''; const costValue = taskData?.workshop_cost_man_hours ?? ''; const taskDescValue = taskData?.task_description ?? '';
+               const numPeopleValue = taskData?.num_people ?? ''; const laborCostValue = taskData?.labor_cost ?? ''; const timeSpentValue = taskData?.time_spent ?? ''; const remarksValue = taskData?.remarks ?? '';
+               const costCellContent = isPrimaryRow ? `<input type="number" step="any" placeholder="车间总成本" value="${costValue}" />` : '';
+               const buttonHTML = isPrimaryRow ? `<button class="button add-task-btn" data-workshop-index="${index}" title="添加新任务行"><i class="fas fa-plus" style="pointer-events: none; margin-right: 4px;"></i> 添加</button>` : `<button class="button delete-btn" title="删除此任务行"><i class="fas fa-trash-alt" style="pointer-events: none; margin-right: 4px;"></i> 删除</button>`;
+               tr.innerHTML = `<td class="serial serial-cell"></td> <td class="workshop">${workshopCellContent}</td> <td><textarea placeholder="请输入工作任务" rows="2">${taskDescValue}</textarea></td> <td><input type="number" placeholder="人数" value="${numPeopleValue}" /></td> <td><input type="number" step="any" placeholder="工资" value="${laborCostValue}" /></td> <td><input type="text" placeholder="HH:MM" value="${timeSpentValue}" /></td> <td class="remark"><textarea placeholder="备注" rows="2">${remarksValue}</textarea></td> <td class="cost cost-cell">${costCellContent}</td> <td class="operations">${buttonHTML}</td>`;
+               if (!isPrimaryRow) { const costTd = tr.querySelector('.cost-cell'); if (costTd) costTd.innerHTML = ''; } return tr;
+            }
+
+            function addDailyTaskRowUI(idx) {
+                const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return; const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${idx}"]`)); const lastRow = rows[rows.length - 1];
+                if (lastRow) { const newRow = createDailyRow(idx, '', false, null); lastRow.after(newRow); updateDailyTableUI(); const firstInput = newRow.querySelector('textarea, input'); if (firstInput) firstInput.focus(); }
+            }
+
+            function deleteDailyTaskRowUI(deleteButton) {
+                 const rowToDelete = deleteButton.closest('tr'); if (!rowToDelete) return; const tbody = rowToDelete.closest('tbody'); if (!tbody) return; const workshopIndex = Number(rowToDelete.dataset.workshopIndex);
+                 const rowsForWorkshop = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${workshopIndex}"]`)); if (rowsForWorkshop.length > 1) { rowToDelete.remove(); updateDailyTableUI(); } else { alert("每个车间至少需要保留一行。如需清空，请删除内容后保存。"); }
+            }
+
+            function updateDailyTableUI() {
+                const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return; let currentSerial = 1;
+                fixedWorkshops.forEach((workshopName, workshopIndex) => {
+                    const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${workshopIndex}"]`)); if (rows.length === 0) return;
+                    rows.forEach((row, rowIndex) => {
+                        row.querySelector('td.serial')?.setAttribute('rowspan', '1'); row.querySelector('td.workshop')?.setAttribute('rowspan', '1'); row.querySelector('td.cost')?.setAttribute('rowspan', '1');
+                        const expectedCells = 9; while (row.cells.length < expectedCells) { if (!row.querySelector('td.serial')) row.insertCell(0).classList.add('serial', 'serial-cell'); if (!row.querySelector('td.workshop')) row.insertCell(1).classList.add('workshop'); if (!row.querySelector('td.cost')) row.insertCell(expectedCells - 2).classList.add('cost', 'cost-cell'); if(row.cells.length < expectedCells && row.cells.length > 0) console.error(`Row ${rowIndex} workshop ${workshopIndex} cell count (${row.cells.length}) error`); else if (row.cells.length >= expectedCells) break; }
+                        const costCell = row.querySelector('td.cost'); if (rowIndex === 0 && costCell && !costCell.querySelector('input')) { costCell.innerHTML = '<input type="number" step="any" placeholder="车间总成本" />'; } else if (rowIndex > 0 && costCell) { costCell.innerHTML = ''; }
+                        const workshopCell = row.querySelector('td.workshop'); if (workshopCell) workshopCell.textContent = (rowIndex === 0) ? workshopName : '';
+                        const opsCell = row.querySelector('td.operations'); if (opsCell) { const expectedButtonClass = (rowIndex === 0) ? 'add-task-btn' : 'delete-btn'; if (!opsCell.querySelector(`.${expectedButtonClass}`)) { const buttonHTML = (rowIndex === 0) ? `<button class="button add-task-btn" data-workshop-index="${workshopIndex}" title="添加新任务行"><i class="fas fa-plus" style="pointer-events: none; margin-right: 4px;"></i> 添加</button>` : `<button class="button delete-btn" title="删除此任务行"><i class="fas fa-trash-alt" style="pointer-events: none; margin-right: 4px;"></i> 删除</button>`; opsCell.innerHTML = buttonHTML; } }
+                    });
+                    const firstRow = rows[0]; if (rows.length > 1) { firstRow.querySelector('td.serial')?.setAttribute('rowspan', rows.length); firstRow.querySelector('td.workshop')?.setAttribute('rowspan', rows.length); firstRow.querySelector('td.cost')?.setAttribute('rowspan', rows.length); }
+                    rows.slice(1).forEach(row => { row.querySelector('td.serial')?.remove(); row.querySelector('td.workshop')?.remove(); row.querySelector('td.cost')?.remove(); });
+                    const serialCell = firstRow.querySelector('td.serial'); if (serialCell) serialCell.textContent = currentSerial++;
                 });
-                fixedWorkshops.forEach(wk => {
-                    const dc = dayCost[wk]; const dw = dayWage[wk]; const dayOfMonth = parseInt(sheetName.split('-')[1], 10);
-                    const recordDateStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${String(dayOfMonth).padStart(2, '0')}`;
-                    dailyDataForDB.push({ workshopName: wk, record_date: recordDateStr, daily_wage: +dw.toFixed(2), daily_effort_value_sum: +dc.sum.toFixed(2), daily_effort_value_count: dc.days });
-                    dailyCostsForChart[wk].push(dc.days > 0 ? +(dc.sum / dc.days).toFixed(2) : 0); dailyWages[wk].push(+dw.toFixed(2));
-                });
-            });
-            // --- Update UI (Table, Charts) ---
-            displaySelectedMonthSpan.textContent = '正在渲染图表...';
-            const pieLabels = [], pieData = []; const monthlySummariesForDB = [];
-            tableBody.querySelectorAll('tr').forEach((tr, idx) => {
-              const wk = fixedWorkshops[idx]; const m = stats[wk]; const avgCost = m.effortDays > 0 ? (m.effortSum / m.effortDays).toFixed(2) : '0.00';
-              tr.querySelector('.wage').textContent = m.wageSum.toFixed(2); tr.querySelector('.cost').textContent = avgCost;
-              pieLabels.push(`${wk} (${m.wageSum.toFixed(2)}元)`); pieData.push(+m.wageSum.toFixed(2));
-              monthlySummariesForDB.push({ workshopName: wk, year: parseInt(selectedYear, 10), month: selectedMonth, total_wage: +m.wageSum.toFixed(2), average_cost: +avgCost });
-            });
-            renderLineChart(labels, dailyCostsForChart); renderPieChart(pieLabels, pieData, labels); renderFilterPanel();
-            // --- Save data to Supabase (Overwrite) ---
-            if (supabase) {
-                displaySelectedMonthSpan.textContent = '正在覆盖保存数据...';
+            }
+
+            function isDailyPrimaryRow(rowElement) { if (!rowElement?.dataset.workshopIndex) return false; const tbody = rowElement.closest('tbody'); if (!tbody) return false; return tbody.querySelector(`tr[data-workshop-index="${rowElement.dataset.workshopIndex}"]`) === rowElement; }
+
+            async function fetchAndDisplayDailyTasks(selectedDate) {
+               if (!supabase) { console.warn("Daily: Supabase not ready."); return; } console.log(`Daily: Fetching tasks for ${selectedDate}`);
+               try { const { data: tasks, error } = await supabase.from('daily_tasks').select('*').eq('report_date', selectedDate).order('workshop_index').order('id'); if (error) throw error; console.log(`Daily: Fetched ${tasks.length} tasks.`); populateDailyTableWithData(tasks); }
+               catch (err) { console.error('Daily: Error fetching tasks:', err); alert(`加载 ${selectedDate} 任务出错: ${err.message}`); renderDailyTableStructure(); }
+            }
+
+            function populateDailyTableWithData(tasks) {
+               const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return; console.log("Daily: Populating table...");
+               const primaryRows = []; tbody.querySelectorAll('tr').forEach(row => { if (isDailyPrimaryRow(row)) { clearDailyRowInputs(row, false); primaryRows.push(row); } else { row.remove(); } });
+               if (primaryRows.length !== fixedWorkshops.length) { console.error("Daily: Row/workshop mismatch. Re-rendering."); renderDailyTableStructure(); }
+               const tasksByWorkshop = tasks.reduce((acc, task) => { const index = task.workshop_index; if (index !== null && index >= 0 && index < fixedWorkshops.length) { if (!acc[index]) acc[index] = []; acc[index].push(task); } else { console.warn("Daily: Invalid index:", task); } return acc; }, {});
+               fixedWorkshops.forEach((_, workshopIndex) => {
+                   const workshopTasks = tasksByWorkshop[workshopIndex] || []; const primaryRow = tbody.querySelector(`tr[data-workshop-index="${workshopIndex}"]`); if (!primaryRow) { console.error(`Daily: Missing row for index ${workshopIndex}`); return; }
+                   if (workshopTasks.length > 0) { populateDailyRowInputs(primaryRow, workshopTasks[0]); primaryRow.dataset.taskId = workshopTasks[0].id; let lastAddedRow = primaryRow; for (let i = 1; i < workshopTasks.length; i++) { const newRow = createDailyRow(workshopIndex, '', false, workshopTasks[i]); newRow.dataset.taskId = workshopTasks[i].id; lastAddedRow.after(newRow); lastAddedRow = newRow; } }
+                   else { const costCell = primaryRow.querySelector('td.cost'); if (costCell && !costCell.querySelector('input')) { costCell.innerHTML = '<input type="number" step="any" placeholder="车间总成本" />'; } }
+               });
+               updateDailyTableUI(); console.log("Daily: Population complete.");
+            }
+
+            function populateDailyRowInputs(row, data) {
+                if (!row || !data) return; const taDesc = row.querySelector('textarea[placeholder="请输入工作任务"]'); const inPpl = row.querySelector('input[placeholder="人数"]'); const inCost = row.querySelector('input[placeholder="工资"]'); const inTime = row.querySelector('input[placeholder="HH:MM"]'); const taRemark = row.querySelector('textarea[placeholder="备注"]');
+                if(taDesc) taDesc.value = data.task_description ?? ''; if(inPpl) inPpl.value = data.num_people ?? ''; if(inCost) inCost.value = data.labor_cost ?? ''; if(inTime) inTime.value = data.time_spent ?? ''; if(taRemark) taRemark.value = data.remarks ?? '';
+                if (isDailyPrimaryRow(row)) { const inWSCost = row.querySelector('td.cost input[type="number"]'); if (inWSCost) inWSCost.value = data.workshop_cost_man_hours ?? ''; }
+            }
+
+            function clearDailyRowInputs(row, clearWSName = false) {
+                if (!row) return; const taDesc = row.querySelector('textarea[placeholder="请输入工作任务"]'); const inPpl = row.querySelector('input[placeholder="人数"]'); const inCost = row.querySelector('input[placeholder="工资"]'); const inTime = row.querySelector('input[placeholder="HH:MM"]'); const taRemark = row.querySelector('textarea[placeholder="备注"]'); const inWSCost = row.querySelector('td.cost input[type="number"]');
+                if (clearWSName && isDailyPrimaryRow(row)) { const wsCell = row.querySelector('td.workshop'); if (wsCell) wsCell.textContent = ''; }
+                if(taDesc) taDesc.value = ''; if(inPpl) inPpl.value = ''; if(inCost) inCost.value = ''; if(inTime) inTime.value = ''; if(taRemark) taRemark.value = ''; if(inWSCost) inWSCost.value = ''; delete row.dataset.taskId;
+            }
+
+            async function saveDailyDataToSupabase() {
+             if (!supabase) { alert('数据库连接失败!'); return; } if (!datePicker || !datePicker.value) { alert('请选择日期！'); return; } const btnHTML = saveButton.innerHTML; saveButton.disabled = true; saveButton.innerHTML = `<span class="spinner-border spinner-border-sm" style="margin-right: 5px;"></span> 保存中...`;
+             const selDate = datePicker.value; const tbody = document.getElementById(tasksTableBodyId); if (!tbody) { alert('表格错误!'); saveButton.disabled = false; saveButton.innerHTML = btnHTML; return; }
+             const rows = tbody.querySelectorAll('tr'); const tasksToSave = []; const wsMaster = {};
+             fixedWorkshops.forEach((name, idx) => { const pRow = tbody.querySelector(`tr[data-workshop-index="${idx}"]`); if(pRow && isDailyPrimaryRow(pRow)) { const cInput = pRow.querySelector('td.cost input'); wsMaster[idx] = { name: name, costManHours: cInput ? (cInput.value.trim() !== '' ? parseFloat(cInput.value) : null) : null }; } else { console.error(`Save Error: No primary row for index ${idx}`); wsMaster[idx] = { name: name, costManHours: null }; } });
+             rows.forEach(row => {
+                const wsIdx = parseInt(row.dataset.workshopIndex, 10); if(isNaN(wsIdx) || wsIdx<0 || wsIdx>=fixedWorkshops.length) return; const mData = wsMaster[wsIdx]; if(!mData) return;
+                const taDesc = row.querySelector('textarea[placeholder="请输入工作任务"]'); const inPpl = row.querySelector('input[placeholder="人数"]'); const inCost = row.querySelector('input[placeholder="工资"]'); const inTime = row.querySelector('input[placeholder="HH:MM"]'); const taRemark = row.querySelector('textarea[placeholder="备注"]');
+                const sDesc = taDesc?.value.trim() ?? ''; const sPpl = inPpl?.value.trim(); const sCost = inCost?.value.trim(); const sTime = inTime?.value.trim() || null; const sRemark = taRemark?.value.trim() || null;
+                const nPpl = (sPpl !== '' && !isNaN(parseInt(sPpl, 10))) ? parseInt(sPpl, 10) : null; const nCost = (sCost !== '' && !isNaN(parseFloat(sCost))) ? parseFloat(sCost) : null;
+                const hasData = sDesc || nPpl !== null || nCost !== null || sTime || sRemark; const isPWC = isDailyPrimaryRow(row) && mData.costManHours !== null;
+                if (hasData || isPWC) { tasksToSave.push({ report_date: selDate, workshop_index: wsIdx, workshop_name: mData.name, task_description: sDesc || '', num_people: nPpl, labor_cost: nCost, time_spent: sTime, remarks: sRemark, workshop_cost_man_hours: mData.costManHours }); }
+             });
+             console.log("Daily Save: Tasks:", tasksToSave); showDailyLoading(true);
+             try {
+                 console.log(`Daily Delete: ${selDate}`); const { error: delErr } = await supabase.from('daily_tasks').delete().eq('report_date', selDate);
+                 if(delErr) { console.error("Del Error:", delErr); throw delErr.message.includes("security policy") ? new Error(`删除旧记录失败: 权限不足 (RLS)。`) : new Error(`删除旧记录失败: ${delErr.message}`); } console.log(`Delete OK`);
+                 if (tasksToSave.length > 0) { console.log(`Insert ${tasksToSave.length} recs`); const { data, error: insErr } = await supabase.from('daily_tasks').insert(tasksToSave).select(); if (insErr) { console.error("Ins Error:", insErr); throw insErr; } console.log('Insert OK:', data); alert(`成功保存 ${data ? data.length : tasksToSave.length} 条记录！`); }
+                 else { alert(`已清除 ${selDate} 旧记录。`); }
+                 await fetchAndDisplayDailyTasks(selDate);
+             } catch (err) { console.error('Save Error:', err); let msg = `保存出错: ${err.message || '未知错误'}`; if (err?.message?.includes("not-null constraint")) { const col = err.message.match(/column "(.*?)"/)?.[1]; msg = `保存失败：字段 "${col||'??'}" 不能为空。`; } alert(msg); }
+             finally { saveButton.disabled = !supabase; saveButton.innerHTML = btnHTML; showDailyLoading(false); }
+            }
+
+            function formatDailyToday() { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; }
+
+            function initDailyReport() {
+                console.log("Daily: Initializing Report...");
+                if (datePicker) { datePicker.value = formatDailyToday(); if (!datePicker.dataset.listenerAttached) { datePicker.addEventListener('change', renderAndLoadDailyTable); datePicker.dataset.listenerAttached = 'true'; } renderAndLoadDailyTable(); }
+                else { console.error("Daily: Date picker not found."); if(tableContainer) tableContainer.innerHTML = '<p>日期选择器加载失败</p>'; showDailyLoading(false); }
+                if (saveButton) { if (supabase) { if (!saveButton.dataset.listenerAttached) { saveButton.addEventListener('click', saveDailyDataToSupabase); saveButton.dataset.listenerAttached = 'true'; } } else { saveButton.disabled = true; saveButton.title = "数据库连接失败"; } }
+                else { console.error("Daily: Save button not found."); }
+            }
+            // --- [End] Paste FULL Daily Report JS Functions ---
+
+            window.initDailyReport = initDailyReport;
+        })(); // End of Daily Report IIFE
+
+        // ----- MONTHLY SUMMARY JAVASCRIPT -----
+        (function() {
+            const selectYear = document.getElementById('selectYear');
+            const selectMonth = document.getElementById('selectMonth');
+            const tableBody = document.getElementById('monthlyTableBody');
+            const filterPanel = document.getElementById('filterPanel');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalClose = document.getElementById('modalClose');
+            const modalTitle = document.getElementById('modalTitle');
+            const displaySelectedMonthSpan = document.getElementById('displaySelectedMonth');
+            const loadingIndicator = document.getElementById('monthlyLoadingIndicator');
+            const dataDisplayArea = document.getElementById('monthlyDataDisplay');
+            const libsLoaded = typeof Chart !== 'undefined'; // XLSX no longer essential
+
+            if (!libsLoaded) { console.error("Monthly Summary Error: Chart.js library not loaded."); }
+
+            function showMonthlyLoading(show = true) {
+                 if (loadingIndicator) loadingIndicator.classList.toggle('active', show); // Use class for better control
+                 if (dataDisplayArea) dataDisplayArea.style.display = show ? 'none' : 'block';
+                 if(selectYear) selectYear.disabled = show; if(selectMonth) selectMonth.disabled = show;
+            }
+
+            function initMonthlyDateSelectors() {
+              const cy = new Date().getFullYear(); const cm = new Date().getMonth() + 1;
+              if (selectYear && !selectYear.options.length) { for (let y = cy - 3; y <= cy + 2; y++) { const o = document.createElement('option'); o.value = y; o.textContent = y + '年'; selectYear.appendChild(o); } selectYear.value = cy; }
+               if (selectMonth && !selectMonth.options.length) { for (let m = 1; m <= 12; m++) { const o = document.createElement('option'); o.value = m; o.textContent = m + '月'; selectMonth.appendChild(o); } selectMonth.value = cm; }
+            }
+
+            function createMonthlyTableSkeleton() {
+                if (!tableBody) return; tableBody.innerHTML = ''; if (fixedWorkshops.length === 0) { tableBody.innerHTML = '<tr><td colspan="4">未配置车间</td></tr>'; return; }
+                fixedWorkshops.forEach((name, i) => { const tr = document.createElement('tr'); tr.dataset.workshopName = name; tr.innerHTML = `<td>${i+1}</td><td>${name}</td><td class="wage">--</td><td class="cost">--</td>`; tableBody.appendChild(tr); });
+            }
+
+            function updateMonthlyTableData(summaryMap) {
+                 if (!tableBody) return; tableBody.querySelectorAll('tr').forEach(tr => { const wsName = tr.dataset.workshopName; if (!wsName) return; const summary = summaryMap[wsName]; const wgCell = tr.querySelector('.wage'); const csCell = tr.querySelector('.cost'); if (!wgCell || !csCell) return;
+                    if (summary) { wgCell.textContent = (summary.total_wage != null) ? Number(summary.total_wage).toFixed(2) : '0.00'; csCell.textContent = (summary.average_cost != null) ? Number(summary.average_cost).toFixed(2) : '0.00'; }
+                    else { wgCell.textContent = '0.00'; csCell.textContent = '0.00'; } });
+            }
+
+            function attachMonthlyListeners() {
+                 if (!libsLoaded) { console.warn("Monthly: Skipping listeners (Chart.js missing)."); return; }
+                if (modalClose && !modalClose.dataset.listenerAttached) { modalClose.addEventListener('click', () => modalOverlay.classList.remove('visible')); modalClose.dataset.listenerAttached = 'true'; }
+                if (modalOverlay && !modalOverlay.dataset.listenerAttached) { modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) modalOverlay.classList.remove('visible'); }); modalOverlay.dataset.listenerAttached = 'true'; }
+                 if (selectYear && !selectYear.dataset.listenerAttached) { selectYear.addEventListener('change', handleMonthlyDateSelectionChange); selectYear.dataset.listenerAttached = 'true'; }
+                 if (selectMonth && !selectMonth.dataset.listenerAttached) { selectMonth.addEventListener('change', handleMonthlyDateSelectionChange); selectMonth.dataset.listenerAttached = 'true'; }
+            }
+
+            function handleMonthlyDateSelectionChange() {
+                const year = selectYear?.value; const month = parseInt(selectMonth?.value, 10);
+                if (year && month && supabase) { fetchAndDisplayMonthlyData(year, month); }
+                else if (!supabase) { displaySelectedMonthSpan.textContent = "数据库未连接"; resetMonthlyUI(); showMonthlyLoading(false); }
+            }
+
+            async function fetchAndDisplayMonthlyData(year, month) {
+                if (!supabase || !libsLoaded || !year || !month) { /* Handled by caller/init */ return; }
+                showMonthlyLoading(true); displaySelectedMonthSpan.textContent = `正在加载 ${year}年${month}月 数据...`;
+                resetMonthlyUI(); monthlyDailyWages = {}; fixedWorkshops.forEach(wk => { monthlyDailyWages[wk] = []; });
+                monthlyCurrentSelectedYear = year; monthlyCurrentSelectedMonth = month; // Store for modal title
+
                 try {
-                    const saved = await saveDataToSupabase(monthlySummariesForDB, dailyDataForDB); // Use the overwrite function
-                    if (saved) { // Check if save operation was actually performed
-                         displaySelectedMonthSpan.textContent = `${selectedYear}年${selectedMonth}月 (数据已覆盖)`;
-                         console.log("数据成功覆盖保存到 Supabase！");
-                         alert("数据导入并覆盖保存成功！");
-                    } else {
-                         // If saveDataToSupabase returned false (e.g., no data parsed from Excel)
-                         displaySelectedMonthSpan.textContent = `${selectedYear}年${selectedMonth}月 (无有效数据解析，未覆盖)`;
-                         alert("从文件中未解析到有效数据，数据库未做更改。");
+                    const startDate = `${year}-${String(month).padStart(2, '0')}-01`; const endDate = new Date(year, month, 0); const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+                    console.log(`Monthly Fetch: Querying daily_tasks from ${startDate} to ${endDateStr}`);
+                    const { data: dailyTasks, error: fetchError } = await supabase.from('daily_tasks').select('report_date, workshop_name, labor_cost, workshop_cost_man_hours').gte('report_date', startDate).lte('report_date', endDateStr).order('report_date').order('workshop_index');
+                    if (fetchError) throw new Error(`获取日报数据失败: ${fetchError.message}`); console.log(`Monthly Fetch: Fetched ${dailyTasks?.length || 0} tasks.`);
+                    if (!dailyTasks || dailyTasks.length === 0) { displaySelectedMonthSpan.textContent = `${year}年${month}月 (无日报数据)`; showMonthlyLoading(false); return; }
+
+                    const monthlyAgg = {}; const dailyAgg = {}; fixedWorkshops.forEach(wk => { monthlyAgg[wk] = { total_wage: 0, cost_sum: 0, cost_days: 0 }; });
+                    for (const task of dailyTasks) {
+                        const wsName = task.workshop_name; const rpDate = task.report_date; if (!wsName || !fixedWorkshops.includes(wsName)) continue;
+                        if (!dailyAgg[rpDate]) { dailyAgg[rpDate] = {}; } if (!dailyAgg[rpDate][wsName]) { dailyAgg[rpDate][wsName] = { daily_wage: 0, daily_cost: null, cost_recorded: false }; }
+                        const lCost = Number(task.labor_cost) || 0; monthlyAgg[wsName].total_wage += lCost; dailyAgg[rpDate][wsName].daily_wage += lCost;
+                        const dCost = Number(task.workshop_cost_man_hours); if (!isNaN(dCost) && dCost > 0 && !dailyAgg[rpDate][wsName].cost_recorded) { monthlyAgg[wsName].cost_sum += dCost; monthlyAgg[wsName].cost_days += 1; dailyAgg[rpDate][wsName].daily_cost = dCost; dailyAgg[rpDate][wsName].cost_recorded = true; }
                     }
-                } catch (saveError) {
-                    console.error("覆盖保存数据到 Supabase 时出错:", saveError);
-                    alert(`数据处理完成，但覆盖保存数据库失败: ${saveError.message}\n请检查网络、RLS策略(DELETE权限)或控制台。`);
-                    displaySelectedMonthSpan.textContent = `${selectedYear}年${selectedMonth}月 (覆盖保存失败)`;
-                }
-            } else {
-                 displaySelectedMonthSpan.textContent = `${selectedYear}年${selectedMonth}月 (数据库未连接)`;
-                 alert("数据处理完成，但数据库未初始化，数据未保存。");
-            }
-        } catch (error) {
-            console.error("处理Excel文件或渲染图表时出错:", error);
-            alert("处理文件时发生错误，请检查文件格式或控制台输出！");
-            initTable(); if (lineChart) lineChart.destroy(); if (pieChart) pieChart.destroy(); lineChart = null; pieChart=null; filterPanel.innerHTML = '<div class="filter-title">车间筛选</div>';
-            displaySelectedMonthSpan.textContent = '处理失败';
-        } finally { e.target.value = ''; }
-      };
-      reader.onerror = (error) => { /* ... Error handling ... */ };
-      reader.readAsArrayBuffer(file);
-    }
 
-    // --- Core Logic: Saving Data to Supabase (OVERWRITE version) ---
-    /**
-     * 将处理好的月度汇总和每日明细数据覆盖保存到 Supabase
-     * (先删除该年月旧数据，再插入新数据)
-     * @param {Array<Object>} monthlySummaries - 月度汇总数据 (使用 workshopName)
-     * @param {Array<Object>} dailyRecords - 每日明细数据 (使用 workshopName)
-     * @returns {Promise<boolean>} - True if overwrite was performed, False if no data to process
-     */
-    async function saveDataToSupabase(monthlySummaries, dailyRecords) {
-        if (!supabase) {
-            throw new Error("Supabase client is not initialized.");
-        }
+                    const monthlySummaryTbl = {}; const pieLbls = []; const pieData = [];
+                    fixedWorkshops.forEach(wk => { const agg = monthlyAgg[wk]; const totalWage = agg.total_wage; const avgCost = agg.cost_days > 0 ? (agg.cost_sum / agg.cost_days) : 0; monthlySummaryTbl[wk] = { total_wage: totalWage, average_cost: avgCost }; if (totalWage > 0) { pieLbls.push(`${wk} (${totalWage.toFixed(2)}元)`); pieData.push(+totalWage.toFixed(2)); } });
 
-        const hasMonthlyData = monthlySummaries && monthlySummaries.length > 0;
-        const hasDailyData = dailyRecords && dailyRecords.length > 0;
+                    const sortedDates = Object.keys(dailyAgg).sort(); const dailyLbls = sortedDates.map(dStr => { const p = dStr.split('-'); return `${parseInt(p[1], 10)}-${parseInt(p[2], 10)}`; });
+                    const dailyCostsChart = {}; fixedWorkshops.forEach(wk => { dailyCostsChart[wk] = []; monthlyDailyWages[wk] = []; });
+                    sortedDates.forEach(dStr => { fixedWorkshops.forEach(wk => { const dData = dailyAgg[dStr]?.[wk]; dailyCostsChart[wk].push(dData?.daily_cost ?? 0); monthlyDailyWages[wk].push(dData?.daily_wage ?? 0); }); });
 
-        if (!hasMonthlyData && !hasDailyData) {
-            console.warn("没有从 Excel 文件解析出有效的月度或每日数据，将不执行数据库删除或插入操作。");
-            return false; // Indicate no operation performed
-        }
-
-        console.log("开始覆盖保存数据到 Supabase...");
-
-        let yearToOverwrite, monthToOverwrite;
-        if (hasMonthlyData) {
-            yearToOverwrite = monthlySummaries[0].year;
-            monthToOverwrite = monthlySummaries[0].month;
-        } else {
-            const dateParts = dailyRecords[0].record_date.split('-');
-            yearToOverwrite = parseInt(dateParts[0], 10);
-            monthToOverwrite = parseInt(dateParts[1], 10);
-        }
-
-        if (!yearToOverwrite || !monthToOverwrite) {
-             throw new Error("无法确定要覆盖的年月。");
-        }
-        console.log(`准备覆盖 ${yearToOverwrite}年${monthToOverwrite}月 的数据...`);
-
-        try {
-            // --- 步骤 1: 获取 Workshop ID 映射 ---
-            console.log("正在获取车间 ID 映射...");
-            const workshopNames = fixedWorkshops;
-            const { data: workshopsData, error: selectError } = await supabase
-                .from('workshops').select('id, name').in('name', workshopNames);
-            if (selectError) throw new Error(`查询车间 ID 失败: ${selectError.message}`);
-            if (!workshopsData || workshopsData.length !== workshopNames.length) throw new Error(`数据库车间信息数量与预期不符`);
-            const workshopNameToId = workshopsData.reduce((map, ws) => { map[ws.name] = ws.id; return map; }, {});
-            console.log("车间 ID 映射获取成功。");
-
-            // --- 步骤 2: 删除该年月的旧数据 (需要 RLS DELETE 权限) ---
-            console.log(`正在删除 ${yearToOverwrite}年${monthToOverwrite}月 的旧月度汇总...`);
-            const { error: deleteMonthlyError } = await supabase
-                .from('monthly_summaries').delete().eq('year', yearToOverwrite).eq('month', monthToOverwrite);
-            if (deleteMonthlyError) throw new Error(`删除旧月度汇总失败: ${deleteMonthlyError.message}`);
-            console.log("旧月度汇总删除成功。");
-
-            console.log(`正在删除 ${yearToOverwrite}年${monthToOverwrite}月 的旧每日明细...`);
-            const startDate = `${yearToOverwrite}-${String(monthToOverwrite).padStart(2, '0')}-01`;
-            const endDate = new Date(yearToOverwrite, monthToOverwrite, 0);
-            const endDateStr = `${yearToOverwrite}-${String(monthToOverwrite).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
-            const { error: deleteDailyError } = await supabase
-                .from('daily_records').delete().gte('record_date', startDate).lte('record_date', endDateStr);
-            if (deleteDailyError) throw new Error(`删除旧每日明细失败: ${deleteDailyError.message}`);
-            console.log("旧每日明细删除成功。");
-
-            // --- 步骤 3: 准备并 Insert 新数据 ---
-            if (hasMonthlyData) {
-                console.log("正在准备并插入新月度汇总...");
-                const monthlySummariesWithIds = monthlySummaries.map(summary => {
-                    const workshop_id = workshopNameToId[summary.workshopName];
-                    if (!workshop_id) throw new Error(`月度数据: 找不到车间 "${summary.workshopName}" 的 ID。`);
-                    return { workshop_id, year: summary.year, month: summary.month, total_wage: summary.total_wage, average_cost: summary.average_cost };
-                });
-                const { error: insertMonthlyError } = await supabase.from('monthly_summaries').insert(monthlySummariesWithIds);
-                if (insertMonthlyError) throw new Error(`插入新月度汇总失败: ${insertMonthlyError.message}`);
-                console.log("新月度汇总插入成功！");
+                    displaySelectedMonthSpan.textContent = `${year}年${month}月`; updateMonthlyTableData(monthlySummaryTbl); renderMonthlyLineChart(dailyLbls, dailyCostsChart); renderMonthlyPieChart(pieLbls, pieData, dailyLbls); renderMonthlyFilterPanel();
+                } catch (error) { console.error("Error fetching/processing monthly data:", error); alert(`加载月度汇总失败: ${error.message}`); displaySelectedMonthSpan.textContent = `${year}年${month}月 (加载失败)`; }
+                finally { showMonthlyLoading(false); }
             }
 
-            if (hasDailyData) {
-                console.log("正在准备并插入新每日明细...");
-                const dailyRecordsWithIds = dailyRecords.map(record => {
-                     const workshop_id = workshopNameToId[record.workshopName];
-                     if (!workshop_id) throw new Error(`每日数据: 找不到车间 "${record.workshopName}" 的 ID。`);
-                     return { workshop_id, record_date: record.record_date, daily_wage: record.daily_wage, daily_effort_value_sum: record.daily_effort_value_sum, daily_effort_value_count: record.daily_effort_value_count };
-                });
-                const BATCH_SIZE = 500;
-                for (let i = 0; i < dailyRecordsWithIds.length; i += BATCH_SIZE) {
-                    const batch = dailyRecordsWithIds.slice(i, i + BATCH_SIZE);
-                    console.log(`正在插入每日明细批次 ${i / BATCH_SIZE + 1}...`);
-                    const { error: insertDailyBatchError } = await supabase.from('daily_records').insert(batch);
-                    if (insertDailyBatchError) throw new Error(`插入新每日明细批次失败: ${insertDailyBatchError.message}`);
-                }
-                console.log("新每日明细插入成功！");
+            function resetMonthlyUI() {
+                if (tableBody) { createMonthlyTableSkeleton(); } if (monthlyLineChart) { monthlyLineChart.destroy(); monthlyLineChart = null; } if (monthlyPieChart) { monthlyPieChart.destroy(); monthlyPieChart = null; } if (monthlyBarChart) { monthlyBarChart.destroy(); monthlyBarChart = null; }
+                const clearCanvas = (id) => { const cvs=document.getElementById(id); const ctx=cvs?.getContext('2d'); if(ctx) ctx.clearRect(0,0,cvs.width,cvs.height); }; clearCanvas('workshopCostChart'); clearCanvas('wagePieChart'); clearCanvas('barChart');
+                if(filterPanel) { renderMonthlyFilterPanel(); } monthlyDailyWages = {};
             }
-            console.log(`成功覆盖 ${yearToOverwrite}年${monthToOverwrite}月 的数据。`);
-            return true; // Indicate overwrite was successful
 
-        } catch (error) {
-            console.error("覆盖保存数据到 Supabase 过程中发生错误:", error);
-            throw error; // Re-throw
-        }
-    }
+            // --- [Start] Paste FULL Monthly Chart/Filter JS Functions ---
+            function renderMonthlyLineChart(labels, dailyCostsData) { const lineCtx = document.getElementById('workshopCostChart')?.getContext('2d'); if (!lineCtx || !libsLoaded) return; if (monthlyLineChart) { monthlyLineChart.destroy(); } const datasets = fixedWorkshops.map((wk, i) => { const data = dailyCostsData[wk] || []; const hasData = data.length > 0 && data.some(p => p > 0); return hasData ? { label: wk, data: data, fill: false, tension: 0.3, borderColor: chartColors[i % chartColors.length], backgroundColor: chartColors[i % chartColors.length], borderWidth: 2, pointRadius: 2, pointHoverRadius: 5 } : null; }).filter(ds => ds !== null); if (datasets.length === 0) { lineCtx.clearRect(0, 0, lineCtx.canvas.width, lineCtx.canvas.height); lineCtx.textAlign = 'center'; lineCtx.fillText('无成本趋势数据可显示', lineCtx.canvas.width / 2, lineCtx.canvas.height / 2); return; } monthlyLineChart = new Chart(lineCtx, { type: 'line', data: { labels: labels, datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { title: (items) => items.length > 0 ? `日期: ${items[0].label}` : '', label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} 元/人·时` } } }, scales: { x: { display: true, ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 45, font: { size: 10 } } }, y: { display: true, title: { display: true, text: '成本指标 (元/人·时)' }, beginAtZero: true } }, interaction: { mode: 'nearest', axis: 'x', intersect: false }, layout: { padding: { top: 5, right: 10, bottom: 5, left: 5 } } } }); }
+            function renderMonthlyPieChart(pieLabels, pieData, dayLabelsForBarChart) { const pieCtx = document.getElementById('wagePieChart')?.getContext('2d'); if (!pieCtx || !libsLoaded) return; if (monthlyPieChart) { monthlyPieChart.destroy(); } if (pieData.length === 0) { pieCtx.clearRect(0, 0, pieCtx.canvas.width, pieCtx.canvas.height); pieCtx.textAlign = 'center'; pieCtx.fillText('无工资占比数据可显示', pieCtx.canvas.width / 2, pieCtx.canvas.height / 2); return; } const bgColors = pieLabels.map(lbl => { const wsName = lbl.split(' ')[0]; const idx = fixedWorkshops.indexOf(wsName); return idx !== -1 ? chartColors[idx % chartColors.length] : '#ccc'; }); monthlyPieChart = new Chart(pieCtx, { type: 'pie', data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: bgColors, borderColor: 'white', borderWidth: 1.5, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 15, boxWidth: 12, font: { size: 11 }, generateLabels: function(chart) { const d = chart.data; if (d.labels.length && d.datasets.length) { const m = chart.getDatasetMeta(0); return d.labels.map((l, i) => { const s = m.controller.getStyle(i); const wsN = l.split(' ')[0]; return { text: wsN, fillStyle: s.backgroundColor, strokeStyle: s.borderColor, lineWidth: s.borderWidth, hidden: !chart.getDataVisibility(i), index: i }; }); } return []; } } }, tooltip: { callbacks: { label: function(ctx) { let lbl = ctx.label || ''; if (ctx.parsed !== null) { const tot = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); const perc = tot > 0 ? ((ctx.parsed / tot) * 100).toFixed(1) + '%' : '0.0%'; lbl += ` (${perc})`; } return lbl; } } } }, onClick: (evt, items) => { if (!items || items.length === 0) return; const cIdx = items[0].index; const cLbl = monthlyPieChart.data.labels[cIdx]; const wsN = cLbl.split(' ')[0]; const oIdx = fixedWorkshops.indexOf(wsN); if (oIdx !== -1 && monthlyDailyWages && monthlyDailyWages[wsN] && monthlyDailyWages[wsN].length > 0) { showMonthlyBarChart(oIdx, dayLabelsForBarChart); } else { alert(`无法显示 ${wsN} 每日明细`); } } } }); }
+            function renderMonthlyFilterPanel() { if (!filterPanel || !libsLoaded) return; const title = filterPanel.querySelector('.filter-title') || document.createElement('div'); if (!filterPanel.querySelector('.filter-title')) { title.className = 'filter-title'; title.textContent = '车间筛选'; } filterPanel.innerHTML = ''; filterPanel.appendChild(title); const saLabel = document.createElement('label'); saLabel.style.fontWeight = 'bold'; saLabel.innerHTML = `<input type="checkbox" id="selectAllMonthly" class="checkbox-custom"> 全选/全不选`; filterPanel.appendChild(saLabel); const saChk = saLabel.querySelector('#selectAllMonthly'); if (!saChk) return; fixedWorkshops.forEach((wk, oIdx) => { const lbl = document.createElement('label'); let isChk = true; if (monthlyLineChart?.data.datasets) { const dIdx = monthlyLineChart.data.datasets.findIndex(ds => ds.label === wk); isChk = (dIdx !== -1) ? monthlyLineChart.isDatasetVisible(dIdx) : false; } lbl.innerHTML = `<input type="checkbox" class="wk-checkbox checkbox-custom" data-workshop-name="${wk}" ${isChk ? 'checked' : ''}> <span style="margin-left: 2px;">${wk}</span>`; filterPanel.appendChild(lbl); const chk = lbl.querySelector('.wk-checkbox'); if (!chk) return; chk.addEventListener('change', (e) => { const wsN = e.target.dataset.workshopName; const isNowChk = e.target.checked; if (monthlyLineChart?.data.datasets) { const dIdx = monthlyLineChart.data.datasets.findIndex(ds => ds.label === wsN); if (dIdx !== -1 && monthlyLineChart.isDatasetVisible(dIdx) !== isNowChk) { monthlyLineChart.setDatasetVisibility(dIdx, isNowChk); monthlyLineChart.update('none'); } } const allChk = filterPanel.querySelectorAll('.wk-checkbox'); saChk.checked = Array.from(allChk).every(cb => cb.checked); }); }); saChk.addEventListener('change', (e) => { const shBeChk = e.target.checked; let chUpd = false; filterPanel.querySelectorAll('.wk-checkbox').forEach(cb => { if (cb.checked !== shBeChk) { cb.checked = shBeChk; const wsN = cb.dataset.workshopName; if (monthlyLineChart?.data.datasets) { const dIdx = monthlyLineChart.data.datasets.findIndex(ds => ds.label === wsN); if (dIdx !== -1 && monthlyLineChart.isDatasetVisible(dIdx) !== shBeChk) { monthlyLineChart.setDatasetVisibility(dIdx, shBeChk); chUpd = true; } } } }); if (monthlyLineChart && chUpd) { monthlyLineChart.update('none'); } }); const allWkChk = filterPanel.querySelectorAll('.wk-checkbox'); saChk.checked = Array.from(allWkChk).every(cb => cb.checked); }
+            function showMonthlyBarChart(originalIndex, labels) { if (!libsLoaded) return; const wk = fixedWorkshops[originalIndex]; const data = monthlyDailyWages[wk]; if (!wk || !data || data.length === 0) { alert(`无法显示 ${wk || '未知'} 每日工资明细`); return; } const dYear = monthlyCurrentSelectedYear || selectYear?.value || ''; const dMonth = monthlyCurrentSelectedMonth || selectMonth?.value || ''; if(modalTitle) modalTitle.textContent = `${dYear}年${dMonth}月 ${wk} 车间每日工资明细`; const ctx = document.getElementById('barChart')?.getContext('2d'); if (!ctx) return; if (monthlyBarChart) { monthlyBarChart.destroy(); } monthlyBarChart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: `人工工资 (元)`, data: data, backgroundColor: chartColors[originalIndex % chartColors.length] + 'b3', borderColor: chartColors[originalIndex % chartColors.length], borderWidth: 1, borderRadius: 3, barPercentage: 0.8, categoryPercentage: 0.7 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { font: { size: 12 } } }, tooltip: { callbacks: { title: (items) => items.length > 0 ? `日期: ${items[0].label}` : '', label: (ctx) => `${wk}: ${ctx.parsed.y.toFixed(2)}元` } } }, scales: { x: { ticks: { font: { size: 10 }, maxRotation: 90 } }, y: { title: { display: true, text: '每日工资 (元)' }, beginAtZero: true } } } }); if(modalOverlay) modalOverlay.classList.add('visible'); }
+             // --- [End] Paste FULL Monthly Chart/Filter JS Functions ---
 
-    // --- Core Logic: Fetching Data from Supabase ---
-    async function fetchAndDisplayData(year, month) {
-        if (!supabase) { alert("数据库未连接，无法获取数据。"); displaySelectedMonthSpan.textContent = "数据库未连接"; resetUI(); return; }
-        if (!year || !month) { console.warn("年份或月份无效。"); return; }
-        displaySelectedMonthSpan.textContent = `正在加载 ${year}年${month}月 数据...`;
-        dailyWages = {}; fixedWorkshops.forEach(wk => { dailyWages[wk] = []; });
-
-        try {
-            // --- 1. Fetch Monthly Summaries ---
-            const { data: monthlyData, error: monthlyError } = await supabase
-                .from('monthly_summaries').select(`total_wage, average_cost, workshops ( name )`).eq('year', year).eq('month', month);
-            if (monthlyError) throw new Error(`获取月度汇总失败: ${monthlyError.message}`);
-
-            // --- 2. Fetch Daily Records ---
-            const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-            const endDate = new Date(year, month, 0);
-            const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
-            const { data: dailyData, error: dailyError } = await supabase
-                .from('daily_records').select(`record_date, daily_wage, daily_effort_value_sum, daily_effort_value_count, workshops ( name )`)
-                .gte('record_date', startDate).lte('record_date', endDateStr).order('record_date', { ascending: true });
-            if (dailyError) throw new Error(`获取每日明细失败: ${dailyError.message}`);
-
-            // --- 3. Process Fetched Data ---
-            if ((!monthlyData || monthlyData.length === 0) && (!dailyData || dailyData.length === 0)) {
-                displaySelectedMonthSpan.textContent = `${year}年${month}月 (无数据)`; resetUI(); return;
+            function initMonthlySummary() {
+                console.log("Monthly: Initializing Summary...");
+                if (!libsLoaded) { console.error("Monthly Init: Chart.js missing."); if (displaySelectedMonthSpan) displaySelectedMonthSpan.textContent = "图表库加载失败"; resetMonthlyUI(); return; }
+                initMonthlyDateSelectors(); createMonthlyTableSkeleton(); renderMonthlyFilterPanel(); attachMonthlyListeners();
+                const initYear = selectYear?.value; const initMonth = parseInt(selectMonth?.value, 10);
+                if (initYear && initMonth && supabase) { fetchAndDisplayMonthlyData(initYear, initMonth); }
+                else if (!supabase) { displaySelectedMonthSpan.textContent = "数据库未连接"; resetMonthlyUI(); showMonthlyLoading(false); }
+                else { displaySelectedMonthSpan.textContent = "请选择年月"; resetMonthlyUI(); showMonthlyLoading(false); }
             }
-            // -- Process Monthly Data --
-            const monthlySummariesMap = {}; const pieLabels = []; const pieData = [];
-            monthlyData.forEach(item => {
-                if (item.workshops) {
-                    const workshopName = item.workshops.name;
-                    monthlySummariesMap[workshopName] = { total_wage: item.total_wage, average_cost: item.average_cost };
-                    pieLabels.push(`${workshopName} (${item.total_wage.toFixed(2)}元)`); pieData.push(+item.total_wage.toFixed(2));
-                }
-            });
-            fixedWorkshops.forEach(wk => { if (!monthlySummariesMap[wk]) { monthlySummariesMap[wk] = { total_wage: 0, average_cost: 0 }; } });
-            // -- Process Daily Data --
-            const dailyCostsForChart = {}; const dailyLabels = []; const processedDates = new Set();
-            fixedWorkshops.forEach(wk => { dailyCostsForChart[wk] = []; dailyWages[wk] = []; });
-            const dailyDataByDate = {};
-            dailyData.forEach(item => {
-                if (item.workshops) {
-                     const dateStr = item.record_date; const workshopName = item.workshops.name;
-                     if (!dailyDataByDate[dateStr]) {
-                         dailyDataByDate[dateStr] = {};
-                         const dateParts = dateStr.split('-'); const label = `${parseInt(dateParts[1], 10)}-${parseInt(dateParts[2], 10)}`;
-                         if (!processedDates.has(label)) { dailyLabels.push(label); processedDates.add(label); }
-                     }
-                     dailyDataByDate[dateStr][workshopName] = { wage: item.daily_wage, effort_sum: item.daily_effort_value_sum, effort_count: item.daily_effort_value_count };
-                }
-            });
-            dailyLabels.forEach(label => {
-                const [m, d] = label.split('-'); const dateStr = `${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const dayData = dailyDataByDate[dateStr] || {};
-                fixedWorkshops.forEach(wk => {
-                    const workshopData = dayData[wk]; let dailyAvgCost = 0; let dailyWage = 0;
-                    if (workshopData) { dailyAvgCost = (workshopData.effort_count > 0) ? +(workshopData.effort_sum / workshopData.effort_count).toFixed(2) : 0; dailyWage = +workshopData.wage.toFixed(2); }
-                    dailyCostsForChart[wk].push(dailyAvgCost); dailyWages[wk].push(dailyWage);
-                });
-            });
-            // --- 4. Update UI ---
-            displaySelectedMonthSpan.textContent = `${year}年${month}月`;
-            updateTableData(monthlySummariesMap); renderLineChart(dailyLabels, dailyCostsForChart); renderPieChart(pieLabels, pieData, dailyLabels); renderFilterPanel();
-        } catch (error) {
-            console.error("获取或处理数据时出错:", error); alert(`加载数据失败: ${error.message}`);
-            displaySelectedMonthSpan.textContent = `${year}年${month}月 (加载失败)`; resetUI();
-        }
-    }
 
-    // --- Reset UI Function ---
-    function resetUI() {
-         tableBody.querySelectorAll('tr').forEach(tr => { tr.querySelector('.wage').textContent = '0.00'; tr.querySelector('.cost').textContent = '0.00'; });
-        if (lineChart) { lineChart.destroy(); lineChart = null; } if (pieChart) { pieChart.destroy(); pieChart = null; }
-        const lineCtx = document.getElementById('workshopCostChart')?.getContext('2d'); if(lineCtx) lineCtx.clearRect(0, 0, lineCtx.canvas.width, lineCtx.canvas.height);
-        const pieCtx = document.getElementById('wagePieChart')?.getContext('2d'); if(pieCtx) pieCtx.clearRect(0, 0, pieCtx.canvas.width, pieCtx.canvas.height);
-        filterPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-        dailyWages = {};
-    }
+            // --- Function to trigger refresh externally (e.g., on tab switch) ---
+            function refreshMonthlyData() {
+                console.log("Monthly: Refresh triggered.");
+                const year = selectYear?.value; const month = parseInt(selectMonth?.value, 10);
+                if (year && month && supabase && libsLoaded) { fetchAndDisplayMonthlyData(year, month); }
+                else { console.warn("Monthly Refresh: Cannot refresh (missing selections, Supabase, or Chart.js)."); if(!supabase) { displaySelectedMonthSpan.textContent = "数据库未连接"; resetMonthlyUI(); showMonthlyLoading(false); } }
+            }
 
-    // --- Chart Rendering Functions (Simplified placeholders - use your existing detailed versions) ---
-    function renderLineChart(labels, dailyCostsData) {
-        const lineCtx = document.getElementById('workshopCostChart').getContext('2d');
-        if (lineChart) { lineChart.destroy(); }
-        lineChart = new Chart(lineCtx, { type: 'line', data: { labels, datasets: fixedWorkshops.map((wk, i) => ({ label: wk, data: dailyCostsData[wk] || [], fill: false, tension: 0.3, borderColor: colors[i % colors.length], backgroundColor: colors[i % colors.length], borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, pointBackgroundColor: colors[i % colors.length] })) }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { /*...*/ } }, scales: { x: { /*...*/ ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 45, minRotation: 0, font: { size: 10 } } }, y: { /*...*/ } }, layout: { /*...*/ } } });
-    }
+            window.initMonthlySummary = initMonthlySummary;
+            window.refreshMonthlySummary = refreshMonthlyData; // Expose refresh function
 
-    function renderPieChart(pieLabels, pieData, dayLabelsForBarChart) {
-        const pieCtx = document.getElementById('wagePieChart').getContext('2d');
-        if (pieChart) { pieChart.destroy(); }
-        pieChart = new Chart(pieCtx, { type: 'pie', data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: colors.slice(0, pieData.length), borderColor: 'white', borderWidth: 1.5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { /*...*/ }, tooltip: { /*...*/ } }, onClick: (evt, items) => { if (!items || items.length === 0) return; const idx = items[0].index; if (dailyWages && fixedWorkshops[idx] && dailyWages[fixedWorkshops[idx]]) { showBarChart(idx, dayLabelsForBarChart); } else { console.error("Pie click: Missing daily wages data for", fixedWorkshops[idx]); alert(`无法显示 ${fixedWorkshops[idx]} 每日明细`); } } } });
-    }
+        })(); // End of Monthly Summary IIFE
 
-    // --- Filter Panel Rendering ---
-    function renderFilterPanel() {
-        const title = filterPanel.querySelector('.filter-title') || document.createElement('div');
-        if (!filterPanel.querySelector('.filter-title')) { title.className = 'filter-title'; title.textContent = '车间筛选'; }
-        filterPanel.innerHTML = ''; filterPanel.appendChild(title);
-        const selectAllLabel = document.createElement('label'); selectAllLabel.innerHTML = `<input type="checkbox" id="selectAll" class="checkbox-custom" checked> 全选`; filterPanel.appendChild(selectAllLabel);
-        const selectAllCheckbox = selectAllLabel.querySelector('#selectAll');
-        fixedWorkshops.forEach((wk, idx) => {
-            const label = document.createElement('label'); label.innerHTML = `<input type="checkbox" class="wk-checkbox checkbox-custom" data-index="${idx}" checked> ${wk}`; filterPanel.appendChild(label);
-            const checkbox = label.querySelector('.wk-checkbox');
-            checkbox.addEventListener('change', e => {
-                const workshopIndex = +e.target.dataset.index;
-                if (lineChart && lineChart.data.datasets && workshopIndex < lineChart.data.datasets.length) { if (lineChart.isDatasetVisible(workshopIndex) !== e.target.checked) { lineChart.setDatasetVisibility(workshopIndex, e.target.checked); lineChart.update('none'); } }
-                const allCheckboxes = filterPanel.querySelectorAll('.wk-checkbox'); selectAllCheckbox.checked = Array.from(allCheckboxes).every(cb => cb.checked);
-            });
+        // ----- GLOBAL PAGE INITIALIZATION -----
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM fully loaded. Initializing Tabs...");
+             if (window.initDailyReport) { window.initDailyReport(); } else { console.error("Init Error: Daily Report init function missing."); }
+             if (window.initMonthlySummary) { window.initMonthlySummary(); } else { console.error("Init Error: Monthly Summary init function missing."); }
+            if (!supabase) {
+                console.warn("Supabase init failed. Disabling DB-dependent elements.");
+                const dailySaveBtn = document.getElementById('saveButton'); if (dailySaveBtn) { dailySaveBtn.disabled = true; dailySaveBtn.title = "数据库连接失败"; dailySaveBtn.style.cursor = 'not-allowed'; dailySaveBtn.style.opacity = '0.6'; const spinner = dailySaveBtn.querySelector('.spinner-border'); if(spinner) spinner.remove(); }
+                 const monthlyYearSel = document.getElementById('selectYear'); const monthlyMonthSel = document.getElementById('selectMonth'); if(monthlyYearSel) monthlyYearSel.disabled = true; if(monthlyMonthSel) monthlyMonthSel.disabled = true;
+                 const monthlySpan = document.getElementById('displaySelectedMonth'); if(monthlySpan) monthlySpan.textContent = '数据库连接失败';
+                 const monthlyLoader = document.getElementById('monthlyLoadingIndicator'); if(monthlyLoader) monthlyLoader.style.display = 'none';
+                 const monthlyDisplay = document.getElementById('monthlyDataDisplay'); if(monthlyDisplay) monthlyDisplay.style.display = 'block'; // Show empty structure
+            } else { console.log("Supabase client ready."); }
+             console.log("Tab initialization complete.");
         });
-        selectAllCheckbox.addEventListener('change', e => {
-            const isChecked = e.target.checked; let chartUpdated = false;
-            filterPanel.querySelectorAll('.wk-checkbox').forEach((cb, idx) => { cb.checked = isChecked; if (lineChart && lineChart.data.datasets && idx < lineChart.data.datasets.length) { if (lineChart.isDatasetVisible(idx) !== isChecked) { lineChart.setDatasetVisibility(idx, isChecked); chartUpdated = true; } } });
-            if (lineChart && chartUpdated) { lineChart.update('none'); }
-        });
-    }
-
-    // --- Modal Bar Chart Display ---
-    function showBarChart(index, labels) {
-        const wk = fixedWorkshops[index]; const data = dailyWages[wk] || [];
-        if (!wk) { console.error("Invalid workshop index:", index); return; }
-        modalTitle.textContent = `${currentSelectedYear || ''}年${currentSelectedMonth || ''}月 ${wk} 车间每日工资明细`;
-        const ctx = document.getElementById('barChart').getContext('2d');
-        if (barChart) { barChart.destroy(); }
-        barChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: `人工工资`, data, backgroundColor: colors[index % colors.length] + 'b3', borderColor: colors[index % colors.length], borderWidth: 1, borderRadius: 3, barPercentage: 0.8, categoryPercentage: 0.7 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { /*...*/ callbacks: { title: (items) => items.length > 0 ? `${items[0].label} 工资` : '工资', label: (ctx) => `${wk}: ${(ctx.raw !== undefined ? ctx.raw.toFixed(2) : 'N/A')}元` } } }, scales: { x: { /*...*/ }, y: { /*...*/ } } } });
-        modalOverlay.classList.add('visible');
-    }
-
-    // --- Initial Page Setup ---
-    document.addEventListener('DOMContentLoaded', () => {
-      initDateSelectors();
-      createTableSkeleton();
-      renderFilterPanel();
-      const initialYear = selectYear.value;
-      const initialMonth = parseInt(selectMonth.value, 10);
-      if (initialYear && initialMonth) {
-          fetchAndDisplayData(initialYear, initialMonth);
-      } else {
-           displaySelectedMonthSpan.textContent = "请选择年月";
-      }
-    });
-
-  </script>
+    </script>
 </body>
 </html>

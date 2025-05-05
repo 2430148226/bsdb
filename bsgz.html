@@ -50,29 +50,78 @@
         #dailyReport .table-wrapper { flex: 1; padding: var(--wrapper-padding); overflow: hidden; position: relative; display: flex; flex-direction: column; min-height: 0; }
         #dailyReport .table-container { flex: 1; background: white; border-radius: 8px; box-shadow: var(--shadow); overflow-y: auto; border: 1px solid var(--border-color); position: relative; }
         #dailyReport table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        #dailyReport th, #dailyReport td { border: 1px solid var(--border-color); padding: 12px 16px; text-align: center; font-size: 14px; vertical-align: middle; word-break: break-word; }
-        #dailyReport thead th { background: #f0f8ff; font-weight: 600; color: var(--primary-dark); white-space: nowrap; padding: 14px 16px; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid var(--border-color); }
+        /* Default alignment: center */
+        #dailyReport th, #dailyReport td {
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            text-align: center; /* Default horizontal center */
+            font-size: 14px;
+            vertical-align: middle; /* Default vertical center */
+            word-break: break-word;
+        }
+        #dailyReport thead th {
+            background: #f0f8ff; font-weight: 600; color: var(--primary-dark);
+            white-space: nowrap; padding: 14px 16px; position: sticky; top: 0; z-index: 1;
+            border-bottom: 2px solid var(--border-color);
+        }
         #dailyReport tbody tr:nth-child(even) { background-color: #f9fafc; }
         #dailyReport tbody tr:hover { background-color: #f0f7ff; }
-        #dailyReport td.workshop, #dailyReport td.remark, #dailyReport td.operations { text-align: left; }
-        #dailyReport td.workshop { font-weight: 500; color: var(--primary-dark); background-color: #f8fbff; }
+        /* Left alignment for specific data columns */
+        #dailyReport td.task-description-cell,
+        #dailyReport td.remark-cell {
+            text-align: left;
+        }
+        /* Optional: Left alignment for specific header columns if needed */
+        /* #dailyReport th.task-header, #dailyReport th.remark-header { text-align: left; } */
+        #dailyReport td.workshop { font-weight: 500; color: var(--primary-dark); background-color: #f8fbff; } /* Workshop name cell remains centered */
         #dailyReport .serial-cell { font-weight: 600; background-color: #eef6fc; }
-        #dailyReport .cost-cell { font-weight: 500; color: var(--accent-color); background-color: #fffaf0; }
-        #dailyReport .cost-cell input[type="number"] { text-align: right; padding-right: 8px; }
+        #dailyReport .cost-cell { font-weight: 500; color: var(--accent-color); background-color: #fffaf0; } /* Workshop cost cell remains centered */
+        #dailyReport .cost-cell input[type="number"] { text-align: center; /* Ensure input inside cost cell is centered */ }
         #dailyReport .button { padding: 6px 12px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; color: white; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
         #dailyReport .add-task-btn { background-color: var(--primary-color); color: white; }
         #dailyReport .add-task-btn:hover { background-color: var(--primary-dark); }
         #dailyReport .delete-btn { background-color: #e74c3c; color: white; }
         #dailyReport .delete-btn:hover { background-color: #c0392b; }
-        #dailyReport #saveButton { background-color: #2ecc71; border-color: #2ecc71; }
+        #dailyReport #saveButton { background-color: #2ecc71; }
         #dailyReport #saveButton:hover:not(:disabled) { background-color: #27ae60 !important; }
         #dailyReport #saveButton:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; opacity: 0.7; }
-        #dailyReport #saveButton .spinner-border { width: 1em; height: 1em; border-width: .2em; } /* Adjust spinner size */
-        #dailyReport textarea, #dailyReport input[type="text"], #dailyReport input[type="number"] { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); font-size: 14px; font-family: inherit; transition: all 0.2s; background-color: #fff; box-sizing: border-box; }
+        #dailyReport #editButton { background-color: var(--accent-color); }
+        #dailyReport #editButton:hover { background-color: #d35400; } /* Darker orange */
+        #dailyReport #saveButton .spinner-border { width: 1em; height: 1em; border-width: .2em; }
+        /* Inputs styling */
+        #dailyReport textarea, #dailyReport input[type="text"], #dailyReport input[type="number"] {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius);
+            font-size: 14px; font-family: inherit; transition: all 0.2s; background-color: #fff; box-sizing: border-box;
+        }
         #dailyReport textarea { min-height: 70px; resize: vertical; display: block; }
-        #dailyReport input[type="number"] { text-align: right; padding-right: 8px; -moz-appearance: textfield; }
+        #dailyReport input[type="number"] { -moz-appearance: textfield; text-align: center; /* Center numeric input text */}
         #dailyReport input[type="number"]::-webkit-outer-spin-button, #dailyReport input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         #dailyReport textarea:focus, #dailyReport input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); outline: none; }
+        /* View mode text styling */
+        .view-mode-text {
+             padding: 9px 13px; /* Slightly adjust to align better with inputs */
+             display: block;
+             min-height: 38px; /* Match typical input height */
+             line-height: 1.6;
+             white-space: pre-wrap; /* Respect newlines */
+             word-break: break-word;
+             width: 100%;
+             box-sizing: border-box;
+             cursor: default; /* Indicate non-editable */
+        }
+        /* Hide operations buttons in view mode */
+        #dailyReport:not(.edit-mode) td.operations button {
+            display: none;
+        }
+        /* Hide edit button in edit mode */
+        #dailyReport.edit-mode .controls-container #editButton {
+             display: none;
+        }
+        /* Hide save button in view mode */
+        #dailyReport:not(.edit-mode) .controls-container #saveButton {
+            display: none;
+        }
+        /* Loading overlay */
         #dailyReport .loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--loading-overlay-bg); display: flex; justify-content: center; align-items: center; z-index: 20; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
         #dailyReport .loading-overlay.active { opacity: 1; visibility: visible; }
         #dailyReport .spinner-border { display: inline-block; width: 3rem; height: 3rem; vertical-align: text-bottom; border: .25em solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spinner-border .75s linear infinite; color: var(--spinner-color); }
@@ -80,7 +129,8 @@
         #dailyReport .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
         /* --- Monthly Summary Specific Styles (#monthlySummary) --- */
-        #monthlySummary { padding: 20px; }
+        /* [Monthly Summary styles remain unchanged - Omitted for brevity] */
+         #monthlySummary { padding: 20px; }
         #monthlySummary .dashboard { max-width: 1400px; margin: 0 auto; width: 100%; }
         #monthlySummary .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--gray-light); flex-wrap: wrap; gap: 15px; }
         #monthlySummary .header h1 { color: var(--gray-dark); font-size: 24px; font-weight: 600; flex-shrink: 0; }
@@ -138,10 +188,11 @@
             #dailyReport .header { flex-direction: column; align-items: stretch; gap: 12px; height: auto; padding: 12px; }
             #dailyReport .controls-container { flex-direction: column; align-items: stretch; gap: 10px; }
             #dailyReport #datePicker { width: 100%; }
+            #dailyReport #editButton, /* Adjust edit button on mobile */
             #dailyReport #saveButton { width: 100%; }
             #dailyReport .table-wrapper { padding: 12px; --wrapper-padding: 12px; }
             #dailyReport th, #dailyReport td { padding: 10px 8px; font-size: 13px; }
-            #dailyReport thead th { position: static; }
+            #dailyReport thead th { position: static; } /* Ensure headers scroll on mobile */
              #monthlySummary { padding: 10px; }
             #monthlySummary .header { flex-direction: column; align-items: flex-start; gap: 15px; }
             #monthlySummary .controls-wrapper { flex-direction: column; align-items: stretch; width: 100%;}
@@ -170,7 +221,7 @@
             <!-- ======================= -->
             <!-- Daily Report Tab Content -->
             <!-- ======================= -->
-            <div id="dailyReport" class="tab-content active">
+            <div id="dailyReport" class="tab-content active"> <!-- Add class dynamically: 'edit-mode' -->
                 <!-- Header Section -->
                 <div class="header">
                     <div class="header-title">工作任务日报表</div>
@@ -179,6 +230,11 @@
                             <label for="datePicker">选择日期：</label>
                             <input type="date" id="datePicker" />
                         </div>
+                        <!-- Edit Button -->
+                        <button id="editButton" class="button">
+                            <i class="fas fa-pencil-alt" style="margin-right: 5px;"></i> 编辑
+                        </button>
+                        <!-- Save Button -->
                         <button id="saveButton" class="button">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-save" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v4.5h2a.5.5 0 0 1 .354.854l-2.5 2.5a.5.5 0 0 1-.708 0l-2.5-2.5A.5.5 0 0 1 5.5 6.5h2V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/></svg>
                             <span>保存数据</span>
@@ -200,6 +256,7 @@
             <!-- Monthly Summary Tab Content -->
             <!-- ========================== -->
             <div id="monthlySummary" class="tab-content">
+                 <!-- [Monthly Summary HTML remains unchanged - Omitted for brevity] -->
                 <div class="dashboard">
                     <div class="header">
                         <h1>车间人工工资统计分析平台</h1>
@@ -285,7 +342,7 @@
 
         const fixedWorkshops = [ "砂浆", "无机膏料", "真金板", "石墨生产", "切割", "一体板", "免拆模板", "免拆板切割", "化验室", "线条", "机修" ];
         const chartColors = [ '#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6', '#1abc9c', '#34495e', '#e67e22', '#16a085', '#c0392b', '#8e44ad' ];
-        const dailyColWidths = ['40px','70px','280px','50px','60px','190px','120px','70px','70px'];
+        const dailyColWidths = ['40px','70px','280px','50px','60px','190px','120px','70px','70px']; // 序号, 车间, 任务, 人数, 工资, 时间, 备注, 成本, 操作
 
         let monthlyLineChart, monthlyPieChart, monthlyBarChart;
         let monthlyDailyWages = {};
@@ -298,47 +355,154 @@
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const targetTab = button.dataset.tab;
-                if (button.classList.contains('active')) { return; } // Do nothing if already active
+                if (button.classList.contains('active')) { return; }
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
                 tabContents.forEach(content => content.classList.toggle('active', content.id === targetTab));
 
-                 // --- Added Refresh Logic ---
                  if (targetTab === 'monthlySummary') {
                      if (window.refreshMonthlySummary) {
                          console.log("Switching to Monthly tab, triggering refresh...");
-                         window.refreshMonthlySummary(); // Call exposed refresh function
+                         window.refreshMonthlySummary();
                      } else { console.error("Refresh function for monthly summary not found!"); }
                  }
-                 // --- End of Added Refresh Logic ---
             });
         });
 
         // ----- DAILY REPORT JAVASCRIPT -----
         (function() {
+            const dailyReportContainer = document.getElementById('dailyReport');
             const loadingOverlay = document.getElementById('loadingOverlay');
             const saveButton = document.getElementById('saveButton');
+            const editButton = document.getElementById('editButton'); // 获取编辑按钮
             const datePicker = document.getElementById('datePicker');
             const tableContainer = document.getElementById('tableContainer');
             const tasksTableBodyId = 'tasksTableBody';
+            let isEditingDailyReport = false; // 跟踪编辑状态，默认为 false (查看模式)
 
-            // --- [Start] Paste FULL Daily Report JS Functions (showDailyLoading to initDailyReport) ---
+            // --- UI 更新函数 ---
             function showDailyLoading(show = true) {
                if (loadingOverlay) loadingOverlay.classList.toggle('active', show);
-               if (saveButton) saveButton.disabled = show || !supabase;
-               if (datePicker) datePicker.disabled = show;
+               // 编辑和保存按钮的禁用逻辑现在由 updateDailyReportModeUI 处理
+               if (datePicker) datePicker.disabled = show || isEditingDailyReport; // 编辑时也禁用日期选择
             }
 
+            // 更新日报界面的整体模式（编辑/查看）
+            function updateDailyReportModeUI() {
+                if (!dailyReportContainer || !editButton || !saveButton || !datePicker) return;
+
+                console.log(`Daily: Setting UI mode to ${isEditingDailyReport ? 'Edit' : 'View'}`);
+                dailyReportContainer.classList.toggle('edit-mode', isEditingDailyReport);
+                // 根据编辑状态控制按钮的可用性和可见性 (通过CSS类控制可见性)
+                saveButton.disabled = !isEditingDailyReport || !supabase; // 只有在编辑模式且数据库连接正常时才启用保存
+                editButton.disabled = isEditingDailyReport || !supabase;   // 查看模式且数据库连接正常时启用编辑
+                datePicker.disabled = isEditingDailyReport; // 编辑模式下禁用日期选择器
+
+                // 更新表格所有行以匹配当前模式
+                const tbody = document.getElementById(tasksTableBodyId);
+                if (tbody) {
+                    tbody.querySelectorAll('tr').forEach(row => renderDailyRowForMode(row, isEditingDailyReport));
+                }
+                // 滚动到表格顶部，以便用户看到编辑/保存按钮
+                if(tableContainer) tableContainer.scrollTop = 0;
+            }
+
+             // 将表格的指定行渲染为编辑模式或查看模式
+             function renderDailyRowForMode(row, isEditing) {
+                 if (!row) return;
+
+                 const cellSelectors = [
+                     { selector: 'td.task-description-cell', type: 'textarea', placeholder: '请输入工作任务' },
+                     { selector: 'td.num-people-cell', type: 'input', inputType: 'number', placeholder: '人数' },
+                     { selector: 'td.labor-cost-cell', type: 'input', inputType: 'number', step: 'any', placeholder: '工资' },
+                     { selector: 'td.time-spent-cell', type: 'input', inputType: 'text', placeholder: 'HH:MM' },
+                     { selector: 'td.remark-cell', type: 'textarea', placeholder: '备注' },
+                     { selector: 'td.cost-cell', type: 'input', inputType: 'number', step: 'any', placeholder: '车间总成本' } // Workshop cost
+                 ];
+
+                 cellSelectors.forEach(cellInfo => {
+                     const cell = row.querySelector(cellInfo.selector);
+                     if (!cell) return;
+
+                     // 特殊处理：车间成本只在主行显示
+                     if (cellInfo.selector === 'td.cost-cell' && !isDailyPrimaryRow(row)) {
+                         cell.innerHTML = ''; // 非主行的成本格始终为空
+                         return;
+                     }
+
+                     if (isEditing) {
+                         // --- 切换到编辑模式 ---
+                         const currentContent = cell.querySelector('span.view-mode-text');
+                         if (currentContent) { // 如果当前是文本，替换为输入框
+                             const value = currentContent.textContent;
+                             cell.innerHTML = ''; // 清空单元格
+                             let inputElement;
+                             if (cellInfo.type === 'textarea') {
+                                 inputElement = document.createElement('textarea');
+                                 inputElement.rows = 2; // 保持和createDailyRow一致
+                             } else {
+                                 inputElement = document.createElement('input');
+                                 inputElement.type = cellInfo.inputType;
+                                 if (cellInfo.step) inputElement.step = cellInfo.step;
+                             }
+                             inputElement.placeholder = cellInfo.placeholder;
+                             inputElement.value = value;
+                             cell.appendChild(inputElement);
+                         } else if (!cell.querySelector(cellInfo.type)) {
+                             // 如果单元格是空的或者不是预期的输入类型（理论上不应发生），则创建输入框
+                             cell.innerHTML = '';
+                             let inputElement;
+                              if (cellInfo.type === 'textarea') {
+                                 inputElement = document.createElement('textarea');
+                                 inputElement.rows = 2;
+                             } else {
+                                 inputElement = document.createElement('input');
+                                 inputElement.type = cellInfo.inputType;
+                                 if (cellInfo.step) inputElement.step = cellInfo.step;
+                             }
+                             inputElement.placeholder = cellInfo.placeholder;
+                             cell.appendChild(inputElement);
+                         }
+                     } else {
+                         // --- 切换到查看模式 ---
+                         const inputElement = cell.querySelector(cellInfo.type);
+                         if (inputElement) { // 如果当前是输入框，替换为文本
+                             const value = inputElement.value || ''; // 获取值
+                             cell.innerHTML = ''; // 清空单元格
+                             const span = document.createElement('span');
+                             span.className = 'view-mode-text';
+                             span.textContent = value; // 使用 textContent 来正确显示换行符等
+                             cell.appendChild(span);
+                         } else if (!cell.querySelector('span.view-mode-text')) {
+                             // 如果单元格是空的或不是文本（理论上不应发生），创建一个空的文本span
+                             cell.innerHTML = '<span class="view-mode-text"></span>';
+                         }
+                     }
+                 });
+                 // 操作按钮的显示/隐藏由CSS类 '.edit-mode' 控制，这里不需要显式处理
+             }
+
+            // --- 数据加载与渲染 ---
             async function renderAndLoadDailyTable() {
                console.log("Daily: renderAndLoadDailyTable called");
                showDailyLoading(true);
+               isEditingDailyReport = false; // 重置为查看模式
                try {
-                   renderDailyTableStructure();
+                   renderDailyTableStructure(); // 创建基本表格结构（包含输入框）
                    const selectedDate = datePicker?.value;
-                   if (selectedDate && supabase) { await fetchAndDisplayDailyTasks(selectedDate); }
+                   if (selectedDate && supabase) {
+                       await fetchAndDisplayDailyTasks(selectedDate); // 获取数据并填充输入框
+                   }
                    else if (!supabase) { if(tableContainer) tableContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--danger);">数据库连接失败，无法加载或保存日报数据。</p>'; }
                    else if (!selectedDate) { if(tableContainer) tableContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: var(--gray);">请选择日期以加载数据。</p>'; }
-               } catch (error) { console.error("Error during daily table rendering/loading:", error); alert(`加载日报表格数据时出错: ${error.message}`); if(tableContainer) tableContainer.innerHTML = `<p style="text-align: center; padding: 20px; color: var(--danger);">加载数据出错: ${error.message}</p>`; }
+                   updateDailyReportModeUI(); // 初始加载后，切换到查看模式
+               } catch (error) {
+                   console.error("Error during daily table rendering/loading:", error);
+                   alert(`加载日报表格数据时出错: ${error.message}`);
+                   if(tableContainer) tableContainer.innerHTML = `<p style="text-align: center; padding: 20px; color: var(--danger);">加载数据出错: ${error.message}</p>`;
+                   isEditingDailyReport = false; // 出错时确保是查看模式
+                   updateDailyReportModeUI(); // 更新UI状态
+               }
                finally { showDailyLoading(false); }
             }
 
@@ -347,130 +511,553 @@
              tableContainer.innerHTML = '';
              const table = document.createElement('table'); table.id = 'mainTaskTable';
              const colgroup = document.createElement('colgroup'); dailyColWidths.forEach(w => { const col = document.createElement('col'); col.style.width = w; colgroup.appendChild(col); }); table.appendChild(colgroup);
-             const thead = document.createElement('thead'); thead.innerHTML = `<tr><th>序号</th><th>车间</th><th>工作任务</th><th>人数</th><th>人工工资</th><th>时间</th><th>备注</th><th>成本（人.h）</th><th>操作</th></tr>`; table.appendChild(thead);
+             const thead = document.createElement('thead');
+             // 添加 CSS 类到表头方便样式控制 (虽然当前需求没用到，但加上没坏处)
+             thead.innerHTML = `<tr>
+                <th>序号</th>
+                <th>车间</th>
+                <th class="task-header">工作任务</th>
+                <th>人数</th>
+                <th>人工工资</th>
+                <th>时间</th>
+                <th class="remark-header">备注</th>
+                <th>成本（人.h）</th>
+                <th>操作</th>
+              </tr>`;
+             table.appendChild(thead);
              const tbody = document.createElement('tbody'); tbody.id = tasksTableBodyId;
-             fixedWorkshops.forEach((ws, idx) => { tbody.appendChild(createDailyRow(idx, ws, true, null)); }); table.appendChild(tbody); tableContainer.appendChild(table);
+             fixedWorkshops.forEach((ws, idx) => {
+                 // createDailyRow 现在总是创建包含输入框的行
+                 tbody.appendChild(createDailyRow(idx, ws, true, null));
+             });
+             table.appendChild(tbody);
+             tableContainer.appendChild(table);
              const newTbody = document.getElementById(tasksTableBodyId);
-              if (newTbody && !newTbody.dataset.listenerAttached) { newTbody.addEventListener('click', handleDailyTableClick); newTbody.dataset.listenerAttached = 'true'; console.log("Daily: table click listener attached."); }
+              if (newTbody && !newTbody.dataset.listenerAttached) {
+                  newTbody.addEventListener('click', handleDailyTableClick);
+                  newTbody.dataset.listenerAttached = 'true';
+                  console.log("Daily: table click listener attached.");
+              }
               else if (!newTbody) { console.error("Daily: Could not find tbody with ID", tasksTableBodyId, "after creation."); }
             }
 
             function handleDailyTableClick(e) {
-                const target = e.target; const addButton = target.closest('.add-task-btn'); const deleteButton = target.closest('.delete-btn');
-                if (addButton) { addDailyTaskRowUI(Number(addButton.dataset.workshopIndex)); } else if (deleteButton) { deleteDailyTaskRowUI(deleteButton); }
+                if (!isEditingDailyReport) return; // 只在编辑模式下响应按钮点击
+                const target = e.target;
+                const addButton = target.closest('.add-task-btn');
+                const deleteButton = target.closest('.delete-btn');
+                if (addButton) { addDailyTaskRowUI(Number(addButton.dataset.workshopIndex)); }
+                else if (deleteButton) { deleteDailyTaskRowUI(deleteButton); }
             }
 
+            // 创建行，始终包含输入框，因为添加/初始渲染时需要输入框结构
             function createDailyRow(index, workshopName, isPrimaryRow, taskData = null) {
-               const tr = document.createElement('tr'); tr.dataset.workshopIndex = index; if (taskData?.id) { tr.dataset.taskId = taskData.id; }
-               const workshopCellContent = isPrimaryRow ? workshopName : ''; const costValue = taskData?.workshop_cost_man_hours ?? ''; const taskDescValue = taskData?.task_description ?? '';
-               const numPeopleValue = taskData?.num_people ?? ''; const laborCostValue = taskData?.labor_cost ?? ''; const timeSpentValue = taskData?.time_spent ?? ''; const remarksValue = taskData?.remarks ?? '';
-               const costCellContent = isPrimaryRow ? `<input type="number" step="any" placeholder="车间总成本" value="${costValue}" />` : '';
-               const buttonHTML = isPrimaryRow ? `<button class="button add-task-btn" data-workshop-index="${index}" title="添加新任务行"><i class="fas fa-plus" style="pointer-events: none; margin-right: 4px;"></i> 添加</button>` : `<button class="button delete-btn" title="删除此任务行"><i class="fas fa-trash-alt" style="pointer-events: none; margin-right: 4px;"></i> 删除</button>`;
-               tr.innerHTML = `<td class="serial serial-cell"></td> <td class="workshop">${workshopCellContent}</td> <td><textarea placeholder="请输入工作任务" rows="2">${taskDescValue}</textarea></td> <td><input type="number" placeholder="人数" value="${numPeopleValue}" /></td> <td><input type="number" step="any" placeholder="工资" value="${laborCostValue}" /></td> <td><input type="text" placeholder="HH:MM" value="${timeSpentValue}" /></td> <td class="remark"><textarea placeholder="备注" rows="2">${remarksValue}</textarea></td> <td class="cost cost-cell">${costCellContent}</td> <td class="operations">${buttonHTML}</td>`;
-               if (!isPrimaryRow) { const costTd = tr.querySelector('.cost-cell'); if (costTd) costTd.innerHTML = ''; } return tr;
+               const tr = document.createElement('tr');
+               tr.dataset.workshopIndex = index;
+               if (taskData?.id) { tr.dataset.taskId = taskData.id; }
+
+               const workshopCellContent = isPrimaryRow ? workshopName : '';
+               // 获取初始值，用于填充输入框
+               const costValue = taskData?.workshop_cost_man_hours ?? '';
+               const taskDescValue = taskData?.task_description ?? '';
+               const numPeopleValue = taskData?.num_people ?? '';
+               const laborCostValue = taskData?.labor_cost ?? '';
+               const timeSpentValue = taskData?.time_spent ?? '';
+               const remarksValue = taskData?.remarks ?? '';
+
+               // 主行的成本输入框
+               const costCellContent = isPrimaryRow
+                   ? `<input type="number" step="any" placeholder="车间总成本" value="${costValue}" />`
+                   : ''; // 非主行成本格为空
+
+               // 操作按钮，始终生成，显示/隐藏由CSS控制
+               const buttonHTML = isPrimaryRow
+                   ? `<button class="button add-task-btn" data-workshop-index="${index}" title="添加新任务行"><i class="fas fa-plus" style="pointer-events: none; margin-right: 4px;"></i> 添加</button>`
+                   : `<button class="button delete-btn" title="删除此任务行"><i class="fas fa-trash-alt" style="pointer-events: none; margin-right: 4px;"></i> 删除</button>`;
+
+               // 使用 CSS 类来控制对齐
+               tr.innerHTML = `
+                 <td class="serial-cell"></td>
+                 <td class="workshop">${workshopCellContent}</td>
+                 <td class="task-description-cell"><textarea placeholder="请输入工作任务" rows="2">${taskDescValue}</textarea></td>
+                 <td class="num-people-cell"><input type="number" placeholder="人数" value="${numPeopleValue}" /></td>
+                 <td class="labor-cost-cell"><input type="number" step="any" placeholder="工资" value="${laborCostValue}" /></td>
+                 <td class="time-spent-cell"><input type="text" placeholder="HH:MM" value="${timeSpentValue}" /></td>
+                 <td class="remark-cell"><textarea placeholder="备注" rows="2">${remarksValue}</textarea></td>
+                 <td class="cost-cell">${costCellContent}</td>
+                 <td class="operations">${buttonHTML}</td>`;
+
+               // 确保非主行的成本单元格确实是空的 (双重保险)
+               if (!isPrimaryRow) {
+                   const costTd = tr.querySelector('.cost-cell');
+                   if (costTd) costTd.innerHTML = '';
+               }
+               return tr;
             }
 
+            // 添加新行（只在编辑模式下发生）
             function addDailyTaskRowUI(idx) {
-                const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return; const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${idx}"]`)); const lastRow = rows[rows.length - 1];
-                if (lastRow) { const newRow = createDailyRow(idx, '', false, null); lastRow.after(newRow); updateDailyTableUI(); const firstInput = newRow.querySelector('textarea, input'); if (firstInput) firstInput.focus(); }
+                if (!isEditingDailyReport) return; // 安全检查
+                const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return;
+                const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${idx}"]`));
+                const lastRow = rows[rows.length - 1];
+                if (lastRow) {
+                    // 创建的新行默认包含输入框，符合编辑模式
+                    const newRow = createDailyRow(idx, '', false, null);
+                    lastRow.after(newRow);
+                    updateDailyTableUI(); // 更新序号和合并单元格
+                    // renderDailyRowForMode(newRow, true); // 确保新行是编辑模式（理论上createDailyRow已保证）
+                    const firstInput = newRow.querySelector('textarea, input');
+                    if (firstInput) firstInput.focus();
+                }
             }
 
+            // 删除行（只在编辑模式下发生）
             function deleteDailyTaskRowUI(deleteButton) {
-                 const rowToDelete = deleteButton.closest('tr'); if (!rowToDelete) return; const tbody = rowToDelete.closest('tbody'); if (!tbody) return; const workshopIndex = Number(rowToDelete.dataset.workshopIndex);
-                 const rowsForWorkshop = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${workshopIndex}"]`)); if (rowsForWorkshop.length > 1) { rowToDelete.remove(); updateDailyTableUI(); } else { alert("每个车间至少需要保留一行。如需清空，请删除内容后保存。"); }
+                 if (!isEditingDailyReport) return; // 安全检查
+                 const rowToDelete = deleteButton.closest('tr'); if (!rowToDelete) return;
+                 const tbody = rowToDelete.closest('tbody'); if (!tbody) return;
+                 const workshopIndex = Number(rowToDelete.dataset.workshopIndex);
+                 const rowsForWorkshop = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${workshopIndex}"]`));
+                 if (rowsForWorkshop.length > 1) {
+                     rowToDelete.remove();
+                     updateDailyTableUI(); // 更新序号和合并单元格
+                 } else {
+                     alert("每个车间至少需要保留一行。如需清空，请删除内容后保存。");
+                 }
             }
 
+             // 更新序号和合并单元格 (这个函数逻辑不变)
             function updateDailyTableUI() {
-                const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return; let currentSerial = 1;
+                const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return;
+                let currentSerial = 1;
                 fixedWorkshops.forEach((workshopName, workshopIndex) => {
-                    const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${workshopIndex}"]`)); if (rows.length === 0) return;
-                    rows.forEach((row, rowIndex) => {
-                        row.querySelector('td.serial')?.setAttribute('rowspan', '1'); row.querySelector('td.workshop')?.setAttribute('rowspan', '1'); row.querySelector('td.cost')?.setAttribute('rowspan', '1');
-                        const expectedCells = 9; while (row.cells.length < expectedCells) { if (!row.querySelector('td.serial')) row.insertCell(0).classList.add('serial', 'serial-cell'); if (!row.querySelector('td.workshop')) row.insertCell(1).classList.add('workshop'); if (!row.querySelector('td.cost')) row.insertCell(expectedCells - 2).classList.add('cost', 'cost-cell'); if(row.cells.length < expectedCells && row.cells.length > 0) console.error(`Row ${rowIndex} workshop ${workshopIndex} cell count (${row.cells.length}) error`); else if (row.cells.length >= expectedCells) break; }
-                        const costCell = row.querySelector('td.cost'); if (rowIndex === 0 && costCell && !costCell.querySelector('input')) { costCell.innerHTML = '<input type="number" step="any" placeholder="车间总成本" />'; } else if (rowIndex > 0 && costCell) { costCell.innerHTML = ''; }
-                        const workshopCell = row.querySelector('td.workshop'); if (workshopCell) workshopCell.textContent = (rowIndex === 0) ? workshopName : '';
-                        const opsCell = row.querySelector('td.operations'); if (opsCell) { const expectedButtonClass = (rowIndex === 0) ? 'add-task-btn' : 'delete-btn'; if (!opsCell.querySelector(`.${expectedButtonClass}`)) { const buttonHTML = (rowIndex === 0) ? `<button class="button add-task-btn" data-workshop-index="${workshopIndex}" title="添加新任务行"><i class="fas fa-plus" style="pointer-events: none; margin-right: 4px;"></i> 添加</button>` : `<button class="button delete-btn" title="删除此任务行"><i class="fas fa-trash-alt" style="pointer-events: none; margin-right: 4px;"></i> 删除</button>`; opsCell.innerHTML = buttonHTML; } }
+                    const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${workshopIndex}"]`));
+                    if (rows.length === 0) return;
+
+                    // 重置所有行的 rowspan
+                    rows.forEach(row => {
+                        const serialCell = row.querySelector('td.serial-cell');
+                        const workshopCell = row.querySelector('td.workshop');
+                        const costCell = row.querySelector('td.cost-cell');
+                        if (serialCell) serialCell.rowSpan = 1;
+                        if (workshopCell) workshopCell.rowSpan = 1;
+                        if (costCell) costCell.rowSpan = 1;
+
+                         // 确保单元格存在 (虽然 createDailyRow 应该保证)
+                         if (!serialCell && row.cells.length >= 0) row.insertCell(0).classList.add('serial-cell');
+                         if (!workshopCell && row.cells.length >= 1) row.insertCell(1).classList.add('workshop');
+                         const costCellIndex = Array.from(row.parentElement.parentElement.querySelector('thead tr').cells).findIndex(th => th.textContent.includes('成本'));
+                         if (!costCell && costCellIndex !== -1 && row.cells.length >= costCellIndex) {
+                              row.insertCell(costCellIndex).classList.add('cost-cell');
+                         }
                     });
-                    const firstRow = rows[0]; if (rows.length > 1) { firstRow.querySelector('td.serial')?.setAttribute('rowspan', rows.length); firstRow.querySelector('td.workshop')?.setAttribute('rowspan', rows.length); firstRow.querySelector('td.cost')?.setAttribute('rowspan', rows.length); }
-                    rows.slice(1).forEach(row => { row.querySelector('td.serial')?.remove(); row.querySelector('td.workshop')?.remove(); row.querySelector('td.cost')?.remove(); });
-                    const serialCell = firstRow.querySelector('td.serial'); if (serialCell) serialCell.textContent = currentSerial++;
+
+                    // 处理第一行
+                    const firstRow = rows[0];
+                    const firstSerialCell = firstRow.querySelector('td.serial-cell');
+                    const firstWorkshopCell = firstRow.querySelector('td.workshop');
+                    const firstCostCell = firstRow.querySelector('td.cost-cell');
+
+                    if (firstSerialCell) firstSerialCell.textContent = currentSerial++;
+                    if (firstWorkshopCell) firstWorkshopCell.textContent = workshopName;
+
+                    // 设置合并
+                    if (rows.length > 1) {
+                        if (firstSerialCell) firstSerialCell.rowSpan = rows.length;
+                        if (firstWorkshopCell) firstWorkshopCell.rowSpan = rows.length;
+                        if (firstCostCell) firstCostCell.rowSpan = rows.length;
+
+                        // 移除后续行的被合并单元格
+                        rows.slice(1).forEach(row => {
+                            row.querySelector('td.serial-cell')?.remove();
+                            row.querySelector('td.workshop')?.remove();
+                            row.querySelector('td.cost-cell')?.remove();
+                        });
+                    }
+
+                    // 确保第一行的成本单元格内容正确 (输入框或文本span)
+                     if (firstCostCell && isDailyPrimaryRow(firstRow)) {
+                        // renderDailyRowForMode 会处理输入框/文本的切换，这里确保它存在
+                        if (!firstCostCell.querySelector('input') && !firstCostCell.querySelector('span.view-mode-text')) {
+                            if (isEditingDailyReport) {
+                                firstCostCell.innerHTML = '<input type="number" step="any" placeholder="车间总成本" />';
+                            } else {
+                                firstCostCell.innerHTML = '<span class="view-mode-text"></span>';
+                            }
+                        }
+                    }
                 });
             }
 
-            function isDailyPrimaryRow(rowElement) { if (!rowElement?.dataset.workshopIndex) return false; const tbody = rowElement.closest('tbody'); if (!tbody) return false; return tbody.querySelector(`tr[data-workshop-index="${rowElement.dataset.workshopIndex}"]`) === rowElement; }
+            // 判断是否是主行 (逻辑不变)
+            function isDailyPrimaryRow(rowElement) {
+                if (!rowElement?.dataset.workshopIndex) return false;
+                const tbody = rowElement.closest('tbody');
+                if (!tbody) return false;
+                // 主行是该 workshopIndex 下的第一个 tr 元素
+                return tbody.querySelector(`tr[data-workshop-index="${rowElement.dataset.workshopIndex}"]`) === rowElement;
+            }
 
+            // 获取并显示数据 (逻辑不变，填充的是输入框)
             async function fetchAndDisplayDailyTasks(selectedDate) {
-               if (!supabase) { console.warn("Daily: Supabase not ready."); return; } console.log(`Daily: Fetching tasks for ${selectedDate}`);
-               try { const { data: tasks, error } = await supabase.from('daily_tasks').select('*').eq('report_date', selectedDate).order('workshop_index').order('id'); if (error) throw error; console.log(`Daily: Fetched ${tasks.length} tasks.`); populateDailyTableWithData(tasks); }
-               catch (err) { console.error('Daily: Error fetching tasks:', err); alert(`加载 ${selectedDate} 任务出错: ${err.message}`); renderDailyTableStructure(); }
+               if (!supabase) { console.warn("Daily: Supabase not ready."); return; }
+               console.log(`Daily: Fetching tasks for ${selectedDate}`);
+               try {
+                   const { data: tasks, error } = await supabase
+                       .from('daily_tasks')
+                       .select('*')
+                       .eq('report_date', selectedDate)
+                       .order('workshop_index')
+                       .order('id'); // Ensure consistent order within workshop
+
+                   if (error) throw error;
+                   console.log(`Daily: Fetched ${tasks.length} tasks.`);
+                   populateDailyTableWithData(tasks); // 用数据填充表格（输入框）
+               }
+               catch (err) {
+                   console.error('Daily: Error fetching tasks:', err);
+                   alert(`加载 ${selectedDate} 任务出错: ${err.message}`);
+                   renderDailyTableStructure(); // 出错时重置表格结构
+               }
             }
 
+            // 用数据填充表格（输入框）
             function populateDailyTableWithData(tasks) {
-               const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return; console.log("Daily: Populating table...");
-               const primaryRows = []; tbody.querySelectorAll('tr').forEach(row => { if (isDailyPrimaryRow(row)) { clearDailyRowInputs(row, false); primaryRows.push(row); } else { row.remove(); } });
-               if (primaryRows.length !== fixedWorkshops.length) { console.error("Daily: Row/workshop mismatch. Re-rendering."); renderDailyTableStructure(); }
-               const tasksByWorkshop = tasks.reduce((acc, task) => { const index = task.workshop_index; if (index !== null && index >= 0 && index < fixedWorkshops.length) { if (!acc[index]) acc[index] = []; acc[index].push(task); } else { console.warn("Daily: Invalid index:", task); } return acc; }, {});
-               fixedWorkshops.forEach((_, workshopIndex) => {
-                   const workshopTasks = tasksByWorkshop[workshopIndex] || []; const primaryRow = tbody.querySelector(`tr[data-workshop-index="${workshopIndex}"]`); if (!primaryRow) { console.error(`Daily: Missing row for index ${workshopIndex}`); return; }
-                   if (workshopTasks.length > 0) { populateDailyRowInputs(primaryRow, workshopTasks[0]); primaryRow.dataset.taskId = workshopTasks[0].id; let lastAddedRow = primaryRow; for (let i = 1; i < workshopTasks.length; i++) { const newRow = createDailyRow(workshopIndex, '', false, workshopTasks[i]); newRow.dataset.taskId = workshopTasks[i].id; lastAddedRow.after(newRow); lastAddedRow = newRow; } }
-                   else { const costCell = primaryRow.querySelector('td.cost'); if (costCell && !costCell.querySelector('input')) { costCell.innerHTML = '<input type="number" step="any" placeholder="车间总成本" />'; } }
+               const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return;
+               console.log("Daily: Populating table...");
+
+               // 1. 清理现有行，只保留主行框架
+               const primaryRowsMap = new Map();
+               tbody.querySelectorAll('tr').forEach(row => {
+                   const index = row.dataset.workshopIndex;
+                   if (index !== undefined) {
+                       if (isDailyPrimaryRow(row)) {
+                           clearDailyRowInputs(row, false); // 清空主行输入
+                           primaryRowsMap.set(index, row);
+                       } else {
+                           row.remove(); // 删除旧的非主行
+                       }
+                   }
                });
-               updateDailyTableUI(); console.log("Daily: Population complete.");
+
+               // 2. 检查主行是否完整
+               if (primaryRowsMap.size !== fixedWorkshops.length) {
+                   console.error("Daily: Row/workshop mismatch after cleaning. Re-rendering.");
+                   renderDailyTableStructure(); // 如果主行缺失则重新渲染整个结构
+                   return; // 停止填充
+               }
+
+               // 3. 按车间分组任务数据
+               const tasksByWorkshop = tasks.reduce((acc, task) => {
+                   const index = task.workshop_index;
+                   if (index !== null && index >= 0 && index < fixedWorkshops.length) {
+                       if (!acc[index]) acc[index] = [];
+                       acc[index].push(task);
+                   } else { console.warn("Daily: Invalid workshop index found in fetched data:", task); }
+                   return acc;
+               }, {});
+
+               // 4. 填充数据并创建新行
+               fixedWorkshops.forEach((_, workshopIndex) => {
+                   const wsIndexStr = String(workshopIndex); // Map uses string keys
+                   const workshopTasks = tasksByWorkshop[workshopIndex] || [];
+                   const primaryRow = primaryRowsMap.get(wsIndexStr);
+
+                   if (!primaryRow) {
+                       console.error(`Daily: Missing primary row for index ${workshopIndex} in map.`);
+                       return; // 跳过这个车间
+                   }
+
+                   if (workshopTasks.length > 0) {
+                       // 填充主行数据
+                       populateDailyRowInputs(primaryRow, workshopTasks[0]);
+                       primaryRow.dataset.taskId = workshopTasks[0].id;
+
+                       // 为剩余任务创建并插入新行 (非主行)
+                       let lastAddedRow = primaryRow;
+                       for (let i = 1; i < workshopTasks.length; i++) {
+                           // createDailyRow 创建带输入框的新行
+                           const newRow = createDailyRow(workshopIndex, '', false, workshopTasks[i]);
+                           newRow.dataset.taskId = workshopTasks[i].id;
+                           lastAddedRow.after(newRow); // 插入到上一行之后
+                           populateDailyRowInputs(newRow, workshopTasks[i]); // 填充新行的数据
+                           lastAddedRow = newRow;
+                       }
+                   } else {
+                       // 没有任务数据，确保主行成本输入框存在 (如果需要)
+                       const costCell = primaryRow.querySelector('td.cost-cell');
+                       if (costCell && !costCell.querySelector('input') && !costCell.querySelector('span.view-mode-text')) {
+                           // 如果成本单元格既没有输入框也没有文本，创建一个空的
+                            costCell.innerHTML = isEditingDailyReport
+                                ? '<input type="number" step="any" placeholder="车间总成本" />'
+                                : '<span class="view-mode-text"></span>';
+                       }
+                   }
+               });
+
+               updateDailyTableUI(); // 更新序号和合并
+               console.log("Daily: Population complete.");
             }
 
+            // 填充单行输入框的值
             function populateDailyRowInputs(row, data) {
-                if (!row || !data) return; const taDesc = row.querySelector('textarea[placeholder="请输入工作任务"]'); const inPpl = row.querySelector('input[placeholder="人数"]'); const inCost = row.querySelector('input[placeholder="工资"]'); const inTime = row.querySelector('input[placeholder="HH:MM"]'); const taRemark = row.querySelector('textarea[placeholder="备注"]');
-                if(taDesc) taDesc.value = data.task_description ?? ''; if(inPpl) inPpl.value = data.num_people ?? ''; if(inCost) inCost.value = data.labor_cost ?? ''; if(inTime) inTime.value = data.time_spent ?? ''; if(taRemark) taRemark.value = data.remarks ?? '';
-                if (isDailyPrimaryRow(row)) { const inWSCost = row.querySelector('td.cost input[type="number"]'); if (inWSCost) inWSCost.value = data.workshop_cost_man_hours ?? ''; }
+                if (!row || !data) return;
+                const taDesc = row.querySelector('td.task-description-cell textarea');
+                const inPpl = row.querySelector('td.num-people-cell input');
+                const inCost = row.querySelector('td.labor-cost-cell input');
+                const inTime = row.querySelector('td.time-spent-cell input');
+                const taRemark = row.querySelector('td.remark-cell textarea');
+
+                if(taDesc) taDesc.value = data.task_description ?? '';
+                if(inPpl) inPpl.value = data.num_people ?? '';
+                if(inCost) inCost.value = data.labor_cost ?? '';
+                if(inTime) inTime.value = data.time_spent ?? '';
+                if(taRemark) taRemark.value = data.remarks ?? '';
+
+                // 填充主行的车间成本输入框
+                if (isDailyPrimaryRow(row)) {
+                    const inWSCost = row.querySelector('td.cost-cell input');
+                    if (inWSCost) inWSCost.value = data.workshop_cost_man_hours ?? '';
+                }
             }
 
-            function clearDailyRowInputs(row, clearWSName = false) {
-                if (!row) return; const taDesc = row.querySelector('textarea[placeholder="请输入工作任务"]'); const inPpl = row.querySelector('input[placeholder="人数"]'); const inCost = row.querySelector('input[placeholder="工资"]'); const inTime = row.querySelector('input[placeholder="HH:MM"]'); const taRemark = row.querySelector('textarea[placeholder="备注"]'); const inWSCost = row.querySelector('td.cost input[type="number"]');
-                if (clearWSName && isDailyPrimaryRow(row)) { const wsCell = row.querySelector('td.workshop'); if (wsCell) wsCell.textContent = ''; }
-                if(taDesc) taDesc.value = ''; if(inPpl) inPpl.value = ''; if(inCost) inCost.value = ''; if(inTime) inTime.value = ''; if(taRemark) taRemark.value = ''; if(inWSCost) inWSCost.value = ''; delete row.dataset.taskId;
+            // 清空单行输入框的值
+            function clearDailyRowInputs(row, clearWSName = false) { // clearWSName 在当前逻辑下可能不需要
+                if (!row) return;
+                const taDesc = row.querySelector('td.task-description-cell textarea');
+                const inPpl = row.querySelector('td.num-people-cell input');
+                const inCost = row.querySelector('td.labor-cost-cell input');
+                const inTime = row.querySelector('td.time-spent-cell input');
+                const taRemark = row.querySelector('td.remark-cell textarea');
+                const inWSCost = row.querySelector('td.cost-cell input'); // Workshop cost input
+
+                // if (clearWSName && isDailyPrimaryRow(row)) {
+                //     const wsCell = row.querySelector('td.workshop'); // 这个是纯文本td，不清空
+                // }
+                if(taDesc) taDesc.value = '';
+                if(inPpl) inPpl.value = '';
+                if(inCost) inCost.value = '';
+                if(inTime) inTime.value = '';
+                if(taRemark) taRemark.value = '';
+                if(inWSCost && isDailyPrimaryRow(row)) inWSCost.value = ''; // 只清空主行的成本输入
+
+                delete row.dataset.taskId; // 清除旧的任务ID
             }
 
+            // --- 保存数据 ---
             async function saveDailyDataToSupabase() {
-             if (!supabase) { alert('数据库连接失败!'); return; } if (!datePicker || !datePicker.value) { alert('请选择日期！'); return; } const btnHTML = saveButton.innerHTML; saveButton.disabled = true; saveButton.innerHTML = `<span class="spinner-border spinner-border-sm" style="margin-right: 5px;"></span> 保存中...`;
-             const selDate = datePicker.value; const tbody = document.getElementById(tasksTableBodyId); if (!tbody) { alert('表格错误!'); saveButton.disabled = false; saveButton.innerHTML = btnHTML; return; }
-             const rows = tbody.querySelectorAll('tr'); const tasksToSave = []; const wsMaster = {};
-             fixedWorkshops.forEach((name, idx) => { const pRow = tbody.querySelector(`tr[data-workshop-index="${idx}"]`); if(pRow && isDailyPrimaryRow(pRow)) { const cInput = pRow.querySelector('td.cost input'); wsMaster[idx] = { name: name, costManHours: cInput ? (cInput.value.trim() !== '' ? parseFloat(cInput.value) : null) : null }; } else { console.error(`Save Error: No primary row for index ${idx}`); wsMaster[idx] = { name: name, costManHours: null }; } });
-             rows.forEach(row => {
-                const wsIdx = parseInt(row.dataset.workshopIndex, 10); if(isNaN(wsIdx) || wsIdx<0 || wsIdx>=fixedWorkshops.length) return; const mData = wsMaster[wsIdx]; if(!mData) return;
-                const taDesc = row.querySelector('textarea[placeholder="请输入工作任务"]'); const inPpl = row.querySelector('input[placeholder="人数"]'); const inCost = row.querySelector('input[placeholder="工资"]'); const inTime = row.querySelector('input[placeholder="HH:MM"]'); const taRemark = row.querySelector('textarea[placeholder="备注"]');
-                const sDesc = taDesc?.value.trim() ?? ''; const sPpl = inPpl?.value.trim(); const sCost = inCost?.value.trim(); const sTime = inTime?.value.trim() || null; const sRemark = taRemark?.value.trim() || null;
-                const nPpl = (sPpl !== '' && !isNaN(parseInt(sPpl, 10))) ? parseInt(sPpl, 10) : null; const nCost = (sCost !== '' && !isNaN(parseFloat(sCost))) ? parseFloat(sCost) : null;
-                const hasData = sDesc || nPpl !== null || nCost !== null || sTime || sRemark; const isPWC = isDailyPrimaryRow(row) && mData.costManHours !== null;
-                if (hasData || isPWC) { tasksToSave.push({ report_date: selDate, workshop_index: wsIdx, workshop_name: mData.name, task_description: sDesc || '', num_people: nPpl, labor_cost: nCost, time_spent: sTime, remarks: sRemark, workshop_cost_man_hours: mData.costManHours }); }
+             if (!supabase) { alert('数据库连接失败!'); return; }
+             if (!datePicker || !datePicker.value) { alert('请选择日期！'); return; }
+             if (!isEditingDailyReport) { alert('请先点击编辑按钮！'); return; } // 必须在编辑模式下保存
+
+             const btnHTML = saveButton.innerHTML; // 保存按钮原始 HTML
+             saveButton.disabled = true; // 禁用保存按钮
+             editButton.disabled = true; // 禁用编辑按钮
+             saveButton.innerHTML = `<span class="spinner-border spinner-border-sm" style="margin-right: 5px;"></span> 保存中...`;
+
+             const selDate = datePicker.value;
+             const tbody = document.getElementById(tasksTableBodyId);
+             if (!tbody) {
+                 alert('表格错误!');
+                 saveButton.disabled = false; // 恢复按钮状态
+                 editButton.disabled = false;
+                 saveButton.innerHTML = btnHTML;
+                 return;
+             }
+
+             const rows = tbody.querySelectorAll('tr');
+             const tasksToSave = [];
+             const wsMaster = {}; // 用于存储每个车间的主信息（名称，总成本）
+
+             // 1. 从主行收集车间名称和成本
+             fixedWorkshops.forEach((name, idx) => {
+                 const primaryRow = tbody.querySelector(`tr[data-workshop-index="${idx}"]`);
+                 if (primaryRow && isDailyPrimaryRow(primaryRow)) {
+                     const costInput = primaryRow.querySelector('td.cost-cell input');
+                     const costValue = costInput ? costInput.value.trim() : '';
+                     wsMaster[idx] = {
+                         name: name,
+                         costManHours: costValue !== '' ? parseFloat(costValue) : null
+                     };
+                 } else {
+                     console.error(`Save Error: Could not find primary row for workshop index ${idx}`);
+                     wsMaster[idx] = { name: name, costManHours: null }; // 容错处理
+                 }
              });
-             console.log("Daily Save: Tasks:", tasksToSave); showDailyLoading(true);
+
+             // 2. 遍历所有行，收集任务数据
+             rows.forEach(row => {
+                const wsIdx = parseInt(row.dataset.workshopIndex, 10);
+                if(isNaN(wsIdx) || wsIdx < 0 || wsIdx >= fixedWorkshops.length) {
+                    console.warn("Skipping row with invalid workshop index:", row);
+                    return; // 跳过无效索引的行
+                }
+                const masterData = wsMaster[wsIdx];
+                if (!masterData) {
+                    console.warn(`Skipping row, no master data found for index ${wsIdx}:`, row);
+                    return; // 跳过没有主数据的行
+                }
+
+                // 从输入框读取数据
+                const taDesc = row.querySelector('td.task-description-cell textarea');
+                const inPpl = row.querySelector('td.num-people-cell input');
+                const inCost = row.querySelector('td.labor-cost-cell input');
+                const inTime = row.querySelector('td.time-spent-cell input');
+                const taRemark = row.querySelector('td.remark-cell textarea');
+
+                const sDesc = taDesc?.value.trim() ?? '';
+                const sPpl = inPpl?.value.trim();
+                const sCost = inCost?.value.trim();
+                const sTime = inTime?.value.trim() || null;
+                const sRemark = taRemark?.value.trim() || null;
+
+                // 转换数据类型
+                const nPpl = (sPpl !== '' && !isNaN(parseInt(sPpl, 10))) ? parseInt(sPpl, 10) : null;
+                const nCost = (sCost !== '' && !isNaN(parseFloat(sCost))) ? parseFloat(sCost) : null;
+
+                // 判断此行是否有有效数据（包括主行的成本）
+                const hasTaskData = sDesc || nPpl !== null || nCost !== null || sTime || sRemark;
+                const isPrimaryRowWithCost = isDailyPrimaryRow(row) && masterData.costManHours !== null;
+
+                // 只有包含有效任务数据，或者是包含有效成本的主行，才需要保存
+                if (hasTaskData || isPrimaryRowWithCost) {
+                    tasksToSave.push({
+                        report_date: selDate,
+                        workshop_index: wsIdx,
+                        workshop_name: masterData.name,
+                        task_description: sDesc || '', // 确保非null
+                        num_people: nPpl,
+                        labor_cost: nCost,
+                        time_spent: sTime,
+                        remarks: sRemark,
+                        workshop_cost_man_hours: masterData.costManHours // 应用主行的成本值
+                    });
+                }
+             });
+
+             console.log("Daily Save: Tasks collected:", tasksToSave);
+             showDailyLoading(true); // 显示加载动画
+
              try {
-                 console.log(`Daily Delete: ${selDate}`); const { error: delErr } = await supabase.from('daily_tasks').delete().eq('report_date', selDate);
-                 if(delErr) { console.error("Del Error:", delErr); throw delErr.message.includes("security policy") ? new Error(`删除旧记录失败: 权限不足 (RLS)。`) : new Error(`删除旧记录失败: ${delErr.message}`); } console.log(`Delete OK`);
-                 if (tasksToSave.length > 0) { console.log(`Insert ${tasksToSave.length} recs`); const { data, error: insErr } = await supabase.from('daily_tasks').insert(tasksToSave).select(); if (insErr) { console.error("Ins Error:", insErr); throw insErr; } console.log('Insert OK:', data); alert(`成功保存 ${data ? data.length : tasksToSave.length} 条记录！`); }
-                 else { alert(`已清除 ${selDate} 旧记录。`); }
+                 // --- 数据库操作 ---
+                 console.log(`Daily Delete: Deleting existing tasks for ${selDate}`);
+                 const { error: deleteError } = await supabase
+                     .from('daily_tasks')
+                     .delete()
+                     .eq('report_date', selDate);
+
+                 if (deleteError) {
+                     console.error("Supabase delete error:", deleteError);
+                     throw deleteError.message.includes("security policy") // RLS 检查
+                         ? new Error(`删除旧记录失败: 权限不足 (RLS)。`)
+                         : new Error(`删除旧记录失败: ${deleteError.message}`);
+                 }
+                 console.log(`Daily Delete: Success for ${selDate}`);
+
+                 // 只有在有数据需要保存时才执行插入
+                 if (tasksToSave.length > 0) {
+                     console.log(`Daily Insert: Inserting ${tasksToSave.length} new records for ${selDate}`);
+                     const { data: insertData, error: insertError } = await supabase
+                         .from('daily_tasks')
+                         .insert(tasksToSave)
+                         .select(); // select() 返回插入的数据
+
+                     if (insertError) {
+                         console.error("Supabase insert error:", insertError);
+                         throw insertError; // 抛出错误以便捕获
+                     }
+                     console.log('Daily Insert: Success:', insertData);
+                     alert(`成功保存 ${insertData ? insertData.length : tasksToSave.length} 条记录！`);
+                 } else {
+                     console.log(`Daily Save: No tasks to save for ${selDate}, only cleared old records.`);
+                     alert(`已清除 ${selDate} 的旧记录，没有新的有效数据被保存。`);
+                 }
+
+                 // --- 保存成功后 ---
+                 isEditingDailyReport = false; // 切换回查看模式
+                 // 重新获取并显示数据 (这会调用 updateDailyReportModeUI)
                  await fetchAndDisplayDailyTasks(selDate);
-             } catch (err) { console.error('Save Error:', err); let msg = `保存出错: ${err.message || '未知错误'}`; if (err?.message?.includes("not-null constraint")) { const col = err.message.match(/column "(.*?)"/)?.[1]; msg = `保存失败：字段 "${col||'??'}" 不能为空。`; } alert(msg); }
-             finally { saveButton.disabled = !supabase; saveButton.innerHTML = btnHTML; showDailyLoading(false); }
+
+             } catch (error) {
+                 console.error('Daily Save: Error during save process:', error);
+                 let userMessage = `保存出错: ${error.message || '未知数据库错误'}`;
+                 // 更具体的错误提示
+                 if (error?.message?.includes("violates not-null constraint")) {
+                     const columnNameMatch = error.message.match(/column "(.*?)"/);
+                     const columnName = columnNameMatch ? columnNameMatch[1] : '某个字段';
+                     userMessage = `保存失败：字段 "${columnName}" 是必需的，不能为空。`;
+                 } else if (error?.message?.includes("check constraint")) {
+                      userMessage = `保存失败：输入的数据不符合要求（例如数字范围或格式）。`;
+                 }
+                 alert(userMessage);
+                 // 出错时保持编辑模式，让用户修正
+                 isEditingDailyReport = true;
+
+             } finally {
+                 // 无论成功或失败，恢复按钮状态并隐藏加载动画
+                 saveButton.innerHTML = btnHTML; // 恢复保存按钮内容
+                 updateDailyReportModeUI(); // 根据 isEditingDailyReport 更新按钮状态
+                 showDailyLoading(false); // 隐藏加载动画
+             }
             }
 
+            // --- 初始化 ---
             function formatDailyToday() { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; }
 
             function initDailyReport() {
                 console.log("Daily: Initializing Report...");
-                if (datePicker) { datePicker.value = formatDailyToday(); if (!datePicker.dataset.listenerAttached) { datePicker.addEventListener('change', renderAndLoadDailyTable); datePicker.dataset.listenerAttached = 'true'; } renderAndLoadDailyTable(); }
-                else { console.error("Daily: Date picker not found."); if(tableContainer) tableContainer.innerHTML = '<p>日期选择器加载失败</p>'; showDailyLoading(false); }
-                if (saveButton) { if (supabase) { if (!saveButton.dataset.listenerAttached) { saveButton.addEventListener('click', saveDailyDataToSupabase); saveButton.dataset.listenerAttached = 'true'; } } else { saveButton.disabled = true; saveButton.title = "数据库连接失败"; } }
-                else { console.error("Daily: Save button not found."); }
+                if (datePicker) {
+                    datePicker.value = formatDailyToday();
+                    if (!datePicker.dataset.listenerAttached) {
+                        datePicker.addEventListener('change', () => {
+                             isEditingDailyReport = false; // 切换日期时总是回到查看模式
+                             renderAndLoadDailyTable();
+                        });
+                        datePicker.dataset.listenerAttached = 'true';
+                    }
+                     renderAndLoadDailyTable(); // 初始加载数据并进入查看模式
+                }
+                else {
+                     console.error("Daily: Date picker not found.");
+                     if(tableContainer) tableContainer.innerHTML = '<p>日期选择器加载失败</p>';
+                     showDailyLoading(false);
+                     isEditingDailyReport = false; updateDailyReportModeUI(); // 确保UI是查看模式
+                }
+
+                // 编辑按钮事件监听
+                if (editButton) {
+                    if (!editButton.dataset.listenerAttached) {
+                        editButton.addEventListener('click', () => {
+                            if (!isEditingDailyReport) {
+                                isEditingDailyReport = true;
+                                updateDailyReportModeUI();
+                                console.log("Daily: Entered Edit Mode.");
+                            }
+                        });
+                        editButton.dataset.listenerAttached = 'true';
+                    }
+                } else { console.error("Daily: Edit button not found."); }
+
+                // 保存按钮事件监听
+                if (saveButton) {
+                    if (!saveButton.dataset.listenerAttached) {
+                        saveButton.addEventListener('click', saveDailyDataToSupabase);
+                        saveButton.dataset.listenerAttached = 'true';
+                    }
+                } else { console.error("Daily: Save button not found."); }
+
+                 // 根据 Supabase 状态初始化按钮
+                 updateDailyReportModeUI(); // 设置初始按钮状态和表格模式
             }
-            // --- [End] Paste FULL Daily Report JS Functions ---
 
             window.initDailyReport = initDailyReport;
         })(); // End of Daily Report IIFE
 
         // ----- MONTHLY SUMMARY JAVASCRIPT -----
         (function() {
-            const selectYear = document.getElementById('selectYear');
+            // [Monthly Summary JS remains unchanged - Omitted for brevity]
+             const selectYear = document.getElementById('selectYear');
             const selectMonth = document.getElementById('selectMonth');
             const tableBody = document.getElementById('monthlyTableBody');
             const filterPanel = document.getElementById('filterPanel');
@@ -559,13 +1146,10 @@
                 const clearCanvas = (id) => { const cvs=document.getElementById(id); const ctx=cvs?.getContext('2d'); if(ctx) ctx.clearRect(0,0,cvs.width,cvs.height); }; clearCanvas('workshopCostChart'); clearCanvas('wagePieChart'); clearCanvas('barChart');
                 if(filterPanel) { renderMonthlyFilterPanel(); } monthlyDailyWages = {};
             }
-
-            // --- [Start] Paste FULL Monthly Chart/Filter JS Functions ---
             function renderMonthlyLineChart(labels, dailyCostsData) { const lineCtx = document.getElementById('workshopCostChart')?.getContext('2d'); if (!lineCtx || !libsLoaded) return; if (monthlyLineChart) { monthlyLineChart.destroy(); } const datasets = fixedWorkshops.map((wk, i) => { const data = dailyCostsData[wk] || []; const hasData = data.length > 0 && data.some(p => p > 0); return hasData ? { label: wk, data: data, fill: false, tension: 0.3, borderColor: chartColors[i % chartColors.length], backgroundColor: chartColors[i % chartColors.length], borderWidth: 2, pointRadius: 2, pointHoverRadius: 5 } : null; }).filter(ds => ds !== null); if (datasets.length === 0) { lineCtx.clearRect(0, 0, lineCtx.canvas.width, lineCtx.canvas.height); lineCtx.textAlign = 'center'; lineCtx.fillText('无成本趋势数据可显示', lineCtx.canvas.width / 2, lineCtx.canvas.height / 2); return; } monthlyLineChart = new Chart(lineCtx, { type: 'line', data: { labels: labels, datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false, callbacks: { title: (items) => items.length > 0 ? `日期: ${items[0].label}` : '', label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} 元/人·时` } } }, scales: { x: { display: true, ticks: { autoSkip: true, maxTicksLimit: 15, maxRotation: 45, font: { size: 10 } } }, y: { display: true, title: { display: true, text: '成本指标 (元/人·时)' }, beginAtZero: true } }, interaction: { mode: 'nearest', axis: 'x', intersect: false }, layout: { padding: { top: 5, right: 10, bottom: 5, left: 5 } } } }); }
             function renderMonthlyPieChart(pieLabels, pieData, dayLabelsForBarChart) { const pieCtx = document.getElementById('wagePieChart')?.getContext('2d'); if (!pieCtx || !libsLoaded) return; if (monthlyPieChart) { monthlyPieChart.destroy(); } if (pieData.length === 0) { pieCtx.clearRect(0, 0, pieCtx.canvas.width, pieCtx.canvas.height); pieCtx.textAlign = 'center'; pieCtx.fillText('无工资占比数据可显示', pieCtx.canvas.width / 2, pieCtx.canvas.height / 2); return; } const bgColors = pieLabels.map(lbl => { const wsName = lbl.split(' ')[0]; const idx = fixedWorkshops.indexOf(wsName); return idx !== -1 ? chartColors[idx % chartColors.length] : '#ccc'; }); monthlyPieChart = new Chart(pieCtx, { type: 'pie', data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: bgColors, borderColor: 'white', borderWidth: 1.5, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 15, boxWidth: 12, font: { size: 11 }, generateLabels: function(chart) { const d = chart.data; if (d.labels.length && d.datasets.length) { const m = chart.getDatasetMeta(0); return d.labels.map((l, i) => { const s = m.controller.getStyle(i); const wsN = l.split(' ')[0]; return { text: wsN, fillStyle: s.backgroundColor, strokeStyle: s.borderColor, lineWidth: s.borderWidth, hidden: !chart.getDataVisibility(i), index: i }; }); } return []; } } }, tooltip: { callbacks: { label: function(ctx) { let lbl = ctx.label || ''; if (ctx.parsed !== null) { const tot = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); const perc = tot > 0 ? ((ctx.parsed / tot) * 100).toFixed(1) + '%' : '0.0%'; lbl += ` (${perc})`; } return lbl; } } } }, onClick: (evt, items) => { if (!items || items.length === 0) return; const cIdx = items[0].index; const cLbl = monthlyPieChart.data.labels[cIdx]; const wsN = cLbl.split(' ')[0]; const oIdx = fixedWorkshops.indexOf(wsN); if (oIdx !== -1 && monthlyDailyWages && monthlyDailyWages[wsN] && monthlyDailyWages[wsN].length > 0) { showMonthlyBarChart(oIdx, dayLabelsForBarChart); } else { alert(`无法显示 ${wsN} 每日明细`); } } } }); }
             function renderMonthlyFilterPanel() { if (!filterPanel || !libsLoaded) return; const title = filterPanel.querySelector('.filter-title') || document.createElement('div'); if (!filterPanel.querySelector('.filter-title')) { title.className = 'filter-title'; title.textContent = '车间筛选'; } filterPanel.innerHTML = ''; filterPanel.appendChild(title); const saLabel = document.createElement('label'); saLabel.style.fontWeight = 'bold'; saLabel.innerHTML = `<input type="checkbox" id="selectAllMonthly" class="checkbox-custom"> 全选/全不选`; filterPanel.appendChild(saLabel); const saChk = saLabel.querySelector('#selectAllMonthly'); if (!saChk) return; fixedWorkshops.forEach((wk, oIdx) => { const lbl = document.createElement('label'); let isChk = true; if (monthlyLineChart?.data.datasets) { const dIdx = monthlyLineChart.data.datasets.findIndex(ds => ds.label === wk); isChk = (dIdx !== -1) ? monthlyLineChart.isDatasetVisible(dIdx) : false; } lbl.innerHTML = `<input type="checkbox" class="wk-checkbox checkbox-custom" data-workshop-name="${wk}" ${isChk ? 'checked' : ''}> <span style="margin-left: 2px;">${wk}</span>`; filterPanel.appendChild(lbl); const chk = lbl.querySelector('.wk-checkbox'); if (!chk) return; chk.addEventListener('change', (e) => { const wsN = e.target.dataset.workshopName; const isNowChk = e.target.checked; if (monthlyLineChart?.data.datasets) { const dIdx = monthlyLineChart.data.datasets.findIndex(ds => ds.label === wsN); if (dIdx !== -1 && monthlyLineChart.isDatasetVisible(dIdx) !== isNowChk) { monthlyLineChart.setDatasetVisibility(dIdx, isNowChk); monthlyLineChart.update('none'); } } const allChk = filterPanel.querySelectorAll('.wk-checkbox'); saChk.checked = Array.from(allChk).every(cb => cb.checked); }); }); saChk.addEventListener('change', (e) => { const shBeChk = e.target.checked; let chUpd = false; filterPanel.querySelectorAll('.wk-checkbox').forEach(cb => { if (cb.checked !== shBeChk) { cb.checked = shBeChk; const wsN = cb.dataset.workshopName; if (monthlyLineChart?.data.datasets) { const dIdx = monthlyLineChart.data.datasets.findIndex(ds => ds.label === wsN); if (dIdx !== -1 && monthlyLineChart.isDatasetVisible(dIdx) !== shBeChk) { monthlyLineChart.setDatasetVisibility(dIdx, shBeChk); chUpd = true; } } } }); if (monthlyLineChart && chUpd) { monthlyLineChart.update('none'); } }); const allWkChk = filterPanel.querySelectorAll('.wk-checkbox'); saChk.checked = Array.from(allWkChk).every(cb => cb.checked); }
             function showMonthlyBarChart(originalIndex, labels) { if (!libsLoaded) return; const wk = fixedWorkshops[originalIndex]; const data = monthlyDailyWages[wk]; if (!wk || !data || data.length === 0) { alert(`无法显示 ${wk || '未知'} 每日工资明细`); return; } const dYear = monthlyCurrentSelectedYear || selectYear?.value || ''; const dMonth = monthlyCurrentSelectedMonth || selectMonth?.value || ''; if(modalTitle) modalTitle.textContent = `${dYear}年${dMonth}月 ${wk} 车间每日工资明细`; const ctx = document.getElementById('barChart')?.getContext('2d'); if (!ctx) return; if (monthlyBarChart) { monthlyBarChart.destroy(); } monthlyBarChart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: `人工工资 (元)`, data: data, backgroundColor: chartColors[originalIndex % chartColors.length] + 'b3', borderColor: chartColors[originalIndex % chartColors.length], borderWidth: 1, borderRadius: 3, barPercentage: 0.8, categoryPercentage: 0.7 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { font: { size: 12 } } }, tooltip: { callbacks: { title: (items) => items.length > 0 ? `日期: ${items[0].label}` : '', label: (ctx) => `${wk}: ${ctx.parsed.y.toFixed(2)}元` } } }, scales: { x: { ticks: { font: { size: 10 }, maxRotation: 90 } }, y: { title: { display: true, text: '每日工资 (元)' }, beginAtZero: true } } } }); if(modalOverlay) modalOverlay.classList.add('visible'); }
-             // --- [End] Paste FULL Monthly Chart/Filter JS Functions ---
 
             function initMonthlySummary() {
                 console.log("Monthly: Initializing Summary...");
@@ -577,7 +1161,6 @@
                 else { displaySelectedMonthSpan.textContent = "请选择年月"; resetMonthlyUI(); showMonthlyLoading(false); }
             }
 
-            // --- Function to trigger refresh externally (e.g., on tab switch) ---
             function refreshMonthlyData() {
                 console.log("Monthly: Refresh triggered.");
                 const year = selectYear?.value; const month = parseInt(selectMonth?.value, 10);
@@ -586,7 +1169,7 @@
             }
 
             window.initMonthlySummary = initMonthlySummary;
-            window.refreshMonthlySummary = refreshMonthlyData; // Expose refresh function
+            window.refreshMonthlySummary = refreshMonthlyData;
 
         })(); // End of Monthly Summary IIFE
 
@@ -595,14 +1178,19 @@
             console.log("DOM fully loaded. Initializing Tabs...");
              if (window.initDailyReport) { window.initDailyReport(); } else { console.error("Init Error: Daily Report init function missing."); }
              if (window.initMonthlySummary) { window.initMonthlySummary(); } else { console.error("Init Error: Monthly Summary init function missing."); }
+            // 全局 Supabase 状态检查（主要影响日报）
             if (!supabase) {
-                console.warn("Supabase init failed. Disabling DB-dependent elements.");
-                const dailySaveBtn = document.getElementById('saveButton'); if (dailySaveBtn) { dailySaveBtn.disabled = true; dailySaveBtn.title = "数据库连接失败"; dailySaveBtn.style.cursor = 'not-allowed'; dailySaveBtn.style.opacity = '0.6'; const spinner = dailySaveBtn.querySelector('.spinner-border'); if(spinner) spinner.remove(); }
-                 const monthlyYearSel = document.getElementById('selectYear'); const monthlyMonthSel = document.getElementById('selectMonth'); if(monthlyYearSel) monthlyYearSel.disabled = true; if(monthlyMonthSel) monthlyMonthSel.disabled = true;
-                 const monthlySpan = document.getElementById('displaySelectedMonth'); if(monthlySpan) monthlySpan.textContent = '数据库连接失败';
-                 const monthlyLoader = document.getElementById('monthlyLoadingIndicator'); if(monthlyLoader) monthlyLoader.style.display = 'none';
-                 const monthlyDisplay = document.getElementById('monthlyDataDisplay'); if(monthlyDisplay) monthlyDisplay.style.display = 'block'; // Show empty structure
-            } else { console.log("Supabase client ready."); }
+                console.warn("Supabase init failed globally. Adjusting UI.");
+                // 禁用日报的编辑和保存按钮，并显示提示
+                const dailyEditBtn = document.getElementById('editButton');
+                const dailySaveBtn = document.getElementById('saveButton');
+                if (dailyEditBtn) { dailyEditBtn.disabled = true; dailyEditBtn.title = "数据库连接失败"; }
+                if (dailySaveBtn) { dailySaveBtn.disabled = true; dailySaveBtn.title = "数据库连接失败"; }
+                 // 月度汇总的禁用逻辑已在其 init 函数中处理
+            } else {
+                 console.log("Supabase client ready globally.");
+                 // 确保日报的按钮状态正确（如果 Supabase 正常，交给 updateDailyReportModeUI 处理）
+            }
              console.log("Tab initialization complete.");
         });
     </script>

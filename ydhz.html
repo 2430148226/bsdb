@@ -8,7 +8,7 @@
   <!-- 引入 Supabase 客户端库 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* --- 样式部分 (与之前保持一致, 增加了新的控制栏样式) --- */
+    /* --- 样式部分 (与之前保持一致, 增加了新的控制栏样式 和 密码模态框样式) --- */
     body {
       font-family: "Microsoft YaHei", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f2f4f8;
@@ -75,8 +75,6 @@
         background-color: #4a5766;
     }
 
-    /* Old .button-group styles are now mostly covered by .import-actions label */
-    /* Ensure input[type="file"] remains hidden */
     input[type="file"] {
       display: none;
     }
@@ -119,15 +117,13 @@
         font-weight: bold;
     }
     #rule-management { /* This is the main panel for rules */
-        margin-top: 0; /* Adjusted as it's no longer directly after buttons with margin */
+        margin-top: 0;
         margin-bottom: 30px;
         border: 1px solid #ccc;
         padding: 20px;
         border-radius: 8px;
         background-color: #f9fafc;
     }
-    /* Styles for buttons INSIDE rule-management panel */
-    #rule-management h2 button, /* This selector might not be needed if button is removed from h2 */
     #rule-management button {
         font-size: 0.9em;
         padding: 5px 10px;
@@ -138,13 +134,6 @@
         background-color: #eee;
         transition: background-color 0.2s ease;
     }
-     /* Styles for old h2 button, may not be needed if button is removed */
-     /* #rule-management h2 button {
-        font-size: 0.8em;
-        padding: 3px 8px;
-        margin-left: 10px;
-        vertical-align: middle;
-     } */
     #rule-management button:hover:not(:disabled) {
         background-color: #ddd;
     }
@@ -249,7 +238,7 @@
         background-color: #fbeeee;
     }
     .loading-overlay {
-        position: absolute;
+        position: absolute; /* 修改为 absolute，相对于 .container 定位 */
         top: 0;
         left: 0;
         right: 0;
@@ -258,23 +247,114 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 1000;
+        z-index: 1000; /* loading-overlay 的 z-index */
         font-size: 1.2em;
         color: #333;
     }
+
+    /* --- 新增: 密码模态框样式 --- */
+    #password-modal-overlay {
+      display: none; /* 初始隐藏, JS 控制显示为 flex */
+      position: fixed; /* 保持 fixed 以覆盖整个视口 */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      z-index: 2000; /* 确保在 loading-overlay 之上 (如果 loading-overlay 是 fixed 的话) */
+      justify-content: center;
+      align-items: center;
+    }
+
+    #password-modal-content {
+      background-color: #fff;
+      padding: 25px 30px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      text-align: center;
+      min-width: 320px;
+    }
+
+    #password-modal-content h3 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: #2c3e50;
+      font-size: 1.3em;
+    }
+
+    #password-input-field {
+      padding: 10px;
+      margin-bottom: 15px;
+      width: calc(100% - 22px); /* 减去 padding 和 border */
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      box-sizing: border-box;
+    }
+
+    #password-error-message {
+      color: #e74c3c;
+      font-size: 0.9em;
+      min-height: 1.2em;
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    #password-modal-content button { /* 仅针对密码模态框内的按钮，避免影响 #rule-management 内的按钮 */
+      font-size: 0.95em;
+      padding: 10px 20px;
+      margin-left: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.2s ease;
+    }
+    #password-modal-content button:first-of-type {
+        margin-left: 0;
+    }
+
+
+    #password-submit-button {
+      background-color: #3498db;
+      color: white;
+      margin-right: 10px;
+    }
+    #password-submit-button:hover {
+      background-color: #2980b9;
+    }
+
+    #password-cancel-button {
+      background-color: #bdc3c7;
+      color: #333;
+    }
+    #password-cancel-button:hover {
+      background-color: #95a5a6;
+    }
+    /* --- 密码模态框样式结束 --- */
   </style>
 </head>
 <body onload="console.log('页面加载完成')">
 
-  <!-- Loading Overlay -->
-  <div id="loading-overlay" class="loading-overlay" style="display: none;">
-    <span>处理中，请稍候...</span>
+  <!-- 新增：密码输入模态框 (放在 body 直接子元素，确保 z-index 能覆盖) -->
+  <div id="password-modal-overlay">
+    <div id="password-modal-content">
+      <h3>请输入密码访问规则管理</h3>
+      <input type="password" id="password-input-field" placeholder="请输入密码">
+      <p id="password-error-message"></p>
+      <button id="password-submit-button">确认</button>
+      <button id="password-cancel-button">取消</button>
+    </div>
   </div>
 
   <div class="container">
+    <!-- Loading Overlay (现在是 container 的子元素) -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+      <span>处理中，请稍候...</span>
+    </div>
+
     <!-- Top Page Controls: Import buttons (left) and Rule Management toggle (right) -->
     <div class="page-header-actions">
-        <div class="import-actions"> <!-- Renamed from .button-group -->
+        <div class="import-actions">
             <label for="input-production">导入入库单</label>
             <input type="file" id="input-production" accept=".xlsx,.xls">
             <label for="input-shipment">导入发货单</label>
@@ -290,8 +370,8 @@
 
     <!-- 规则管理区域 - Now hidden by default, toggled by the button above -->
     <div id="rule-management" style="display: none;">
-        <h2>规则配置</h2> <!-- Title changed, button removed -->
-        <div id="rules-content"> <!-- This content area remains, style="display: none;" on it will be handled by JS -->
+        <h2>规则配置</h2>
+        <div id="rules-content">
             <h3>匹配规则 (Mapping Rules)</h3>
             <p style="font-size: 0.85em; color: #555;">定义如何将 Excel 行映射到报表项。关键词用英文逗号 (,) 分隔。</p>
             <table id="mapping-rules-table">
@@ -309,7 +389,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="9" style="text-align: center;">正在加载规则...</td></tr>
+                    <!-- JS会填充这里 -->
                 </tbody>
             </table>
             <form id="add-mapping-rule-form">
@@ -361,7 +441,6 @@
 
             <h3>特殊排除规则 (Special Exclusions)</h3>
             <p style="font-size: 0.85em; color: #555;">定义在满足特定字段条件时，应从某个报表项中排除。关键词用英文逗号 (,) 分隔。</p>
-             <!-- **修改**: 更新排除规则表格结构 -->
             <table id="exclusion-rules-table">
                <thead>
                     <tr>
@@ -376,19 +455,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- 排除规则将由 JS 动态填充 -->
-                    <tr><td colspan="8" style="text-align: center;">正在加载规则...</td></tr>
+                    <!-- JS会填充这里 -->
                 </tbody>
             </table>
-             <!-- **修改**: 更新排除规则表单结构 -->
              <form id="add-exclusion-rule-form">
                 <h4>添加/修改排除规则</h4>
-                <input type="hidden" id="edit-exclusion-id"> <!-- **新增**: 用于更新 -->
+                <input type="hidden" id="edit-exclusion-id">
                 <select id="exclusion-key" required>
                      <option value="">--请选择报表项--</option>
-                     <!-- 选项将由 JS 动态填充 -->
                 </select>
-                <select id="exclusion-primaryField" required> <!-- **修改**: ID & required -->
+                <select id="exclusion-primaryField" required>
                     <option value="">--请选择排除字段--</option>
                     <option value="商品名称">商品名称</option>
                     <option value="规格型号">规格型号</option>
@@ -397,9 +473,9 @@
                     <option value="销售数量">销售数量</option>
                     <option value="备注">备注</option>
                 </select>
-                <input type="text" id="exclusion-primaryKeywords" placeholder="排除关键词 (必填, 逗号分隔)" required> <!-- **修改**: ID & required -->
+                <input type="text" id="exclusion-primaryKeywords" placeholder="排除关键词 (必填, 逗号分隔)" required>
                 <br>
-                <select id="exclusion-secondaryField"> <!-- **新增**: 次要字段 -->
+                <select id="exclusion-secondaryField">
                     <option value="">--可选次要排除字段--</option>
                     <option value="商品名称">商品名称</option>
                     <option value="规格型号">规格型号</option>
@@ -408,9 +484,9 @@
                     <option value="销售数量">销售数量</option>
                     <option value="备注">备注</option>
                 </select>
-                <input type="text" id="exclusion-secondaryKeywords" placeholder="次要排除关键词 (可选, 逗号分隔)"> <!-- **新增**: 次要关键词 -->
+                <input type="text" id="exclusion-secondaryKeywords" placeholder="次要排除关键词 (可选, 逗号分隔)">
                 <br>
-                <select id="exclusion-unitField"> <!-- **新增**: 单位字段 -->
+                <select id="exclusion-unitField">
                     <option value="">--可选单位排除字段--</option>
                     <option value="商品名称">商品名称</option>
                     <option value="规格型号">规格型号</option>
@@ -419,7 +495,7 @@
                     <option value="销售数量">销售数量</option>
                     <option value="备注">备注</option>
                 </select>
-                <input type="text" id="exclusion-unitKeywords" placeholder="单位排除关键词 (可选, 逗号分隔)"> <!-- **新增**: 单位关键词 -->
+                <input type="text" id="exclusion-unitKeywords" placeholder="单位排除关键词 (可选, 逗号分隔)">
                 <br>
                 <button type="submit" id="save-exclusion-rule-btn">保存排除</button>
                 <button type="button" id="cancel-edit-exclusion-btn" class="cancel-btn" style="display: none;">取消编辑</button>
@@ -514,25 +590,55 @@
         alert(`Supabase 初始化失败: ${error.message}\n规则将无法从数据库加载或保存。`);
     }
 
+    // --- 新增/修改: 密码保护相关 ---
+    const YOUR_SECRET_PASSWORD = "930520"; // 请务必修改这里的密码!
+    let ruleManagementAccessGranted = false;
+
+    const passwordModalOverlay = document.getElementById('password-modal-overlay');
+    const passwordInputField = document.getElementById('password-input-field');
+    const passwordErrorMessage = document.getElementById('password-error-message');
+    const passwordSubmitButton = document.getElementById('password-submit-button');
+    const passwordCancelButton = document.getElementById('password-cancel-button');
+    // --- 密码保护相关结束 ---
+
+
     /************************************************************************
      *                          全局变量和工具函数
      ************************************************************************/
 
     let currentMappingRules = [];
-    let currentExclusionRules = []; // **修改**: 使用新数组存储排除规则对象
-    let rulesLoaded = false;
+    let currentExclusionRules = [];
+    let rulesLoaded = false; // True 如果规则已至少加载一次 (为处理或为面板显示)
+    let rulesLoadingPromise = null; // 用于处理并发的静默加载规则请求
 
     const loadingOverlay = document.getElementById('loading-overlay');
     function showLoading(message = "处理中，请稍候...") {
         loadingOverlay.querySelector('span').textContent = message;
         loadingOverlay.style.display = 'flex';
-        document.querySelectorAll('button, input[type="file"], label[for="input-production"], label[for="input-shipment"]').forEach(el => el.disabled = true);
+        // 禁用页面主要交互元素，但不禁用密码模态框内的按钮
+        document.querySelectorAll('button, input[type="file"], label[for="input-production"], label[for="input-shipment"]').forEach(el => {
+            if (!passwordModalOverlay.contains(el) && el.id !== 'password-submit-button' && el.id !== 'password-cancel-button') {
+                el.disabled = true;
+            }
+        });
     }
     function hideLoading() {
         loadingOverlay.style.display = 'none';
-        document.querySelectorAll('button, input[type="file"], label[for="input-production"], label[for="input-shipment"]').forEach(el => el.disabled = false);
-        document.getElementById('save-mapping-rule-btn').disabled = false;
-        document.getElementById('save-exclusion-rule-btn').disabled = false;
+        document.querySelectorAll('button, input[type="file"], label[for="input-production"], label[for="input-shipment"]').forEach(el => {
+            if (!passwordModalOverlay.contains(el) && el.id !== 'password-submit-button' && el.id !== 'password-cancel-button') {
+                el.disabled = false;
+            }
+        });
+        // 仅在规则面板可见且密码模态框不可见时才启用规则表单按钮
+        const ruleManagementPanelIsVisible = document.getElementById('rule-management').style.display === 'block';
+        const passwordModalIsVisible = passwordModalOverlay.style.display === 'flex';
+
+        if (ruleManagementPanelIsVisible && !passwordModalIsVisible) {
+            const saveMappingBtn = document.getElementById('save-mapping-rule-btn');
+            const saveExclusionBtn = document.getElementById('save-exclusion-rule-btn');
+            if (saveMappingBtn) saveMappingBtn.disabled = false;
+            if (saveExclusionBtn) saveExclusionBtn.disabled = false;
+        }
     }
 
     function normalize(str) {
@@ -556,21 +662,97 @@
      *                          规则管理函数
      ************************************************************************/
 
-    async function loadRules() {
+    // --- 新增/修改: 静默加载规则，主要用于数据处理 ---
+    async function loadRulesForProcessing() {
+        if (rulesLoaded && currentMappingRules.length > 0) { // 如果已经加载过且有数据，直接返回
+            console.log("规则已为处理加载过，跳过重复加载。");
+            return Promise.resolve();
+        }
+        if (rulesLoadingPromise) { // 如果正在加载中，返回当前的promise
+            console.log("规则正在为处理加载中，等待现有加载完成。");
+            return rulesLoadingPromise;
+        }
+
         if (!supabaseClient) {
-             console.warn("Supabase client 不可用，无法加载规则。");
-             renderMappingRulesTable();
-             renderExclusionRulesTable(); // **修改**: 调用新的渲染函数
+             console.warn("Supabase client 不可用，无法为处理加载规则。");
              rulesLoaded = false;
+             return Promise.reject(new Error("Supabase client not available for loading rules."));
+        }
+
+        console.log("正在为数据处理静默加载规则...");
+
+        rulesLoadingPromise = (async () => {
+            try {
+                const [mappingResponse, exclusionResponse] = await Promise.all([
+                    supabaseClient.from('mapping_rules').select('*').order('id'),
+                    supabaseClient.from('exclusion_rules').select('*').order('id')
+                ]);
+
+                if (mappingResponse.error) throw mappingResponse.error;
+                currentMappingRules = mappingResponse.data.map(dbRule => ({
+                    id: dbRule.id,
+                    key: dbRule.report_item_key,
+                    field: dbRule.primary_field,
+                    keywords: dbRule.primary_keywords || [],
+                    secondaryField: dbRule.secondary_field || undefined,
+                    secondaryKeywords: dbRule.secondary_keywords || [],
+                    unitField: dbRule.unit_field || undefined,
+                    unitKeywords: dbRule.unit_keywords || [],
+                    parentKeywords: dbRule.parent_keywords || [],
+                }));
+
+                if (exclusionResponse.error) throw exclusionResponse.error;
+                currentExclusionRules = exclusionResponse.data.map(dbRule => ({
+                    id: dbRule.id,
+                    key: dbRule.report_item_key,
+                    primaryField: dbRule.primary_exclusion_field,
+                    primaryKeywords: dbRule.primary_exclusion_keywords || [],
+                    secondaryField: dbRule.secondary_exclusion_field || undefined,
+                    secondaryKeywords: dbRule.secondary_exclusion_keywords || [],
+                    unitField: dbRule.unit_exclusion_field || undefined,
+                    unitKeywords: dbRule.unit_exclusion_keywords || [],
+                }));
+                
+                rulesLoaded = true;
+                console.log("规则已成功为数据处理加载。匹配规则数:", currentMappingRules.length, "排除规则数:", currentExclusionRules.length);
+                populateReportItemSelects(); // 更新下拉列表
+
+            } catch (error) {
+                console.error("为数据处理加载规则时出错:", error);
+                currentMappingRules = [];
+                currentExclusionRules = [];
+                rulesLoaded = false;
+                throw error;
+            } finally {
+                rulesLoadingPromise = null;
+            }
+        })();
+        return rulesLoadingPromise;
+    }
+
+    // --- 修改: loadRules 函数现在主要用于规则管理面板的显示和加载 ---
+    async function loadRules() {
+        if (!ruleManagementAccessGranted) {
+            console.warn("未授权访问规则面板，不加载规则进行显示。");
+            // alert("请先通过密码验证才能加载规则以进行管理。"); // 这个 alert 可能会在不期望的时候弹出
+            renderMappingRulesTable();
+            renderExclusionRulesTable();
+            return;
+        }
+
+        if (!supabaseClient) {
+             console.warn("Supabase client 不可用，无法为面板加载规则。");
+             renderMappingRulesTable();
+             renderExclusionRulesTable();
              return;
         }
-        console.log("正在从 Supabase 加载规则...");
-        showLoading("正在加载规则...");
+
+        console.log("正在为规则管理面板从 Supabase 加载规则...");
+        showLoading("正在加载规则配置...");
+
         try {
-            // **修改**: 从新的 exclusion_rules 表结构加载
             const [mappingResponse, exclusionResponse] = await Promise.all([
                 supabaseClient.from('mapping_rules').select('*').order('id'),
-                // 假设你的新表名为 exclusion_rules，并且有新字段
                 supabaseClient.from('exclusion_rules').select('*').order('id')
             ]);
 
@@ -586,10 +768,8 @@
                 unitKeywords: dbRule.unit_keywords || [],
                 parentKeywords: dbRule.parent_keywords || [],
             }));
-            console.log("匹配规则已加载:", currentMappingRules.length);
 
             if (exclusionResponse.error) throw exclusionResponse.error;
-             // **修改**: 处理新的排除规则数据结构
             currentExclusionRules = exclusionResponse.data.map(dbRule => ({
                 id: dbRule.id,
                 key: dbRule.report_item_key,
@@ -600,102 +780,102 @@
                 unitField: dbRule.unit_exclusion_field || undefined,
                 unitKeywords: dbRule.unit_exclusion_keywords || [],
             }));
-            console.log("排除规则已加载:", currentExclusionRules.length);
-
+            
+            rulesLoaded = true; // 确保标记为已加载
+            console.log("规则已成功为规则管理面板加载。匹配规则数:", currentMappingRules.length, "排除规则数:", currentExclusionRules.length);
             renderMappingRulesTable();
-            renderExclusionRulesTable(); // **修改**: 调用新的渲染函数
+            renderExclusionRulesTable();
             populateReportItemSelects();
-            rulesLoaded = true;
 
         } catch (error) {
-            console.error("从 Supabase 加载规则时出错:", error);
-            alert(`加载规则失败: ${error.message}\n请确保数据库表 'exclusion_rules' 结构已更新！`);
-            currentMappingRules = [];
-            currentExclusionRules = []; // **修改**: 清空新数组
-            rulesLoaded = false;
+            console.error("为规则管理面板从 Supabase 加载规则时出错:", error);
+            alert(`为规则管理面板加载规则失败: ${error.message}`);
+            // 即使面板加载失败，rulesLoaded 可能仍然是 true (如果后台加载成功过)
+            // UI应反映错误状态
             renderMappingRulesTable();
-            renderExclusionRulesTable(); // **修改**: 调用新的渲染函数
-            populateReportItemSelects();
+            renderExclusionRulesTable();
         } finally {
             hideLoading();
         }
     }
 
-    // --- 渲染规则表格 ---
+    // --- 渲染规则表格 (根据授权和加载状态显示不同信息) ---
     function renderMappingRulesTable() {
         const tbody = document.getElementById('mapping-rules-table').querySelector('tbody');
         tbody.innerHTML = '';
-        if (!supabaseClient && !rulesLoaded) {
-             tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Supabase未初始化，无法加载规则</td></tr>';
-             return;
-        }
-        if (currentMappingRules.length === 0 && rulesLoaded) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">数据库中暂无匹配规则。</td></tr>';
+        if (!ruleManagementAccessGranted) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: orange;">请先通过密码验证以查看和管理规则。</td></tr>';
             return;
-        } else if (currentMappingRules.length === 0 && !rulesLoaded && supabaseClient) {
-             tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">正在加载规则...</td></tr>';
+        }
+        if (!supabaseClient) {
+             tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: red;">Supabase未初始化，无法加载规则。</td></tr>';
              return;
         }
-
-        currentMappingRules.forEach((rule) => {
-            const tr = document.createElement('tr');
-            tr.setAttribute('data-id', rule.id);
-            const escape = (str) => str ? String(str).replace(/</g, "<").replace(/>/g, ">") : '';
-            tr.innerHTML = `
-                <td>${escape(rule.key)}</td>
-                <td>${escape(rule.field)}</td>
-                <td>${escape(formatKeywords(rule.keywords))}</td>
-                <td>${escape(rule.secondaryField)}</td>
-                <td>${escape(formatKeywords(rule.secondaryKeywords))}</td>
-                <td>${escape(rule.unitField)}</td>
-                <td>${escape(formatKeywords(rule.unitKeywords))}</td>
-                <td>${escape(formatKeywords(rule.parentKeywords))}</td>
-                <td>
-                    <button onclick="editMappingRule(${rule.id})">编辑</button>
-                    <button class="delete-btn" onclick="deleteMappingRule(${rule.id}, '${escape(rule.key).replace(/'/g, "\\'")}')">删除</button>
-                </td>`;
-            tbody.appendChild(tr);
-        });
+        // 如果已授权，但规则数据还没到（可能正在被 loadRules() 加载）
+        if (rulesLoaded && currentMappingRules.length > 0) { // 已加载且有数据
+             currentMappingRules.forEach((rule) => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', rule.id);
+                const escape = (str) => str ? String(str).replace(/</g, "<").replace(/>/g, ">") : '';
+                tr.innerHTML = `
+                    <td>${escape(rule.key)}</td>
+                    <td>${escape(rule.field)}</td>
+                    <td>${escape(formatKeywords(rule.keywords))}</td>
+                    <td>${escape(rule.secondaryField)}</td>
+                    <td>${escape(formatKeywords(rule.secondaryKeywords))}</td>
+                    <td>${escape(rule.unitField)}</td>
+                    <td>${escape(formatKeywords(rule.unitKeywords))}</td>
+                    <td>${escape(formatKeywords(rule.parentKeywords))}</td>
+                    <td>
+                        <button onclick="editMappingRule(${rule.id})">编辑</button>
+                        <button class="delete-btn" onclick="deleteMappingRule(${rule.id}, '${escape(rule.key).replace(/'/g, "\\'")}')">删除</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        } else if (rulesLoaded && currentMappingRules.length === 0) { // 已加载但无数据
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">数据库中暂无匹配规则。</td></tr>';
+        } else { // rulesLoaded is false, or some other state, implies loading or error
+             tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">正在加载规则或规则为空... (如果长时间未响应，请尝试刷新)</td></tr>';
+        }
     }
 
-    // **修改**: 新的排除规则渲染函数
     function renderExclusionRulesTable() {
         const tbody = document.getElementById('exclusion-rules-table').querySelector('tbody');
         tbody.innerHTML = '';
-        if (!supabaseClient && !rulesLoaded) {
-             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Supabase未初始化，无法加载规则</td></tr>';
+        if (!ruleManagementAccessGranted) {
+             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: orange;">请先通过密码验证以查看和管理规则。</td></tr>';
              return;
         }
-         if (currentExclusionRules.length === 0 && rulesLoaded) {
+        if (!supabaseClient) {
+             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Supabase未初始化，无法加载规则。</td></tr>';
+             return;
+        }
+        if (rulesLoaded && currentExclusionRules.length > 0) { // 已加载且有数据
+            currentExclusionRules.forEach(rule => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', rule.id);
+                const escape = (str) => str ? String(str).replace(/</g, "<").replace(/>/g, ">") : '';
+                tr.innerHTML = `
+                    <td>${escape(rule.key)}</td>
+                    <td>${escape(rule.primaryField)}</td>
+                    <td>${escape(formatKeywords(rule.primaryKeywords))}</td>
+                    <td>${escape(rule.secondaryField)}</td>
+                    <td>${escape(formatKeywords(rule.secondaryKeywords))}</td>
+                    <td>${escape(rule.unitField)}</td>
+                    <td>${escape(formatKeywords(rule.unitKeywords))}</td>
+                    <td>
+                        <button onclick="editExclusionRule(${rule.id})">编辑</button>
+                        <button class="delete-btn" onclick="deleteExclusionRule(${rule.id}, '${escape(rule.key).replace(/'/g, "\\'")}')">删除</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        } else if (rulesLoaded && currentExclusionRules.length === 0) { // 已加载但无数据
             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">数据库中暂无排除规则。</td></tr>';
-            return;
-        } else if (currentExclusionRules.length === 0 && !rulesLoaded && supabaseClient) {
-             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">正在加载规则...</td></tr>';
-             return;
+        } else { // rulesLoaded is false, or some other state
+             tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">正在加载规则或规则为空... (如果长时间未响应，请尝试刷新)</td></tr>';
         }
-
-        currentExclusionRules.forEach(rule => {
-            const tr = document.createElement('tr');
-            tr.setAttribute('data-id', rule.id); // 使用数据库 ID
-            const escape = (str) => str ? String(str).replace(/</g, "<").replace(/>/g, ">") : '';
-            tr.innerHTML = `
-                <td>${escape(rule.key)}</td>
-                <td>${escape(rule.primaryField)}</td>
-                <td>${escape(formatKeywords(rule.primaryKeywords))}</td>
-                <td>${escape(rule.secondaryField)}</td>
-                <td>${escape(formatKeywords(rule.secondaryKeywords))}</td>
-                <td>${escape(rule.unitField)}</td>
-                <td>${escape(formatKeywords(rule.unitKeywords))}</td>
-                <td>
-                    <button onclick="editExclusionRule(${rule.id})">编辑</button> <!-- 修改: 使用 id -->
-                    <button class="delete-btn" onclick="deleteExclusionRule(${rule.id}, '${escape(rule.key).replace(/'/g, "\\'")}')">删除</button> <!-- 修改: 使用 id -->
-                </td>`;
-            tbody.appendChild(tr);
-        });
     }
 
-
-    // --- 填充报表项下拉列表 (不变) ---
     function populateReportItemSelects() {
         const keys = new Set();
         const mappingSelect = document.getElementById('mapping-key');
@@ -712,8 +892,11 @@
                  if (keyText) keys.add(keyText);
              }
         });
-        currentMappingRules.forEach(rule => { if(rule.key) keys.add(rule.key.trim()) });
-        currentExclusionRules.forEach(rule => { if(rule.key) keys.add(rule.key.trim()) }); // **修改**: 从新数组获取
+
+        if (rulesLoaded) { // 只有规则加载后才从规则中添加
+            currentMappingRules.forEach(rule => { if(rule.key) keys.add(rule.key.trim()) });
+            currentExclusionRules.forEach(rule => { if(rule.key) keys.add(rule.key.trim()) });
+        }
 
         const currentMappingValue = mappingSelect.value;
         const currentExclusionValue = exclusionSelect.value;
@@ -736,13 +919,14 @@
         if (currentExclusionValue && sortedKeys.includes(currentExclusionValue)) {
              exclusionSelect.value = currentExclusionValue;
         }
-        console.log("报表项下拉列表已更新，包含", sortedKeys.length, "个选项");
+        // console.log("报表项下拉列表已更新，包含", sortedKeys.length, "个选项");
     }
 
 
-    // --- 表单提交处理 ---
+    // --- 表单提交处理 (保持不变, 内部的 loadRules() 调用会使用新的逻辑) ---
     document.getElementById('add-mapping-rule-form').addEventListener('submit', async function(e) {
         e.preventDefault();
+        if (!ruleManagementAccessGranted) return alert("未授权，无法保存规则。");
         if (!supabaseClient) return alert("Supabase 未初始化，无法保存规则。");
 
         const ruleId = document.getElementById('edit-mapping-id').value;
@@ -783,37 +967,39 @@
             }
             if (response.error) throw response.error;
             console.log("匹配规则保存成功:", response.data);
-            await loadRules();
+            await loadRules(); // 为面板重新加载和渲染
             resetMappingForm();
             alert("匹配规则保存成功！");
         } catch (error) {
             console.error("保存匹配规则时出错:", error);
             alert(`保存匹配规则失败: ${error.message}`);
+            hideLoading();
         } finally {
-            document.getElementById('save-mapping-rule-btn').disabled = false;
+            if (document.getElementById('rule-management').style.display === 'block') { // 只有面板可见时才启用
+               document.getElementById('save-mapping-rule-btn').disabled = false;
+            }
         }
     });
 
-    // **修改**: 排除规则表单提交逻辑
     document.getElementById('add-exclusion-rule-form').addEventListener('submit', async function(e) {
         e.preventDefault();
+        if (!ruleManagementAccessGranted) return alert("未授权，无法保存规则。");
         if (!supabaseClient) return alert("Supabase 未初始化，无法保存规则。");
 
-        const ruleId = document.getElementById('edit-exclusion-id').value; // **修改**: 使用 ID
+        const ruleId = document.getElementById('edit-exclusion-id').value;
         const key = document.getElementById('exclusion-key').value;
-        const primaryField = document.getElementById('exclusion-primaryField').value; // **修改**: 读取新字段
-        const primaryKeywords = parseKeywords(document.getElementById('exclusion-primaryKeywords').value); // **修改**: 读取新字段
-        const secondaryField = document.getElementById('exclusion-secondaryField').value || null; // **修改**: 读取新字段
-        const secondaryKeywords = parseKeywords(document.getElementById('exclusion-secondaryKeywords').value); // **修改**: 读取新字段
-        const unitField = document.getElementById('exclusion-unitField').value || null; // **修改**: 读取新字段
-        const unitKeywords = parseKeywords(document.getElementById('exclusion-unitKeywords').value); // **修改**: 读取新字段
+        const primaryField = document.getElementById('exclusion-primaryField').value;
+        const primaryKeywords = parseKeywords(document.getElementById('exclusion-primaryKeywords').value);
+        const secondaryField = document.getElementById('exclusion-secondaryField').value || null;
+        const secondaryKeywords = parseKeywords(document.getElementById('exclusion-secondaryKeywords').value);
+        const unitField = document.getElementById('exclusion-unitField').value || null;
+        const unitKeywords = parseKeywords(document.getElementById('exclusion-unitKeywords').value);
 
-        if (!key || !primaryField || primaryKeywords.length === 0) { // **修改**: 验证新字段
+        if (!key || !primaryField || primaryKeywords.length === 0) {
             alert("报表项、排除字段 和 排除关键词 不能为空！");
             return;
         }
 
-        // **修改**: 准备新的数据结构
         const ruleData = {
             report_item_key: key,
             primary_exclusion_field: primaryField,
@@ -829,42 +1015,36 @@
 
         try {
             let response;
-            // **修改**: 使用 insert/update 而不是 upsert
-            if (ruleId) { // Update
-                response = await supabaseClient
-                    .from('exclusion_rules') // 假设新表名
-                    .update(ruleData)
-                    .eq('id', ruleId)
-                    .select();
-            } else { // Insert
-                response = await supabaseClient
-                    .from('exclusion_rules') // 假设新表名
-                    .insert(ruleData)
-                    .select();
+            if (ruleId) {
+                response = await supabaseClient.from('exclusion_rules').update(ruleData).eq('id', ruleId).select();
+            } else {
+                response = await supabaseClient.from('exclusion_rules').insert(ruleData).select();
             }
 
             if (response.error) throw response.error;
 
             console.log("排除规则保存成功:", response.data);
-            await loadRules(); // 重新加载规则
-            resetExclusionForm(); // 清空表单
+            await loadRules(); // 为面板重新加载和渲染
+            resetExclusionForm();
             alert("排除规则保存成功！");
 
         } catch (error) {
             console.error("保存排除规则时出错:", error);
             alert(`保存排除规则失败: ${error.message}\n请确保数据库表 'exclusion_rules' 结构已更新！`);
+            hideLoading();
         } finally {
-            document.getElementById('save-exclusion-rule-btn').disabled = false;
-            // hideLoading 由 loadRules 处理
+             if (document.getElementById('rule-management').style.display === 'block') { // 只有面板可见时才启用
+                document.getElementById('save-exclusion-rule-btn').disabled = false;
+            }
         }
     });
 
-    // --- 编辑/删除/重置表单函数 ---
+    // --- 编辑/删除/重置表单函数 (保持不变, 内部的 loadRules() 调用会使用新的逻辑) ---
     function editMappingRule(ruleId) {
+        if (!ruleManagementAccessGranted) return;
         const rule = currentMappingRules.find(r => r.id === ruleId);
         if (!rule) return console.error("找不到 ID 为 " + ruleId + " 的匹配规则");
 
-        console.log("正在编辑匹配规则:", rule);
         document.getElementById('edit-mapping-id').value = rule.id;
         document.getElementById('mapping-key').value = rule.key || '';
         document.getElementById('mapping-field').value = rule.field || '';
@@ -879,67 +1059,59 @@
         document.getElementById('add-mapping-rule-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // **修改**: 编辑排除规则函数
     function editExclusionRule(ruleId) {
-        const rule = currentExclusionRules.find(r => r.id === ruleId); // **修改**: 从新数组查找
+        if (!ruleManagementAccessGranted) return;
+        const rule = currentExclusionRules.find(r => r.id === ruleId);
         if (!rule) return console.error("找不到 ID 为 " + ruleId + " 的排除规则");
 
-        console.log("正在编辑排除规则:", rule);
-        document.getElementById('edit-exclusion-id').value = rule.id; // **修改**: 设置 ID
+        document.getElementById('edit-exclusion-id').value = rule.id;
         document.getElementById('exclusion-key').value = rule.key || '';
-        document.getElementById('exclusion-primaryField').value = rule.primaryField || ''; // **修改**: 填充新字段
-        document.getElementById('exclusion-primaryKeywords').value = formatKeywords(rule.primaryKeywords); // **修改**: 填充新字段
-        document.getElementById('exclusion-secondaryField').value = rule.secondaryField || ''; // **修改**: 填充新字段
-        document.getElementById('exclusion-secondaryKeywords').value = formatKeywords(rule.secondaryKeywords); // **修改**: 填充新字段
-        document.getElementById('exclusion-unitField').value = rule.unitField || ''; // **修改**: 填充新字段
-        document.getElementById('exclusion-unitKeywords').value = formatKeywords(rule.unitKeywords); // **修改**: 填充新字段
+        document.getElementById('exclusion-primaryField').value = rule.primaryField || '';
+        document.getElementById('exclusion-primaryKeywords').value = formatKeywords(rule.primaryKeywords);
+        document.getElementById('exclusion-secondaryField').value = rule.secondaryField || '';
+        document.getElementById('exclusion-secondaryKeywords').value = formatKeywords(rule.secondaryKeywords);
+        document.getElementById('exclusion-unitField').value = rule.unitField || '';
+        document.getElementById('exclusion-unitKeywords').value = formatKeywords(rule.unitKeywords);
 
         document.getElementById('cancel-edit-exclusion-btn').style.display = 'inline-block';
         document.getElementById('add-exclusion-rule-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-
     async function deleteMappingRule(ruleId, ruleKey) {
+        if (!ruleManagementAccessGranted) return;
         if (!supabaseClient) return alert("Supabase 未初始化，无法删除规则。");
         if (confirm(`确定要删除这条匹配规则吗？\n报表项: ${ruleKey}\n(ID: ${ruleId})`)) {
             showLoading("正在删除匹配规则...");
             try {
                 const { error } = await supabaseClient.from('mapping_rules').delete().eq('id', ruleId);
                 if (error) throw error;
-                console.log("匹配规则删除成功, ID:", ruleId);
-                alert("匹配规则删除成功！");
-                await loadRules();
+                await loadRules(); // 为面板重新加载和渲染
                 resetMappingForm();
+                alert("匹配规则删除成功！");
             } catch (error) {
                 console.error("删除匹配规则时出错:", error);
                 alert(`删除匹配规则失败: ${error.message}`);
+                hideLoading();
             }
         }
     }
 
-    // **修改**: 删除排除规则函数
-    async function deleteExclusionRule(ruleId, ruleKey) { // **修改**: 参数为 id 和 key
+    async function deleteExclusionRule(ruleId, ruleKey) {
+        if (!ruleManagementAccessGranted) return;
         if (!supabaseClient) return alert("Supabase 未初始化，无法删除规则。");
 
-        if (confirm(`确定要删除这条排除规则吗？\n报表项: ${ruleKey}\n(ID: ${ruleId})`)) { // **修改**: 确认信息
+        if (confirm(`确定要删除这条排除规则吗？\n报表项: ${ruleKey}\n(ID: ${ruleId})`)) {
             showLoading("正在删除排除规则...");
             try {
-                 // **修改**: 根据 ID 删除
-                 const { error } = await supabaseClient
-                     .from('exclusion_rules') // 假设新表名
-                     .delete()
-                     .eq('id', ruleId);
-
+                 const { error } = await supabaseClient.from('exclusion_rules').delete().eq('id', ruleId);
                  if (error) throw error;
-
-                 console.log("排除规则删除成功, ID:", ruleId);
+                 await loadRules(); // 为面板重新加载和渲染
+                 resetExclusionForm();
                  alert("排除规则删除成功！");
-                 await loadRules(); // 刷新列表
-                 resetExclusionForm(); // 如果表单正在编辑此规则，则清空
-
             } catch (error) {
                 console.error("删除排除规则时出错:", error);
                 alert(`删除排除规则失败: ${error.message}`);
+                hideLoading();
             }
         }
     }
@@ -950,58 +1122,95 @@
         document.getElementById('cancel-edit-mapping-btn').style.display = 'none';
     }
 
-     // **修改**: 重置排除规则表单
     function resetExclusionForm() {
         document.getElementById('add-exclusion-rule-form').reset();
-        document.getElementById('edit-exclusion-id').value = ''; // **修改**: 清空 ID
+        document.getElementById('edit-exclusion-id').value = '';
         document.getElementById('cancel-edit-exclusion-btn').style.display = 'none';
     }
 
     document.getElementById('cancel-edit-mapping-btn').addEventListener('click', resetMappingForm);
-    document.getElementById('cancel-edit-exclusion-btn').addEventListener('click', resetExclusionForm); // **修改**: 绑定新函数
+    document.getElementById('cancel-edit-exclusion-btn').addEventListener('click', resetExclusionForm);
 
-    // New event listener for the main rule management toggle button
+    // --- 修改: 规则管理按钮 和 密码验证逻辑 ---
     const ruleManagementPanel = document.getElementById('rule-management');
-    const rulesContentArea = document.getElementById('rules-content'); // Keep reference to inner content
+    const rulesContentArea = document.getElementById('rules-content');
     const newToggleButton = document.getElementById('btn-toggle-rule-management-panel');
 
-    newToggleButton.addEventListener('click', function() {
-        const isPanelCurrentlyHidden = ruleManagementPanel.style.display === 'none';
+    // 辅助函数: 显示规则面板并加载规则 (供面板使用)
+    function showAndLoadRulesPanel() {
+        ruleManagementPanel.style.display = 'block';
+        const svgIcon = newToggleButton.querySelector('svg').outerHTML;
+        newToggleButton.innerHTML = `${svgIcon} 隐藏规则配置`;
 
-        if (isPanelCurrentlyHidden) {
-            ruleManagementPanel.style.display = 'block';
-            // Ensure the inner content (which had its own display:none) is also shown
-            if (rulesContentArea.style.display === 'none') {
-                 rulesContentArea.style.display = 'block';
-            }
-            // this.innerHTML = `<svg ...> 隐藏规则`; // Optionally change text
+        if (rulesContentArea.style.display === 'none') {
+             rulesContentArea.style.display = 'block';
+        }
 
-            if (!rulesLoaded && supabaseClient) {
-                loadRules();
-            } else if (rulesLoaded) { // If rules already loaded, just populate selects
-                populateReportItemSelects();
-            }
+        if (ruleManagementAccessGranted) { // 再次确认授权
+            loadRules(); // 调用 loadRules 为面板加载数据
         } else {
+            // 此情况理论上不应发生，因为 showAndLoadRulesPanel 由授权后逻辑调用
+            console.warn("尝试显示规则面板但未授权。");
+            renderMappingRulesTable(); // 显示提示
+            renderExclusionRulesTable();
+        }
+    }
+
+    newToggleButton.addEventListener('click', function() {
+        const isPanelCurrentlyVisible = ruleManagementPanel.style.display === 'block';
+        const svgIcon = this.querySelector('svg').outerHTML;
+
+        if (isPanelCurrentlyVisible) {
             ruleManagementPanel.style.display = 'none';
-            // this.innerHTML = `<svg ...> 规则管理`; // Optionally change text
+            this.innerHTML = `${svgIcon} 规则管理`;
+        } else {
+            if (ruleManagementAccessGranted) {
+                showAndLoadRulesPanel();
+            } else {
+                passwordModalOverlay.style.display = 'flex';
+                passwordInputField.value = '';
+                passwordErrorMessage.textContent = '';
+                passwordInputField.focus();
+            }
         }
     });
 
-    // Original toggle-rules-btn listener inside #rule-management is no longer needed
-    // as its functionality is now part of the main toggle button logic.
-    // document.getElementById('toggle-rules-btn').addEventListener('click', function() { ... });
+    passwordSubmitButton.addEventListener('click', function() {
+        const enteredPassword = passwordInputField.value;
+        if (enteredPassword === YOUR_SECRET_PASSWORD) {
+            ruleManagementAccessGranted = true;
+            passwordModalOverlay.style.display = 'none';
+            passwordErrorMessage.textContent = '';
+            showAndLoadRulesPanel(); // 密码正确后，显示面板并加载规则
+        } else {
+            passwordErrorMessage.textContent = '密码错误，请重试！';
+            passwordInputField.value = '';
+            passwordInputField.focus();
+        }
+    });
+
+    passwordCancelButton.addEventListener('click', function() {
+        passwordModalOverlay.style.display = 'none';
+        passwordErrorMessage.textContent = '';
+    });
+
+    passwordInputField.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            passwordSubmitButton.click();
+        }
+    });
+    // --- 规则管理按钮 和 密码验证逻辑结束 ---
 
 
     /************************************************************************
-     *                          核心处理逻辑
+     *                          核心处理逻辑 (processData)
      ************************************************************************/
     function processData(jsonData, type) {
-      console.log(`[${type}] 开始处理 ${jsonData.length} 行数据。`);
+      // console.log(`[${type}] processData - rulesLoaded: ${rulesLoaded}, mappingRules: ${currentMappingRules.length}, exclusionRules: ${currentExclusionRules.length}`);
       const resultMap = {};
       const unmatchedRows = [];
-      // 不再需要 normalizedExclusions 对象，因为排除逻辑已改变
 
-       // 初始化结果映射 (与之前相同)
        const allKeys = new Set();
        document.querySelectorAll("#data-table tbody tr").forEach(row => {
          const cells = row.querySelectorAll("td");
@@ -1015,19 +1224,21 @@
              if (normKey) allKeys.add(normKey);
          }
        });
-       currentMappingRules.forEach(rule => {
-          const normKey = normalize(rule.key);
-          if (normKey) allKeys.add(normKey);
-       });
+       // 只有在规则加载后才从规则中添加keys
+       if(rulesLoaded){
+           currentMappingRules.forEach(rule => {
+              const normKey = normalize(rule.key);
+              if (normKey) allKeys.add(normKey);
+           });
+       }
        allKeys.forEach(normKey => {
            resultMap[normKey] = { "生产量": 0, "发货量": 0 };
        });
 
       jsonData.forEach((row, rowIndex) => {
-        let matched = false; // 标记该行是否匹配了 *任何* mapping rule
-        let finalMatchForKey = null; // 记录最终匹配的 mapping rule key
+        let matched = false;
+        // let finalMatchForKey = null; // Not currently used
 
-        // 确定数量列 (与之前相同)
         let quantityColumnName = "";
         let originalQuantityValue;
         if (type === '生产量') {
@@ -1038,218 +1249,204 @@
         originalQuantityValue = row[quantityColumnName];
         const quantity = parseFloat(originalQuantityValue);
 
-        // 遍历所有 *匹配* 规则
-        for (const mappingRule of currentMappingRules) {
-          const normMappingRuleKey = normalize(mappingRule.key);
-          if (!normMappingRuleKey || !mappingRule.field) continue;
+        // 只有在规则加载后才遍历规则
+        if(rulesLoaded && currentMappingRules.length > 0) { // 确保有规则可遍历
+            for (const mappingRule of currentMappingRules) {
+              const normMappingRuleKey = normalize(mappingRule.key);
+              if (!normMappingRuleKey || !mappingRule.field) continue;
 
-          const actualFieldName = Object.keys(row).find(k => normalize(k) === normalize(mappingRule.field));
-          if (!actualFieldName) continue;
+              const actualFieldName = Object.keys(row).find(k => normalize(k) === normalize(mappingRule.field));
+              if (!actualFieldName) continue;
 
-          const excelFieldValue = row[actualFieldName] || "";
-          const normExcelFieldValue = normalize(excelFieldValue);
+              const excelFieldValue = row[actualFieldName] || "";
+              const normExcelFieldValue = normalize(excelFieldValue);
 
-          // --- **修改**: 排除逻辑 ---
-          let isExplicitlyExcluded = false;
-          // 遍历所有 *排除* 规则
-          for (const exclusionRule of currentExclusionRules) {
-              // 检查报表项是否匹配当前 *匹配* 规则的报表项
-              if (normalize(exclusionRule.key) !== normMappingRuleKey) {
-                  continue; // 此排除规则不适用于当前的匹配规则
+              let isExplicitlyExcluded = false;
+              if(currentExclusionRules.length > 0){ // 确保有排除规则可检查
+                for (const exclusionRule of currentExclusionRules) {
+                    if (normalize(exclusionRule.key) !== normMappingRuleKey) {
+                        continue;
+                    }
+                    let primaryExclusionMet = false;
+                    if (exclusionRule.primaryField && exclusionRule.primaryKeywords.length > 0) {
+                        const actualExclusionFieldName = Object.keys(row).find(k => normalize(k) === normalize(exclusionRule.primaryField));
+                        if (actualExclusionFieldName) {
+                            const excelExclusionValue = row[actualExclusionFieldName] || "";
+                            const normExcelExclusionValue = normalize(excelExclusionValue);
+                            const normExclusionKeywords = exclusionRule.primaryKeywords.map(normalize).filter(k => k);
+                            for (const normExKeyword of normExclusionKeywords) {
+                                if (normExcelExclusionValue.includes(normExKeyword)) {
+                                    primaryExclusionMet = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (primaryExclusionMet) {
+                        isExplicitlyExcluded = true;
+                        break;
+                    }
+                    let secondaryExclusionMet = false;
+                    if (!isExplicitlyExcluded && exclusionRule.secondaryField && exclusionRule.secondaryKeywords.length > 0) {
+                       const actualExclusionFieldName = Object.keys(row).find(k => normalize(k) === normalize(exclusionRule.secondaryField));
+                       if (actualExclusionFieldName) {
+                           const excelExclusionValue = row[actualExclusionFieldName] || "";
+                           const normExcelExclusionValue = normalize(excelExclusionValue);
+                           const normExclusionKeywords = exclusionRule.secondaryKeywords.map(normalize).filter(k => k);
+                           for (const normExKeyword of normExclusionKeywords) {
+                              if (normExcelExclusionValue.includes(normExKeyword)) {
+                                  secondaryExclusionMet = true;
+                                  break;
+                              }
+                           }
+                       }
+                    }
+                    if (secondaryExclusionMet) {
+                       isExplicitlyExcluded = true;
+                       break;
+                    }
+                    let unitExclusionMet = false;
+                    if (!isExplicitlyExcluded && exclusionRule.unitField && exclusionRule.unitKeywords.length > 0) {
+                        const actualExclusionFieldName = Object.keys(row).find(k => normalize(k) === normalize(exclusionRule.unitField));
+                        if (actualExclusionFieldName) {
+                            const excelExclusionValue = row[actualExclusionFieldName] || "";
+                            const normExcelExclusionValue = normalize(excelExclusionValue);
+                            const normExclusionKeywords = exclusionRule.unitKeywords.map(normalize).filter(k => k);
+                            for (const normExKeyword of normExclusionKeywords) {
+                               if (normExcelExclusionValue === normExKeyword) {
+                                   unitExclusionMet = true;
+                                   break;
+                               }
+                            }
+                        }
+                    }
+                    if (unitExclusionMet) {
+                       isExplicitlyExcluded = true;
+                       break;
+                    }
+                } // end exclusion rule loop
+              } // end if currentExclusionRules
+
+              if (isExplicitlyExcluded) {
+                  continue; // Skip this mappingRule for this row
               }
 
-              // 检查排除规则的主要字段条件
-              let primaryExclusionMet = false;
-              if (exclusionRule.primaryField && exclusionRule.primaryKeywords.length > 0) {
-                  const actualExclusionFieldName = Object.keys(row).find(k => normalize(k) === normalize(exclusionRule.primaryField));
-                  if (actualExclusionFieldName) {
-                      const excelExclusionValue = row[actualExclusionFieldName] || "";
-                      const normExcelExclusionValue = normalize(excelExclusionValue);
-                      const normExclusionKeywords = exclusionRule.primaryKeywords.map(normalize).filter(k => k);
-                      for (const normExKeyword of normExclusionKeywords) {
-                          if (normExcelExclusionValue.includes(normExKeyword)) {
-                              primaryExclusionMet = true;
+              let primaryFieldMatched = false;
+              if (Array.isArray(mappingRule.keywords) && mappingRule.keywords.length > 0) {
+                  const normKeywords = mappingRule.keywords.map(normalize).filter(k => k);
+                  if (normKeywords.length > 0) {
+                      for (const normKeyword of normKeywords) {
+                          if (normExcelFieldValue.includes(normKeyword)) {
+                              primaryFieldMatched = true;
                               break;
                           }
                       }
-                  }
-              }
-              if (primaryExclusionMet) {
-                  // console.log(`[${type}] Row ${rowIndex + 1}: EXCLUDED by rule ID ${exclusionRule.id} (Key: ${mappingRule.key}) due to primary field '${exclusionRule.primaryField}' match.`);
-                  isExplicitlyExcluded = true;
-                  break; // 跳出内部排除规则循环，此行对于此 mappingRule 被排除
-              }
+                  } else { continue; }
+              } else { continue; }
+              if (!primaryFieldMatched) continue;
 
-              // 检查排除规则的次要字段条件 (仅当主要条件不满足时检查)
-              let secondaryExclusionMet = false;
-              if (!isExplicitlyExcluded && exclusionRule.secondaryField && exclusionRule.secondaryKeywords.length > 0) {
-                   const actualExclusionFieldName = Object.keys(row).find(k => normalize(k) === normalize(exclusionRule.secondaryField));
-                   if (actualExclusionFieldName) {
-                       const excelExclusionValue = row[actualExclusionFieldName] || "";
-                       const normExcelExclusionValue = normalize(excelExclusionValue);
-                       const normExclusionKeywords = exclusionRule.secondaryKeywords.map(normalize).filter(k => k);
-                       for (const normExKeyword of normExclusionKeywords) {
-                          if (normExcelExclusionValue.includes(normExKeyword)) {
-                              secondaryExclusionMet = true;
-                              break;
-                          }
-                       }
+              let secondaryFieldMatched = true; // Assume true if not defined
+              if (mappingRule.secondaryField && Array.isArray(mappingRule.secondaryKeywords) && mappingRule.secondaryKeywords.length > 0) {
+                  secondaryFieldMatched = false;
+                  const actualSecondaryFieldName = Object.keys(row).find(k => normalize(k) === normalize(mappingRule.secondaryField));
+                   if (actualSecondaryFieldName) {
+                        const excelSecondaryValue = row[actualSecondaryFieldName] || "";
+                        const normExcelSecondaryValue = normalize(excelSecondaryValue);
+                        const normSecondaryKeywords = mappingRule.secondaryKeywords.map(normalize).filter(k => k);
+                        if (normExcelSecondaryValue && normSecondaryKeywords.length > 0) {
+                            for (const normSecondaryKeyword of normSecondaryKeywords) {
+                                if (normExcelSecondaryValue.includes(normSecondaryKeyword)) {
+                                    secondaryFieldMatched = true;
+                                    break;
+                                }
+                            }
+                        }
                    }
               }
-               if (secondaryExclusionMet) {
-                   // console.log(`[${type}] Row ${rowIndex + 1}: EXCLUDED by rule ID ${exclusionRule.id} (Key: ${mappingRule.key}) due to secondary field '${exclusionRule.secondaryField}' match.`);
-                   isExplicitlyExcluded = true;
-                   break; // 跳出内部排除规则循环
-               }
+              if (!secondaryFieldMatched) continue;
 
-              // 检查排除规则的单位字段条件 (仅当主要和次要条件都不满足时检查)
-              let unitExclusionMet = false;
-              if (!isExplicitlyExcluded && exclusionRule.unitField && exclusionRule.unitKeywords.length > 0) {
-                  const actualExclusionFieldName = Object.keys(row).find(k => normalize(k) === normalize(exclusionRule.unitField));
-                  if (actualExclusionFieldName) {
-                      const excelExclusionValue = row[actualExclusionFieldName] || "";
-                      const normExcelExclusionValue = normalize(excelExclusionValue);
-                      const normExclusionKeywords = exclusionRule.unitKeywords.map(normalize).filter(k => k);
-                      for (const normExKeyword of normExclusionKeywords) {
-                         // 单位通常需要精确匹配
-                         if (normExcelExclusionValue === normExKeyword) {
-                             unitExclusionMet = true;
-                             break;
-                         }
-                      }
-                  }
+              let unitMatch = true; // Assume true if not defined
+              if (mappingRule.unitField && Array.isArray(mappingRule.unitKeywords) && mappingRule.unitKeywords.length > 0) {
+                  unitMatch = false;
+                  const actualUnitFieldName = Object.keys(row).find(k => normalize(k) === normalize(mappingRule.unitField));
+                   if (actualUnitFieldName) {
+                        const excelUnitValue = row[actualUnitFieldName] || "";
+                        const normExcelUnitValue = normalize(excelUnitValue);
+                        const normUnitKeywords = mappingRule.unitKeywords.map(normalize).filter(k => k);
+                        if (normExcelUnitValue && normUnitKeywords.length > 0) {
+                            for (const normUnitKeyword of normUnitKeywords) {
+                                if (normExcelUnitValue === normUnitKeyword) { // Exact match for unit
+                                    unitMatch = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
               }
-               if (unitExclusionMet) {
-                   // console.log(`[${type}] Row ${rowIndex + 1}: EXCLUDED by rule ID ${exclusionRule.id} (Key: ${mappingRule.key}) due to unit field '${exclusionRule.unitField}' match.`);
-                   isExplicitlyExcluded = true;
-                   break; // 跳出内部排除规则循环
-               }
-          } // 结束排除规则循环
+              if (!unitMatch) continue;
 
-          if (isExplicitlyExcluded) {
-              continue; // 跳过此 mappingRule，尝试下一个 mappingRule
-          }
-          // --- 排除逻辑结束 ---
-
-
-          // --- 匹配规则的字段检查 (与之前相同) ---
-          let primaryFieldMatched = false;
-          if (Array.isArray(mappingRule.keywords) && mappingRule.keywords.length > 0) {
-              const normKeywords = mappingRule.keywords.map(normalize).filter(k => k);
-              if (normKeywords.length > 0) {
-                  for (const normKeyword of normKeywords) {
-                      if (normExcelFieldValue.includes(normKeyword)) {
-                          primaryFieldMatched = true;
-                          break;
-                      }
-                  }
-              } else { continue; }
-          } else { continue; }
-          if (!primaryFieldMatched) continue;
-
-          let secondaryFieldMatched = true;
-          if (mappingRule.secondaryField && Array.isArray(mappingRule.secondaryKeywords) && mappingRule.secondaryKeywords.length > 0) {
-              secondaryFieldMatched = false;
-              const actualSecondaryFieldName = Object.keys(row).find(k => normalize(k) === normalize(mappingRule.secondaryField));
-               if (actualSecondaryFieldName) {
-                    const excelSecondaryValue = row[actualSecondaryFieldName] || "";
-                    const normExcelSecondaryValue = normalize(excelSecondaryValue);
-                    const normSecondaryKeywords = mappingRule.secondaryKeywords.map(normalize).filter(k => k);
-                    if (normExcelSecondaryValue && normSecondaryKeywords.length > 0) {
-                        for (const normSecondaryKeyword of normSecondaryKeywords) {
-                            if (normExcelSecondaryValue.includes(normSecondaryKeyword)) {
-                                secondaryFieldMatched = true;
+              let parentMatch = true; // Assume true if not defined
+               if (Array.isArray(mappingRule.parentKeywords) && mappingRule.parentKeywords.length > 0) {
+                  parentMatch = false;
+                  const normParentKeywords = mappingRule.parentKeywords.map(normalize).filter(k => k);
+                  if (normParentKeywords.length > 0) { // Only check if there are parent keywords
+                        for (const normParentKeyword of normParentKeywords) {
+                            // Parent keywords are usually part of the primary field value
+                            if (normExcelFieldValue.includes(normParentKeyword)) {
+                                parentMatch = true;
                                 break;
                             }
                         }
-                    }
-               }
-          }
-          if (!secondaryFieldMatched) continue;
-
-          let unitMatch = true;
-          if (mappingRule.unitField && Array.isArray(mappingRule.unitKeywords) && mappingRule.unitKeywords.length > 0) {
-              unitMatch = false;
-              const actualUnitFieldName = Object.keys(row).find(k => normalize(k) === normalize(mappingRule.unitField));
-               if (actualUnitFieldName) {
-                    const excelUnitValue = row[actualUnitFieldName] || "";
-                    const normExcelUnitValue = normalize(excelUnitValue);
-                    const normUnitKeywords = mappingRule.unitKeywords.map(normalize).filter(k => k);
-                    if (normExcelUnitValue && normUnitKeywords.length > 0) {
-                        for (const normUnitKeyword of normUnitKeywords) {
-                            if (normExcelUnitValue === normUnitKeyword) { // 精确匹配
-                                unitMatch = true;
-                                break;
-                            }
-                        }
+                    } else { // If no parent keywords defined for the rule, it's a match for this criteria
+                        parentMatch = true;
                     }
                 }
-          }
-          if (!unitMatch) continue;
+              if (!parentMatch) continue;
 
-          let parentMatch = true;
-           if (Array.isArray(mappingRule.parentKeywords) && mappingRule.parentKeywords.length > 0) {
-              parentMatch = false;
-              const normParentKeywords = mappingRule.parentKeywords.map(normalize).filter(k => k);
-              if (normParentKeywords.length > 0) {
-                    for (const normParentKeyword of normParentKeywords) {
-                        if (normExcelFieldValue.includes(normParentKeyword)) {
-                            parentMatch = true;
-                            break;
-                        }
-                    }
-                }
-            }
-          if (!parentMatch) continue;
-          // --- 匹配规则字段检查结束 ---
+              if (!resultMap[normMappingRuleKey]) {
+                  // This shouldn't happen if allKeys initialization is correct
+                  console.warn(`[${type}] WARN: Matched key "${normMappingRuleKey}" (from rule "${mappingRule.key}") was not pre-initialized. Adding it now.`);
+                  resultMap[normMappingRuleKey] = { "生产量": 0, "发货量": 0 };
+              }
 
-
-          // --- 如果所有条件满足 (包括未被排除) ---
-          if (!resultMap[normMappingRuleKey]) {
-              console.warn(`[${type}] WARN: Matched key "${normMappingRuleKey}" (from rule "${mappingRule.key}") was not pre-initialized. Adding it now.`);
-              resultMap[normMappingRuleKey] = { "生产量": 0, "发货量": 0 };
-          }
-
-          if (!isNaN(quantity) && quantity !== 0) {
-            resultMap[normMappingRuleKey][type] += quantity;
-            // console.log(`[${type}] Row ${rowIndex + 1}: MATCHED rule ID ${mappingRule.id} ('${mappingRule.key}'). Adding ${quantity}. New total: ${resultMap[normMappingRuleKey][type]}`);
-          } else {
-            // console.log(`[${type}] Row ${rowIndex + 1}: MATCHED rule ID ${mappingRule.id} ('${mappingRule.key}'), but quantity is ${quantity}. Not adding.`);
-          }
-          matched = true; // 标记此行已被匹配
-          finalMatchForKey = normMappingRuleKey; // 记录最终匹配的 key
-          break; // 假设一行只匹配第一个符合条件的 *未被排除的* 匹配规则
-        } // 结束匹配规则循环
+              if (!isNaN(quantity) && quantity !== 0) {
+                resultMap[normMappingRuleKey][type] += quantity;
+              }
+              matched = true;
+              // finalMatchForKey = normMappingRuleKey; // Not currently used
+              break; // Row matched a rule, move to next row
+            } // end mapping rule loop
+        } // end if(rulesLoaded)
 
         if (!matched) {
           unmatchedRows.push(row);
-          // console.log(`[${type}] Row ${rowIndex + 1}: UNMATCHED.`);
         }
-      }); // 结束 jsonData 行循环
+      }); // end jsonData forEach loop
 
-      console.log(`[${type}] 处理完成。匹配结果 (非零):`, Object.fromEntries(Object.entries(resultMap).filter(([_, v]) => v.生产量 !== 0 || v.发货量 !== 0)));
-      console.log(`[${type}] 未匹配行数 (${unmatchedRows.length}):`, unmatchedRows.length > 0 ? unmatchedRows : '无');
+      // console.log(`[${type}] 处理完成。匹配结果 (非零):`, Object.fromEntries(Object.entries(resultMap).filter(([_, v]) => v.生产量 !== 0 || v.发货量 !== 0)));
+      // console.log(`[${type}] 未匹配行数 (${unmatchedRows.length}):`, unmatchedRows.length > 0 ? unmatchedRows : '无');
       return { resultMap, unmatchedRows };
     }
 
 
     /************************************************************************
-     *                          UI 更新函数 (fillTable, displayUnmatched - 不变)
+     *                          UI 更新函数 (fillTable, displayUnmatched - 基本不变)
      ************************************************************************/
     function fillTable(resultMap) {
       const rows = document.querySelectorAll("#data-table tbody tr");
       rows.forEach((row) => {
         const cells = row.querySelectorAll("td");
         let productNameCell, prodCell, shipCell;
-        if (cells.length === 5) {
+        if (cells.length === 5) { // Workshop, Product, Unit, Prod, Ship
           productNameCell = cells[1]; prodCell = cells[3]; shipCell = cells[4];
-        } else if (cells.length === 4) {
+        } else if (cells.length === 4) { // Product (rowspan), Unit, Prod, Ship (no, this is for when workshop has rowspan)
+                                       // Actually: Product, Unit, Prod, Ship (when workshop does not have rowspan for this row)
           productNameCell = cells[0]; prodCell = cells[2]; shipCell = cells[3];
         } else { return; }
 
         const productName = productNameCell.innerText;
         const normKey = normalize(productName);
-        prodCell.innerText = '';
+        prodCell.innerText = ''; // Clear previous values
         shipCell.innerText = '';
         prodCell.classList.remove('highlight');
         shipCell.classList.remove('highlight');
@@ -1257,34 +1454,34 @@
         if (normKey && resultMap && resultMap[normKey]) {
           const productionValue = resultMap[normKey]["生产量"] || 0;
           const shipmentValue = resultMap[normKey]["发货量"] || 0;
-          const tolerance = 0.0001;
+          const tolerance = 0.0001; // For float comparisons
 
-          if (productionValue > tolerance) {
+          if (Math.abs(productionValue) > tolerance) { // Check absolute value for non-zero
             prodCell.innerText = productionValue.toFixed(3);
             prodCell.classList.add('highlight');
           }
-          if (shipmentValue > tolerance) {
+          if (Math.abs(shipmentValue) > tolerance) {
             shipCell.innerText = shipmentValue.toFixed(3);
             shipCell.classList.add('highlight');
           }
         }
       });
-       console.log("报表已填充。");
+       // console.log("报表已填充。");
     }
 
     function displayUnmatchedRows(unmatchedProduction, unmatchedShipment) {
         const container = document.getElementById("unmatched-table");
         const titleElement = document.getElementById("unmatched-title");
-        container.innerHTML = "";
+        container.innerHTML = ""; // Clear previous content
 
         const hasUnmatchedProd = unmatchedProduction && unmatchedProduction.length > 0;
         const hasUnmatchedShip = unmatchedShipment && unmatchedShipment.length > 0;
 
         if (!hasUnmatchedProd && !hasUnmatchedShip) {
-            if (filesLoaded.production || filesLoaded.shipment) {
+            if (filesLoaded.production || filesLoaded.shipment) { // Check if any file was loaded
                  titleElement.innerText = "所有数据均已匹配";
                  container.innerHTML = "<p style='text-align:center; color: green; font-weight: bold;'>太棒了！所有已导入的数据都成功匹配到了报告项目中。</p>";
-            } else {
+            } else { // No files loaded yet
                  titleElement.innerText = "未匹配的数据";
                  container.innerHTML = "<p style='text-align:center; color: #555;'>请先导入入库单和/或发货单 Excel 文件。</p>";
             }
@@ -1296,17 +1493,17 @@
         if (hasUnmatchedProd) {
             html += `<h3>未匹配的入库数据 (${unmatchedProduction.length} 条)</h3>`;
             html += createUnmatchedTable(unmatchedProduction);
-        } else if (filesLoaded.production) {
+        } else if (filesLoaded.production) { // Production file was loaded, but all matched
             html += "<h3>未匹配的入库数据</h3><p>所有已导入的入库数据均已成功匹配。</p>";
         }
         if (hasUnmatchedShip) {
             html += `<h3 style='margin-top: 20px;'>未匹配的发货数据 (${unmatchedShipment.length} 条)</h3>`;
             html += createUnmatchedTable(unmatchedShipment);
-        } else if (filesLoaded.shipment) {
+        } else if (filesLoaded.shipment) { // Shipment file was loaded, but all matched
             html += "<h3 style='margin-top: 20px;'>未匹配的发货数据</h3><p>所有已导入的发货数据均已成功匹配。</p>";
         }
         container.innerHTML = html;
-        console.log("未匹配数据表格已显示。");
+        // console.log("未匹配数据表格已显示。");
     }
 
     function createUnmatchedTable(unmatchedRows) {
@@ -1325,7 +1522,7 @@
             fields.forEach(field => {
                 let value = row[field];
                 let displayValue = (value === null || value === undefined || String(value).trim() === "") ? "<span style='color:#aaa; font-style: italic;'>/</span>" : String(value);
-                let titleValue = String(value ?? '').replace(/"/g, '"').replace(/</g,'<');
+                let titleValue = String(value ?? '').replace(/"/g, '"').replace(/</g,'<'); // Escape for attribute
                 tableHtml += `<td title="${titleValue}">${displayValue}</td>`;
             });
             tableHtml += "</tr>";
@@ -1336,7 +1533,7 @@
 
 
     /************************************************************************
-     *                          主要事件处理和状态 (handleExcelImport 不变)
+     *                          主要事件处理和状态 (handleExcelImport)
      ************************************************************************/
     let globalResults = {
         production: { resultMap: {}, unmatchedRows: [] },
@@ -1349,35 +1546,54 @@
       if (!file) return;
       const typeName = type === 'production' ? '入库单' : '发货单';
       console.log(`开始导入 ${typeName}:`, file.name);
-      showLoading(`正在处理 ${typeName} 文件...`);
-
+      
+      // --- 修改: 文件导入前确保规则已为处理加载 ---
       if (!rulesLoaded) {
-          if (!supabaseClient) {
-              alert("Supabase 未初始化，无法加载规则进行处理。");
-              hideLoading(); event.target.value = null; return;
+          showLoading(`正在准备规则以处理 ${typeName}...`);
+          try {
+              await loadRulesForProcessing();
+              if (!rulesLoaded) {
+                  alert("规则准备失败，无法处理文件。请刷新页面或检查网络后重试。");
+                  event.target.value = null;
+                  hideLoading();
+                  return;
+              }
+              // console.log("规则已为处理准备就绪，继续导入。");
+              // showLoading 会被下面的覆盖或在 finally 中 hide
+          } catch (error) {
+              alert(`加载规则时发生错误，无法处理文件: ${error.message}`);
+              event.target.value = null;
+              hideLoading();
+              return;
           }
-          console.log("规则尚未加载，尝试在处理文件前加载...");
-          await loadRules();
-          if (!rulesLoaded) {
-              alert("加载规则失败，无法处理文件。请检查控制台或稍后重试。");
-              hideLoading(); event.target.value = null; return;
-          }
-          console.log("规则加载成功，继续处理文件。");
       }
 
+      showLoading(`正在处理 ${typeName} 文件...`);
+
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = function(e_reader) { // Renamed e to e_reader to avoid conflict with outer e (event)
         try {
-          const data = new Uint8Array(e.target.result);
+          const data = new Uint8Array(e_reader.target.result);
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
           const firstSheetName = workbook.SheetNames[0];
           if (!firstSheetName) throw new Error("Excel 文件不包含工作表 (Sheet)。");
           const worksheet = workbook.Sheets[firstSheetName];
+          // 尝试从第3行读取表头（即跳过前2行）
+          // sheet_to_json 的 `header` 选项可以指定哪一行是表头，但 `range` 更直接用于数据起始。
+          // XLSX.utils.sheet_to_json(worksheet, { range: 2, defval: "" }); // range:2 意味着数据从A3开始
+          // 如果表头在第3行，数据从第4行开始，那么 range 应该是 3 (0-indexed)
+          // 根据用户原始代码的注释，"使用第3行作为表头", XLSX.utils.sheet_to_json 默认将第一行数据作为表头，
+          // 如果数据（包括表头）从第3行开始，则 range 应为 2 (跳过0,1行)。
           const json = XLSX.utils.sheet_to_json(worksheet, { range: 2, defval: "" });
-          console.log(`读取 ${file.name} (${json.length} 数据行, 使用第3行作为表头)。正在处理数据...`);
+          // console.log(`读取 ${file.name} (${json.length} 数据行, 数据从第3行开始). 正在处理数据...`);
 
+          if (!rulesLoaded) {
+             console.error("CRITICAL: Rules are not loaded before processing data inside FileReader.onload");
+             alert("错误：规则未加载，无法处理数据。请刷新。");
+             throw new Error("Rules not loaded for processing.");
+          }
           const resultTypeKey = (type === 'production') ? '生产量' : '发货量';
-          const { resultMap, unmatchedRows } = processData(json, resultTypeKey); // processData 已更新排除逻辑
+          const { resultMap, unmatchedRows } = processData(json, resultTypeKey);
 
           globalResults[type] = { resultMap, unmatchedRows };
           filesLoaded[type] = true;
@@ -1390,25 +1606,26 @@
               if (cells.length >= 4) { pNameCellIdx = (r.querySelector('td[rowspan]') ? 1 : (cells.length === 5 ? 1 : 0)); }
               if (pNameCellIdx !== -1 && cells[pNameCellIdx]) { const normK = normalize(cells[pNameCellIdx].innerText); if (normK) allDisplayKeys.add(normK); }
           });
-          currentMappingRules.forEach(rule => { const normK = normalize(rule.key); if (normK) allDisplayKeys.add(normK); });
-          // **修改**: 也从排除规则添加key，确保所有相关的key都被初始化
-          currentExclusionRules.forEach(rule => { const normK = normalize(rule.key); if (normK) allDisplayKeys.add(normK); });
+          if(rulesLoaded){ // 从已加载规则中补充keys
+              currentMappingRules.forEach(rule => { const normK = normalize(rule.key); if (normK) allDisplayKeys.add(normK); });
+              currentExclusionRules.forEach(rule => { const normK = normalize(rule.key); if (normK) allDisplayKeys.add(normK); });
+          }
           allDisplayKeys.forEach(normK => { mapForDisplay[normK] = { "生产量": 0, "发货量": 0 }; });
 
           if (filesLoaded.production && globalResults.production.resultMap) {
               for (const key in globalResults.production.resultMap) {
-                  if (!mapForDisplay[key]) mapForDisplay[key] = { "生产量": 0, "发货量": 0 };
+                  if (!mapForDisplay[key]) mapForDisplay[key] = { "生产量": 0, "发货量": 0 }; // Should be pre-initialized
                   mapForDisplay[key]["生产量"] += globalResults.production.resultMap[key]["生产量"] || 0;
               }
           }
           if (filesLoaded.shipment && globalResults.shipment.resultMap) {
               for (const key in globalResults.shipment.resultMap) {
-                  if (!mapForDisplay[key]) mapForDisplay[key] = { "生产量": 0, "发货量": 0 };
+                  if (!mapForDisplay[key]) mapForDisplay[key] = { "生产量": 0, "发货量": 0 }; // Should be pre-initialized
                   mapForDisplay[key]["发货量"] += globalResults.shipment.resultMap[key]["发货量"] || 0;
               }
           }
 
-          console.log("合并后的显示数据:", mapForDisplay);
+          // console.log("合并后的显示数据:", mapForDisplay);
           fillTable(mapForDisplay);
           displayUnmatchedRows(
               globalResults.production.unmatchedRows,
@@ -1421,18 +1638,18 @@
               alert(`${typeName} 已成功导入并处理。报表已部分更新。`);
           }
 
-        } catch (error) {
-          console.error(`处理 ${file.name} 时出错:`, error);
-          alert(`处理文件 ${file.name} 时发生错误: ${error.message}\n请检查文件格式、内容以及表头是否在第三行。`);
-          filesLoaded[type] = false;
-           displayUnmatchedRows( globalResults.production.unmatchedRows, globalResults.shipment.unmatchedRows );
+        } catch (error_reader) { // Renamed error to error_reader
+          console.error(`处理 ${file.name} 时出错:`, error_reader);
+          alert(`处理文件 ${file.name} 时发生错误: ${error_reader.message}\n请检查文件格式、内容以及表头是否在第三行。`);
+          filesLoaded[type] = false; // Mark as not loaded on error
+           displayUnmatchedRows( globalResults.production.unmatchedRows, globalResults.shipment.unmatchedRows ); // Update unmatched display
         } finally {
-            event.target.value = null;
+            event.target.value = null; // Reset file input
             hideLoading();
         }
       };
-      reader.onerror = function(e) {
-        console.error("文件读取错误:", e);
+      reader.onerror = function(e_reader_error) { // Renamed e to e_reader_error
+        console.error("文件读取错误:", e_reader_error);
         alert("文件读取失败，请检查文件是否损坏或浏览器权限设置。");
         event.target.value = null; filesLoaded[type] = false;
         displayUnmatchedRows( globalResults.production.unmatchedRows, globalResults.shipment.unmatchedRows );
@@ -1442,7 +1659,7 @@
     }
 
     /************************************************************************
-     *                          初始化 (不变)
+     *                          初始化
      ************************************************************************/
     document.getElementById("input-production").addEventListener("change", function(e) {
       handleExcelImport(e, "production");
@@ -1452,17 +1669,35 @@
     });
 
     document.addEventListener('DOMContentLoaded', () => {
+        passwordModalOverlay.style.display = 'none'; // 初始隐藏密码框
+
+        // 初始化规则表格显示提示
+        renderMappingRulesTable();
+        renderExclusionRulesTable();
+        populateReportItemSelects(); // 初始填充下拉列表（可能为空）
+
         if (supabaseClient) {
-            loadRules();
+            console.log("页面加载完成，尝试为数据处理加载规则...");
+            loadRulesForProcessing().then(() => {
+                console.log("后台规则加载（或已跳过，如有缓存）完成。现在可以导入文件了。");
+            }).catch(error => {
+                console.error("DOMContentLoaded: 后台规则加载失败:", error.message);
+                // alert("页面初始化时加载规则失败，Excel导入功能可能无法正常工作，请尝试刷新。");
+                // 即使后台加载失败，页面其他部分也应尝试工作
+                rulesLoaded = false; // 确保状态正确
+                renderMappingRulesTable(); // 更新UI以反映问题
+                renderExclusionRulesTable();
+            });
         } else {
+             alert("Supabase 未初始化，规则管理和Excel导入功能将受限。");
+             rulesLoaded = false;
              renderMappingRulesTable();
-             renderExclusionRulesTable(); // **修改**: 调用新函数
-             populateReportItemSelects();
-             alert("Supabase 未初始化，无法加载或管理规则。");
+             renderExclusionRulesTable();
         }
-        fillTable({});
-        displayUnmatchedRows([], []);
-        console.log("页面已初始化。尝试加载规则。请确保 Excel 表头在第 3 行。");
+
+        fillTable({}); // 清空主报表
+        displayUnmatchedRows([], []); // 清空未匹配区域
+        console.log("页面已初始化。Excel导入可直接使用。点击“规则管理”按钮输入密码以配置规则。");
     });
   </script>
 </body>

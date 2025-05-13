@@ -5,11 +5,51 @@
   <title>数据管理页面</title>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* Styles remain the same */
-    :root { --primary-color: #409EFF; --primary-hover-color: #66b1ff; --danger-color: #F56C6C; --danger-hover-color: #f89898; --border-color: #dcdfe6; --table-border-color: #ebeef5; --bg-color: #f2f6fc; --header-bg-color: #f5f7fa; --text-color: #303133; --secondary-text-color: #909399; --white: #fff; --box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1); }
-    body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; margin: 20px; background-color: var(--bg-color); color: var(--text-color); }
-    .container { width: 90%; max-width: 1600px; margin: 0 auto; background-color: var(--white); padding: 20px; border-radius: 4px; box-shadow: var(--box-shadow); }
-    .controls-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    :root { /* CSS Variables remain the same */
+      --primary-color: #409EFF; --primary-hover-color: #66b1ff; --danger-color: #F56C6C;
+      --danger-hover-color: #f89898; --border-color: #dcdfe6; --table-border-color: #ebeef5;
+      --bg-color: #f2f6fc; --header-bg-color: #f5f7fa; --text-color: #303133;
+      --secondary-text-color: #909399; --white: #fff; --box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* --- MODIFIED: html, body for full height layout --- */
+    html, body {
+      height: 100%; /* Allow child elements to use percentage heights based on viewport */
+      margin: 0;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      overflow-x: hidden; /* Prevent accidental horizontal scrollbars on body */
+    }
+    /* body specific styles if any, otherwise it inherits from html */
+
+    /* --- MODIFIED: .container to use flex and viewport height --- */
+    .container {
+      width: 90%;
+      max-width: 1600px;
+      margin: 20px auto; /* Top/bottom margin + auto for horizontal centering */
+      background-color: var(--white);
+      padding: 20px;
+      border-radius: 4px;
+      box-shadow: var(--box-shadow);
+
+      display: flex;
+      flex-direction: column;
+      /* Calculate height to fill viewport MINUS its own vertical margins (20px top + 20px bottom = 40px) */
+      height: calc(100vh - 40px);
+      box-sizing: border-box; /* padding and border are included in the element's total width and height */
+    }
+
+    .controls-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+      flex-shrink: 0; /* MODIFIED: Prevent this section from shrinking when container space is tight */
+    }
+
     .search-area { display: flex; align-items: center; gap: 10px; }
     .el-input { border: 1px solid var(--border-color); border-radius: 4px; padding: 8px 12px; font-size: 14px; width: 250px; }
     .el-button { border: none; border-radius: 4px; background-color: var(--primary-color); color: var(--white); padding: 9px 20px; font-size: 14px; cursor: pointer; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
@@ -20,11 +60,26 @@
     .el-button-danger:hover { background-color: var(--danger-hover-color); }
     .el-button-default { background-color: var(--white); color: var(--text-color); border: 1px solid var(--border-color); }
     .el-button-default:hover { background-color: #ecf5ff; color: var(--primary-color); border-color: #c6e2ff; }
-    .action-button { padding: 5px 10px; font-size: 12px; margin-right: 5px; }
-    .table-wrapper { max-height: 650px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--table-border-color); border-radius: 4px; }
+
+    .action-buttons-wrapper { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    .action-button { padding: 5px 10px; font-size: 12px; margin-right: 0; }
+    .action-buttons-wrapper .el-button { flex-shrink: 0; }
+
+    /* --- MODIFIED: .table-wrapper to grow within flex container --- */
+    .table-wrapper {
+      /* max-height: 650px; */ /* You can keep this as a cap, or remove it if flex-grow is enough */
+                                /* If kept, it will prevent the wrapper from exceeding 650px even if flex has more space */
+      flex-grow: 1;          /* This makes the table wrapper take up available vertical space */
+      overflow: auto;        /* Changed from overflow-y and -x to just overflow */
+      border: 1px solid var(--table-border-color);
+      border-radius: 4px;
+      min-height: 250px;     /* Optional: Prevents the table wrapper from becoming too small */
+                               /* (e.g., enough for ~5-6 rows of data before shrinking further) */
+    }
     .table-wrapper::-webkit-scrollbar { width: 8px; height: 8px; }
     .table-wrapper::-webkit-scrollbar-track { background: var(--bg-color); }
     .table-wrapper::-webkit-scrollbar-thumb { background-color: #c1c1c1; border-radius: 4px; }
+
     .el-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: none; }
     .el-table th, .el-table td { border: 1px solid var(--table-border-color); padding: 12px; text-align: left; vertical-align: middle; word-wrap: break-word; font-size: 14px; }
     .el-table thead th { background-color: var(--header-bg-color); font-weight: bold; position: sticky; top: 0; z-index: 1; border-top: none; border-left: none; border-right: none; }
@@ -35,7 +90,7 @@
     .el-table tbody td:last-child { border-right: none; }
     .el-table tbody tr:hover { background-color: #f9f9f9; }
     .highlight { color: red; font-weight: bold; }
-    .no-data-row td, .loading-row td { /* Combine styles */ text-align: center; color: var(--secondary-text-color); height: 100px; }
+    .no-data-row td, .loading-row td { text-align: center; color: var(--secondary-text-color); height: 100px; }
     .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
     .modal-content { background-color: var(--white); margin: 10% auto; padding: 25px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 5px; box-shadow: var(--box-shadow); }
     .modal-header { padding-bottom: 15px; border-bottom: 1px solid var(--table-border-color); margin-bottom: 20px; font-size: 18px; font-weight: 600; position: relative; }
@@ -47,7 +102,7 @@
     .modal-footer .el-button { margin-left: 10px; }
     .close-button { color: #aaa; font-size: 28px; font-weight: bold; line-height: 1; position: absolute; right: 0px; top: -5px; cursor: pointer; }
     .close-button:hover, .close-button:focus { color: black; text-decoration: none; }
-    .loader { /* Style for the spinner */ border: 4px solid #f3f3f3; /* Light grey */ border-top: 4px solid var(--primary-color); /* Blue */ border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; /* Center the spinner */ /* display: none; Let JS control display */ }
+    .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
@@ -80,22 +135,19 @@
           </tr>
         </thead>
         <tbody id="dataTableBody">
-           <!-- Loading row - initially shown via JS, content added dynamically -->
            <tr id="loadingRow" class="loading-row" style="display: none;">
              <td colspan="6">
                 <div class="loader"></div>
                 <span>加载中...</span>
              </td>
            </tr>
-           <!-- Data rows will be inserted here -->
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Add/Edit Modal -->
+  <!-- Add/Edit Modal (HTML remains the same) -->
   <div id="itemModal" class="modal">
-     <!-- Modal content remains the same -->
      <div class="modal-content">
       <div class="modal-header">
         <span id="modalTitle">添加新项目</span>
@@ -134,6 +186,7 @@
   </div>
 
  <script>
+    // JavaScript remains the same as your last provided version
     // --- Supabase Config ---
     const SUPABASE_URL = 'https://kkisabzmyiouksfczsrt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraXNhYnpteWlvdWtzZmN6c3J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1NTY5NjcsImV4cCI6MjA2MTEzMjk2N30.s_euUCvAyH9LQ-N7Oh4OiG7uTgQWFvbhDt8dwHdObOI';
@@ -158,53 +211,44 @@
         if (!loadingRow || !tableBody) return;
         console.log("Showing loading indicator.");
         isLoading = true;
-        // Clear previous content *except* the loading row itself if it exists
         tableBody.innerHTML = '';
-        loadingRow.style.display = 'table-row'; // Make loading row visible
-        tableBody.appendChild(loadingRow); // Ensure it's in the body
+        loadingRow.style.display = 'table-row';
+        tableBody.appendChild(loadingRow);
     }
 
     function hideLoadingIndicator() {
         if (!loadingRow) return;
         console.log("Hiding loading indicator.");
         isLoading = false;
-        loadingRow.style.display = 'none'; // Hide the loading row
+        loadingRow.style.display = 'none';
     }
 
     function showNoDataRow(message = '暂无数据') {
         if (!tableBody) return;
-        hideLoadingIndicator(); // Ensure loading indicator is hidden first
+        hideLoadingIndicator();
         tableBody.innerHTML = `<tr class="no-data-row"><td colspan="6">${sanitizeHTML(message)}</td></tr>`;
     }
 
     // --- Data Fetching (Optimized for Refresh) ---
     async function fetchData() {
         if (!supabaseClient) { console.error("Supabase client not initialized."); showNoDataRow('Supabase 客户端未初始化！'); return; }
-
         console.log("Fetching data...");
-        showLoadingIndicator(); // Show loading indicator unconditionally before fetch starts
-
+        showLoadingIndicator();
         try {
             const { data, error } = await supabaseClient
                 .from(tableName)
                 .select('*')
                 .order('process', { ascending: true })
                 .order('id', { ascending: true });
-
             if (error) throw error;
-
             console.log("Data fetched:", data ? data.length : 0, "items");
-            allData = data || []; // Update local data cache
-
-            // Data fetched successfully, now render it (which will hide loading)
+            allData = data || [];
             renderTable();
-
         } catch (error) {
              console.error('Error fetching data:', error);
-             // Fetch failed, hide loading and show error message in table
              hideLoadingIndicator();
              showNoDataRow('获取数据失败: ' + error.message);
-             allData = []; // Clear local cache on fetch error
+             allData = [];
         }
     }
 
@@ -212,16 +256,11 @@
     function renderTable() {
         if (!tableBody || !tableWrapper) { console.error("tableBody or tableWrapper not found for rendering."); return; }
         console.log("Attempting to render table...");
-
-        hideLoadingIndicator(); // Ensure loading row is hidden before rendering data/no-data message
-
-        // Store scroll position before clearing
+        hideLoadingIndicator();
         const scrollTop = tableWrapper.scrollTop;
-
         try {
-            tableBody.innerHTML = ''; // Clear previous content (including loading row if somehow still there)
+            tableBody.innerHTML = '';
             const dataToRender = filterData(allData, currentFilter);
-
             if (dataToRender.length === 0) {
                 showNoDataRow(currentFilter ? '无匹配数据' : '暂无数据，请尝试添加');
             } else {
@@ -233,46 +272,42 @@
                     const unitPriceContent = sanitizeHTML(item.unit_price || '');
                     const remark1Content = sanitizeHTML(item.remark1 || '').replace(/\n/g, '<br>');
                     const remark2Content = sanitizeHTML(item.remark2 || '').replace(/\n/g, '<br>');
-                    row.innerHTML = `<td>${processContent}</td><td>${typeContent}</td><td>${unitPriceContent}</td><td>${remark1Content}</td><td>${remark2Content}</td><td><button class="el-button el-button-primary action-button" onclick="openEditModal(${item.id})">编辑</button><button class="el-button el-button-danger action-button" onclick="deleteItem(${item.id})">删除</button></td>`;
+                    row.innerHTML = `
+                        <td>${processContent}</td>
+                        <td>${typeContent}</td>
+                        <td>${unitPriceContent}</td>
+                        <td>${remark1Content}</td>
+                        <td>${remark2Content}</td>
+                        <td>
+                            <div class="action-buttons-wrapper">
+                                <button class="el-button el-button-primary action-button" onclick="openEditModal(${item.id})">编辑</button>
+                                <button class="el-button el-button-danger action-button" onclick="deleteItem(${item.id})">删除</button>
+                            </div>
+                        </td>`;
                     tableBody.appendChild(row);
                 });
                 mergeCells();
             }
             console.log("Table rendered successfully.");
-
-             // Restore scroll position after rendering DOM updates
              requestAnimationFrame(() => {
                  tableWrapper.scrollTop = scrollTop;
              });
-
         } catch (error) {
              console.error("Error during renderTable:", error);
-             // Display an error message in the table body
-             showNoDataRow('渲染表格时出错，请检查控制台！'); // Use showNoDataRow for consistency
+             showNoDataRow('渲染表格时出错，请检查控制台！');
         }
     }
 
     // --- Filtering Logic (Unchanged) ---
     function filterData(data, keyword) {
-        if (!keyword) {
-            return data;
-        }
+        if (!keyword) { return data; }
         const lowerKeyword = keyword.toLowerCase();
         return data.filter(item => item.type && typeof item.type === 'string' && item.type.toLowerCase().includes(lowerKeyword));
     }
 
     // --- Search Functionality (Unchanged) ---
-    window.filterTable = function() {
-        if (!searchInput) return;
-        currentFilter = searchInput.value.trim();
-        renderTable(); // Re-render with the filter applied
-    };
-    window.clearQuery = function() {
-        if (!searchInput) return;
-        searchInput.value = '';
-        currentFilter = '';
-        renderTable(); // Re-render with no filter
-    };
+    window.filterTable = function() { if (!searchInput) return; currentFilter = searchInput.value.trim(); renderTable(); };
+    window.clearQuery = function() { if (!searchInput) return; searchInput.value = ''; currentFilter = ''; renderTable(); };
 
     // --- Modal Handling (Unchanged) ---
     function openModal() { if(itemModal) itemModal.style.display = "block"; }
@@ -291,20 +326,17 @@
         if (!itemData.process || !itemData.type) { alert('“工序”和“类型”字段不能为空！'); saveButton.disabled = false; saveButton.textContent = '保存'; return; }
         closeModal();
         console.log("Attempting to save item:", id ? "Update ID " + id : "Add New");
-
         try {
             let resultData;
-            if (id) { // Update
+            if (id) {
                 const { data, error } = await supabaseClient.from(tableName).update(itemData).eq('id', id).select();
                 if (error) throw error;
                 resultData = data;
                 console.log('Update successful, returned data:', resultData);
                 const index = allData.findIndex(item => item.id == id);
-                if (index !== -1 && resultData && resultData.length > 0) {
-                    allData[index] = resultData[0];
-                    console.log("Local data updated at index:", index);
-                } else { throw new Error("Failed to update local data after DB update."); }
-            } else { // Add
+                if (index !== -1 && resultData && resultData.length > 0) { allData[index] = resultData[0]; console.log("Local data updated at index:", index); }
+                else { throw new Error("Failed to update local data after DB update."); }
+            } else {
                 const { data, error } = await supabaseClient.from(tableName).insert([itemData]).select();
                 if (error) throw error;
                 resultData = data;
@@ -312,18 +344,11 @@
                 if (resultData && resultData.length > 0) {
                     allData.push(resultData[0]);
                     console.log("Local data added. New length:", allData.length);
-                     // Optional: Sort data if needed
-                     allData.sort((a, b) => {
-                         const processCompare = (a.process || '').localeCompare(b.process || '');
-                         if (processCompare !== 0) return processCompare;
-                         return (a.id || 0) - (b.id || 0); // Secondary sort by ID
-                     });
+                     allData.sort((a, b) => { const processCompare = (a.process || '').localeCompare(b.process || ''); if (processCompare !== 0) return processCompare; return (a.id || 0) - (b.id || 0); });
                 } else { throw new Error("Failed to update local data after DB insert."); }
             }
-
             console.log("Calling renderTable after save success.");
-            renderTable(); // Update UI from local data
-
+            renderTable();
         } catch (err) {
             console.error('Error saving item:', err);
             alert(`保存失败: ${err.message}`);
@@ -332,29 +357,18 @@
             console.log("Save operation finished.");
         }
     };
-
     window.deleteItem = async function(id) {
         if (!supabaseClient) return;
         if (!confirm(`确定要删除 ID 为 ${id} 的项目吗？`)) return;
         console.log("Attempting to delete item:", id);
-
         try {
             const { error } = await supabaseClient.from(tableName).delete().eq('id', id);
             if (error) throw error;
             console.log('Delete successful from DB for ID:', id);
-
             const initialLength = allData.length;
-            allData = allData.filter(item => item.id != id); // Use != for potential type difference if needed
-
-            if (allData.length < initialLength) {
-                console.log("Local data updated after delete. New length:", allData.length);
-                console.log("Calling renderTable after delete success.");
-                renderTable(); // Update UI from local data
-            } else {
-                console.warn("Item ID", id, "not found in local data during delete. Data might be inconsistent. Fetching all.");
-                await fetchData(); // Refresh fully if local data was wrong
-            }
-
+            allData = allData.filter(item => item.id != id);
+            if (allData.length < initialLength) { console.log("Local data updated after delete. New length:", allData.length); console.log("Calling renderTable after delete success."); renderTable(); }
+            else { console.warn("Item ID", id, "not found in local data during delete. Data might be inconsistent. Fetching all."); await fetchData(); }
         } catch (err) {
              console.error('Error deleting item:', err);
              alert(`删除失败: ${err.message}`);
@@ -366,8 +380,6 @@
     // --- Initial Load ---
     document.addEventListener('DOMContentLoaded', () => {
         console.log("DOM loaded.");
-
-        // Assign DOM elements
         tableBody = document.getElementById('dataTableBody');
         searchInput = document.getElementById('searchInput');
         itemModal = document.getElementById('itemModal');
@@ -379,41 +391,27 @@
         unitPriceInput = document.getElementById('unit_price');
         remark1Input = document.getElementById('remark1');
         remark2Input = document.getElementById('remark2');
-        loadingRow = document.getElementById('loadingRow'); // Get reference to loading row
+        loadingRow = document.getElementById('loadingRow');
         saveButton = document.getElementById('saveButton');
         tableWrapper = document.querySelector('.table-wrapper');
 
         if (!tableBody || !loadingRow || !itemModal || !searchInput || !saveButton || !tableWrapper) {
              console.error("Essential DOM elements missing. Check IDs and structure.");
-             // Show error directly in the table body if possible
-             if (tableBody && loadingRow) {
-                 hideLoadingIndicator(); // Hide loading row first
-                 showNoDataRow("页面初始化失败，缺少关键元素。");
-             } else {
-                 alert("页面初始化失败，缺少关键元素。");
-             }
-             return; // Stop further execution
+             if (tableBody && loadingRow) { hideLoadingIndicator(); showNoDataRow("页面初始化失败，缺少关键元素。"); }
+             else { alert("页面初始化失败，缺少关键元素。"); }
+             return;
         }
-
         if(searchInput) searchInput.addEventListener('keyup', e => { if (e.key === "Enter") filterTable(); });
         else console.warn("Search input not found for keyup listener.");
 
-        // Initialize Supabase
         if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
             try {
                 supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 console.log("Supabase client initialized.");
-                fetchData(); // Fetch initial data (will show loading indicator)
-            } catch (error) {
-                console.error("Supabase init error:", error);
-                showNoDataRow('Supabase 客户端初始化失败！'); // Show error in table
-            }
-        } else {
-            console.error("Supabase library not loaded.");
-            showNoDataRow('Supabase 库加载失败！'); // Show error in table
-        }
+                fetchData();
+            } catch (error) { console.error("Supabase init error:", error); showNoDataRow('Supabase 客户端初始化失败！'); }
+        } else { console.error("Supabase library not loaded."); showNoDataRow('Supabase 库加载失败！'); }
     });
-
   </script>
 </body>
 </html>

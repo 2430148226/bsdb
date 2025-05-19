@@ -57,7 +57,8 @@
       --current-glass-shadow: var(--glass-shadow-light);
       --current-page-bg-color: var(--light); 
       
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+      --transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1); /* Smoother cubic-bezier */
+      --transition-fast: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
       --radius-sm: 6px;
       --radius-md: 12px;
       --radius-lg: 18px;
@@ -103,9 +104,12 @@
       flex-direction: column;
       min-height: 100vh;
       color: var(--text);
-      transition: background-color 0.3s ease, color 0.3s ease;
+      transition: background-color 0.4s ease, color 0.4s ease, background-image 0.4s ease;
       overflow-x: hidden;
+      opacity: 0;
+      animation: bodyFadeIn 0.6s ease-out 0.1s forwards;
     }
+    @keyframes bodyFadeIn { to { opacity: 1; } }
     
     [data-theme="dark"] body {
       background-image: linear-gradient(135deg, #232526 0%, #414345 100%);
@@ -117,7 +121,6 @@
       backdrop-filter: blur(var(--glass-blur-radius));
       -webkit-backdrop-filter: blur(var(--glass-blur-radius));
       box-shadow: inset 0 0 0 1px var(--current-glass-border-color); 
-      
       color: var(--text);
       display: flex;
       align-items: center;
@@ -127,6 +130,10 @@
       top: 0;
       z-index: 100;
       border-radius: 0; 
+      transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: elementEnter 0.5s cubic-bezier(0.23, 1, 0.32, 1) 0.2s forwards;
     }
     
     .header-left, .header-right {
@@ -143,13 +150,20 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: var(--transition);
+      transition: var(--transition-fast), transform 0.2s ease;
       color: var(--text-muted);
       background-color: rgba(var(--white-rgb),0.05); 
     }
     .theme-toggle:hover {
       background-color: rgba(var(--white-rgb),0.1);
       color: var(--primary);
+      transform: scale(1.1);
+    }
+     .theme-toggle:active {
+      transform: scale(0.9);
+    }
+    .theme-toggle i {
+      transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.2s;
     }
     [data-theme="dark"] .theme-toggle {
         background-color: rgba(var(--light-rgb),0.1);
@@ -166,10 +180,12 @@
       align-items: center;
       gap: 12px;
       color: var(--text);
+      transition: color var(--transition-fast);
     }
     .logo i {
       font-size: 26px;
       color: var(--primary);
+      transition: color var(--transition-fast);
     }
     
     .container {
@@ -178,10 +194,20 @@
       overflow: visible; 
       padding: 20px; 
       gap: 20px; 
+      opacity: 0;
+      transform: translateY(-10px);
+      animation: elementEnter 0.5s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
+    }
+
+    @keyframes elementEnter {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
     
     .sidebar {
-      width: 195px; /* MODIFIED: Was 260px */
+      width: 195px;
       padding-top: 10px; 
       padding-bottom: 10px;
       background-color: var(--current-glass-bg-color);
@@ -191,20 +217,29 @@
       border-radius: var(--radius-lg);
       color: var(--text);
       overflow-y: auto; 
-      transition: var(--transition); 
+      transition: var(--transition), width 0.35s cubic-bezier(0.645, 0.045, 0.355, 1); 
       align-self: stretch; 
       position: relative; 
+      will-change: width, transform;
     }
     
     .sidebar-header {
-      padding: 20px 20px; /* Adjusted padding for narrower sidebar */
+      padding: 20px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid var(--current-glass-border-color); 
       margin-bottom: 10px;
+      transition: padding var(--transition-fast);
     }
-    .sidebar-header h2 { margin: 0; font-weight: 700; font-size: 17px; /* Slightly smaller font */ }
+    .sidebar-header h2 { 
+      margin: 0; font-weight: 700; font-size: 17px;
+      white-space: nowrap;
+      overflow: hidden;
+      opacity: 1;
+      max-width: 150px; /* Adjust as needed */
+      transition: opacity 0.25s ease-out, max-width 0.3s ease-out 0.05s, margin-right 0.3s ease-out;
+    }
     
     .sidebar-toggle {
       cursor: pointer;
@@ -215,48 +250,108 @@
       justify-content: center;
       border-radius: var(--radius-sm);
       color: var(--text-muted);
-      transition: var(--transition);
+      transition: var(--transition-fast), transform 0.2s ease;
     }
     .sidebar-toggle:hover {
       background-color: rgba(var(--primary-rgb), 0.1);
       color: var(--primary);
+      transform: scale(1.1);
     }
-    
-    .menu-list { list-style: none; padding: 0 10px; /* Adjusted padding */ }
+    .sidebar-toggle i {
+      transition: transform 0.35s cubic-bezier(0.645, 0.045, 0.355, 1);
+    }
+    .sidebar-toggle i.rotated {
+        transform: rotate(180deg);
+    }
+
+    .menu-list { list-style: none; padding: 0 10px; }
     
     .menu-item {
-      padding: 12px 14px; /* Adjusted padding */
+      padding: 12px 14px;
       cursor: pointer;
-      transition: var(--transition);
       margin-bottom: 8px;
       border-radius: var(--radius-md);
       display: flex;
       align-items: center;
-      gap: 12px; /* Adjusted gap */
+      gap: 12px;
       font-weight: 600;
       position: relative;
       color: var(--text-muted);
-      font-size: 0.95em; /* Slightly smaller font for menu items */
+      font-size: 0.95em;
+      transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.25s ease;
+      opacity: 0;
+      transform: translateX(-20px);
+      animation: menuItemFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      will-change: transform, opacity, background-color, color;
     }
+    @keyframes menuItemFadeIn {
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    /* Staggered animation for menu items */
+    .menu-list .menu-item:nth-child(1) { animation-delay: 0.3s; }
+    .menu-list .menu-item:nth-child(2) { animation-delay: 0.35s; }
+    .menu-list .menu-item:nth-child(3) { animation-delay: 0.4s; }
+    .menu-list .menu-item:nth-child(4) { animation-delay: 0.45s; }
+    .menu-list .menu-item:nth-child(5) { animation-delay: 0.5s; }
+
+    .menu-item::before { /* Animated underline/indicator */
+        content: '';
+        position: absolute;
+        left: 14px; 
+        bottom: 5px; 
+        width: 0;
+        height: 2.5px; 
+        background-color: var(--primary);
+        border-radius: 3px;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     .menu-item i {
-      font-size: 17px; /* Adjusted icon size */
-      width: 20px; /* Adjusted icon container width */
+      font-size: 17px;
+      width: 20px;
       text-align: center;
-      transition: var(--transition);
+      transition: color 0.2s ease, transform 0.2s ease;
       color: var(--text-muted); 
     }
+    .menu-item span {
+        white-space: nowrap;
+        overflow: hidden;
+        opacity: 1;
+        max-width: 100px; /* Adjust as needed */
+        transition: opacity 0.25s ease-out, max-width 0.3s ease-out 0.05s, margin-left 0.3s ease-out;
+    }
+
     .menu-item:hover {
       background-color: rgba(var(--primary-rgb), 0.1);
       color: var(--primary);
+      transform: translateX(5px) scale(1.03);
+      box-shadow: 0 4px 10px rgba(var(--primary-rgb),0.08);
     }
-    .menu-item:hover i { color: var(--primary); }
+    .menu-item:hover::before {
+      width: calc(100% - 28px); 
+    }
+    .menu-item:hover i { 
+        color: var(--primary); 
+        transform: scale(1.1);
+    }
     
     .menu-item.active {
       background-color: var(--primary);
       color: var(--white); 
-      box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+      box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.35);
+      transform: translateX(3px) scale(1.01); /* Slightly different from hover for distinction */
     }
-    .menu-item.active i { color: var(--white); }
+    .menu-item.active::before {
+        width: calc(100% - 28px);
+        background-color: var(--white); /* Or keep primary, depends on preference */
+    }
+    .menu-item.active i { 
+        color: var(--white); 
+        transform: scale(1.05);
+    }
     
     .main-content {
       flex: 1;
@@ -272,13 +367,13 @@
       backdrop-filter: blur(var(--glass-blur-radius));
       -webkit-backdrop-filter: blur(var(--glass-blur-radius));
       box-shadow: inset 0 0 0 1px var(--current-glass-border-color);
-      
       border-radius: var(--radius-lg) var(--radius-lg) 0 0; 
       display: flex;
       align-items: center;
       gap: 10px;
       font-weight: 600;
       color: var(--text-muted);
+      transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
     }
     .breadcrumb-item { display: flex; align-items: center; gap: 8px; }
     .breadcrumb-item i { color: var(--text-muted); }
@@ -291,18 +386,32 @@
       background-color: var(--current-page-bg-color); 
       border-radius: 0 0 var(--radius-lg) var(--radius-lg); 
       box-shadow: var(--current-glass-shadow); 
-      overflow: hidden;
+      overflow: hidden; /* Important for page transitions */
+      transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
     }
     
     .page {
-      display: none;
-      height: 100%;
+      position: absolute; /* For smooth transitions */
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: block; /* Keep as block, manage visibility with opacity and pointer-events */
       overflow: hidden; 
-      transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+      transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
       opacity: 0;
-      transform: translateY(15px);
+      transform: translateY(20px); /* Start slightly lower */
+      pointer-events: none; /* Prevent interaction with hidden pages */
+      will-change: opacity, transform;
     }
-    .page.active { display: block; opacity: 1; transform: translateY(0); }
+    .page.active { 
+      opacity: 1; 
+      transform: translateY(0); 
+      pointer-events: auto;
+      z-index: 1; /* Ensure active page is on top */
+    }
+    .page.exiting { /* Optional class for more control over outgoing animation */
+        opacity: 0;
+        transform: translateY(10px); /* Or scale down, etc. */
+        z-index: 0;
+    }
         
     iframe { width: 100%; height: 100%; border: none; }
     
@@ -311,11 +420,18 @@
       background: rgba(var(--light-rgb), 0.7); 
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
-      display: none; 
+      display: none; /* Toggled by JS */
       flex-direction: column; align-items: center; justify-content: center;
       z-index: 1000;
       border-radius: inherit; 
-      transition: var(--transition);
+      transition: opacity 0.3s ease, visibility 0.3s ease; /* Smooth fade for loading */
+      opacity: 0;
+      visibility: hidden;
+    }
+    .loading-overlay.show { /* Class to show loading */
+        display: flex;
+        opacity: 1;
+        visibility: visible;
     }
     [data-theme="dark"] .loading-overlay { background: rgba(var(--secondary-rgb), 0.7); }
     
@@ -329,15 +445,15 @@
         top: calc(70px + 15px); 
         height: calc(100vh - 70px - 30px); 
         z-index: 999; 
-        width: 195px; /* MODIFIED: Was 260px, now consistent with desktop */
-        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        transform: translateX(-100%); 
+        width: 195px;
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow var(--transition); /* Add box-shadow transition */
+        transform: translateX(calc(-100% - 20px)); /* Ensure it's fully off-screen */
         left: 0; 
         margin-left: 0; 
       }
       .sidebar.show {
         transform: translateX(15px); 
-        box-shadow: var(--current-glass-shadow), 0 0 50px rgba(0,0,0,0.2); 
+        box-shadow: var(--current-glass-shadow), 0 0 60px rgba(0,0,0,0.25); 
       }
       .main-content { width: 100%; }
       .menu-toggle { 
@@ -345,21 +461,25 @@
         align-items: center; justify-content: center;
         width: 44px; height: 44px;
         border-radius: 50%; cursor: pointer; color: var(--text-muted);
+        transition: var(--transition-fast), transform 0.2s ease;
       }
        .menu-toggle:hover {
          background-color: rgba(var(--primary-rgb), 0.1);
          color: var(--primary);
+         transform: scale(1.1);
+       }
+       .menu-toggle:active {
+         transform: scale(0.95);
        }
     }
     
     @media (max-width: 768px) {
-        /* On very small screens, the sidebar takes almost full width when shown */
         .sidebar.show { 
-            width: calc(100% - 30px); /* This width is relative to screen, not the 195px base */
+            width: calc(100% - 30px); 
             transform: translateX(15px);
         }
         header { padding: 0 20px; }
-        .sidebar-header h2 { font-size: 16px; } /* Further adjust for very narrow views */
+        .sidebar-header h2 { font-size: 16px; }
         .menu-item { font-size: 0.9em; gap: 10px; padding: 10px 12px; }
         .menu-item i { font-size: 16px; width: 18px; }
     }
@@ -367,16 +487,29 @@
     .menu-toggle { display: none; } 
     
     .sidebar.collapsed { 
-      width: 90px; /* 折叠后的宽度，可以考虑减小到 70-80px if 195px is base */
-                   /* For now, keeping it 90px for better icon visibility */
+      width: 80px; /* Reduced collapsed width for a sleeker look */
     }
     .sidebar.collapsed .sidebar-header { padding: 20px 10px; }
-    .sidebar.collapsed .sidebar-header h2 { display: none; }
+    .sidebar.collapsed .sidebar-header h2 { 
+        opacity: 0;
+        max-width: 0;
+        margin-right: 0; /* Adjust margin for smooth disappearance */
+    }
     .sidebar.collapsed .sidebar-header .sidebar-toggle { margin: 0 auto; }
     .sidebar.collapsed .menu-list { padding: 0 8px; }
-    .sidebar.collapsed .menu-item { padding: 14px 0; justify-content: center; }
-    .sidebar.collapsed .menu-item span { display: none; }
+    .sidebar.collapsed .menu-item { 
+        padding: 14px 0; 
+        justify-content: center; 
+    }
+    .sidebar.collapsed .menu-item span { 
+        opacity: 0;
+        max-width: 0;
+        margin-left: -10px; /* To help text slide out */
+    }
     .sidebar.collapsed .menu-item i { margin-right: 0; }
+    .sidebar.collapsed .menu-item::before { /* Hide indicator when collapsed */
+        width: 0 !important; 
+    }
     
     .spinner { display: inline-block; position: relative; width: 64px; height: 64px; }
     .spinner div { position: absolute; top: 27px; width: 11px; height: 11px; border-radius: 50%; background: var(--primary); animation-timing-function: cubic-bezier(0, 1, 1, 0); }
@@ -481,25 +614,42 @@
   </div>
   
   <script>
+    const loadingOverlay = document.getElementById('loading');
+
+    function showLoading() {
+      if(loadingOverlay) loadingOverlay.classList.add('show');
+    }
+    function hideLoading() {
+      if(loadingOverlay) loadingOverlay.classList.remove('show');
+    }
+
     function showPage(pageId, pageUrl, element, pageName) {
       const currentPageElement = document.getElementById('current-page');
       if (currentPageElement) {
         currentPageElement.textContent = pageName || (element && element.querySelector('span') ? element.querySelector('span').textContent : '未知页面');
       }
       
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const currentlyActivePage = document.querySelector('.page.active');
+      if (currentlyActivePage && currentlyActivePage.id !== pageId) {
+        currentlyActivePage.classList.add('exiting'); // Add class for outgoing animation
+        currentlyActivePage.classList.remove('active');
+        // Remove 'exiting' after animation. Duration should match CSS.
+        setTimeout(() => {
+            currentlyActivePage.classList.remove('exiting');
+        }, 450); 
+      }
       
       const page = document.getElementById(pageId);
       if (!page) {
         console.error("页面元素未找到:", pageId);
-        const loadingIfError = document.getElementById('loading');
-        if(loadingIfError) loadingIfError.style.display = 'none';
+        hideLoading();
         return;
       }
-      page.classList.add('active');
+      
+      // No timeout needed here, CSS transition handles the delay if any
+      page.classList.add('active'); 
 
-      const loading = document.getElementById('loading');
-      if(loading) loading.style.display = 'flex';
+      showLoading();
 
       document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
       if (element) {
@@ -509,26 +659,32 @@
       const iframe = page.querySelector('iframe');
       if (!iframe) {
         console.error("Iframe 在页面中未找到:", pageId);
-        if(loading) loading.style.display = 'none';
+        hideLoading();
         return;
       }
       
-      if (iframe.getAttribute('src') !== pageUrl) { // 只有 URL 变化时才重新加载
+      let iframeActuallyChangedSrc = false;
+      if (iframe.getAttribute('src') !== pageUrl) {
+        iframeActuallyChangedSrc = true;
         iframe.setAttribute('src', 'about:blank'); 
         setTimeout(() => { 
           iframe.setAttribute('src', pageUrl);
         }, 10); 
-      } else { 
-         if(loading) loading.style.display = 'none';
+      }
+      
+      if (iframeActuallyChangedSrc) {
+        iframe.onload = () => {
+          hideLoading();
+        };
+        iframe.onerror = () => {
+          hideLoading();
+          console.error("加载iframe src错误:", pageUrl);
+        }
+      } else {
+         // If src is the same, hide loading after a short delay to allow page transition animation
+         setTimeout(hideLoading, 200); // Adjust if needed
       }
 
-      iframe.onload = () => {
-        if(loading) loading.style.display = 'none';
-      };
-      iframe.onerror = () => {
-        if(loading) loading.style.display = 'none';
-        console.error("加载iframe src错误:", pageUrl);
-      }
 
       localStorage.setItem('lastPageId', pageId);
       localStorage.setItem('lastPageName', pageName || (element && element.querySelector('span') ? element.querySelector('span').textContent : '未知页面'));
@@ -556,18 +712,14 @@
         
         const icon = this.querySelector('i');
         if (icon) {
-          if (sidebar.classList.contains('collapsed')) {
-            icon.classList.remove('fa-chevron-left');
-            icon.classList.add('fa-chevron-right');
-          } else {
-            icon.classList.remove('fa-chevron-right');
-            icon.classList.add('fa-chevron-left');
-          }
+          // Toggle a class for rotation, CSS will handle the animation
+          icon.classList.toggle('rotated', sidebar.classList.contains('collapsed'));
         }
-        if (window.innerWidth > 992) { // 只在桌面端保存折叠状态
+
+        if (window.innerWidth > 992) {
             localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
         } else {
-            localStorage.removeItem('sidebarCollapsed'); // 移动端不应有持久化的折叠状态
+            localStorage.removeItem('sidebarCollapsed');
         }
       });
     }
@@ -576,50 +728,65 @@
     if (themeToggle) {
       themeToggle.addEventListener('click', function() {
         const htmlEl = document.documentElement;
-        const icon = this.querySelector('i');
+        const iconElement = this.querySelector('i');
         
-        if (htmlEl.getAttribute('data-theme') === 'dark') {
-          htmlEl.removeAttribute('data-theme');
-          if (icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
-          localStorage.setItem('theme', 'light');
-        } else {
-          htmlEl.setAttribute('data-theme', 'dark');
-          if (icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
-          localStorage.setItem('theme', 'dark');
-        }
+        // Animation: first part (rotate out)
+        iconElement.style.transform = 'rotate(-90deg) scale(0.7)';
+        iconElement.style.opacity = '0';
+
+        setTimeout(() => {
+            let newTheme;
+            if (htmlEl.getAttribute('data-theme') === 'dark') {
+                htmlEl.removeAttribute('data-theme');
+                iconElement.classList.remove('fa-sun');
+                iconElement.classList.add('fa-moon');
+                newTheme = 'light';
+            } else {
+                htmlEl.setAttribute('data-theme', 'dark');
+                iconElement.classList.remove('fa-moon');
+                iconElement.classList.add('fa-sun');
+                newTheme = 'dark';
+            }
+            localStorage.setItem('theme', newTheme);
+
+            // Animation: second part (rotate in)
+            iconElement.style.transform = 'rotate(0deg) scale(1)';
+            iconElement.style.opacity = '1';
+        }, 200); // This duration should be less than icon's transition in CSS for opacity/transform
       });
     }
 
     window.onload = function() {
       const htmlEl = document.documentElement;
       const savedTheme = localStorage.getItem('theme');
+      const themeIconElement = document.querySelector('#theme-toggle i');
+
       if (savedTheme) {
         htmlEl.setAttribute('data-theme', savedTheme);
-        const themeIcon = document.querySelector('#theme-toggle i');
-        if (themeIcon) {
+        if (themeIconElement) {
           if (savedTheme === 'dark') {
-            themeIcon.classList.remove('fa-moon');
-            themeIcon.classList.add('fa-sun');
+            themeIconElement.classList.remove('fa-moon');
+            themeIconElement.classList.add('fa-sun');
           } else {
-            themeIcon.classList.remove('fa-sun');
-            themeIcon.classList.add('fa-moon');
+            themeIconElement.classList.remove('fa-sun');
+            themeIconElement.classList.add('fa-moon');
           }
         }
       }
       
       const sidebar = document.getElementById('sidebar');
-      if (window.innerWidth > 992) { // 只在桌面端应用保存的折叠状态
+      const sidebarToggleIconElement = document.querySelector('#sidebar-toggle i');
+      if (window.innerWidth > 992) { 
           const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
           if (sidebarCollapsed && sidebar) {
             sidebar.classList.add('collapsed');
-            const sidebarToggleIcon = document.querySelector('#sidebar-toggle i');
-            if (sidebarToggleIcon) {
-              sidebarToggleIcon.classList.remove('fa-chevron-left');
-              sidebarToggleIcon.classList.add('fa-chevron-right');
+            if (sidebarToggleIconElement) {
+              sidebarToggleIconElement.classList.add('rotated');
             }
           }
       } else {
-        if(sidebar) sidebar.classList.remove('collapsed'); // 移动端默认不折叠
+        if(sidebar) sidebar.classList.remove('collapsed');
+        if (sidebarToggleIconElement) sidebarToggleIconElement.classList.remove('rotated');
       }
       
       const savedId = localStorage.getItem('lastPageId');
@@ -647,7 +814,6 @@
       if (initialMenuElement) {
         showPage(initialPageId, initialPageUrl, initialMenuElement, initialPageName);
       } else {
-        // Fallback if default menu item for 'page-ydhz' is not found (should not happen with current HTML)
         const firstMenuItem = document.querySelector('.menu-list .menu-item');
         if (firstMenuItem) {
             const onclickAttr = firstMenuItem.getAttribute('onclick');
@@ -655,23 +821,25 @@
             if (paramsMatch) {
                 showPage(paramsMatch[1], paramsMatch[2], firstMenuItem, paramsMatch[4]);
             } else {
-                 if(document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
+                 hideLoading();
                  console.warn("无法解析第一个菜单项的参数。");
             }
         } else {
             const currentPageElement = document.getElementById('current-page');
-            if (currentPageElement) currentPageElement.textContent = initialPageName; // Show default name
-            if(document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
+            if (currentPageElement) currentPageElement.textContent = initialPageName; 
+            hideLoading();
             console.warn("初始页面或其菜单项未找到，且无其他菜单项可加载。");
         }
       }
       
       document.querySelectorAll('iframe').forEach(iframe => {
+        // Ensure onload is set if not already by showPage
         if (!iframe.onload) { 
-          iframe.onload = () => {
-            const loading = document.getElementById('loading');
-            if(loading) loading.style.display = 'none';
-          };
+          iframe.onload = () => hideLoading();
+          iframe.onerror = () => {
+              hideLoading();
+              console.error("Iframe late error for src:", iframe.src);
+          }
         }
       });
     };

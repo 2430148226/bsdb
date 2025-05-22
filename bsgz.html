@@ -6,8 +6,6 @@
     <title>工作任务管理</title>
     <!-- 1. Supabase 客户端库 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- 2. XLSX.js (保留以防未来需要导出功能) -->
-    <script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- 3. Chart.js for Monthly Summary Charts -->
     <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <!-- 4. Font Awesome for Icons -->
@@ -26,49 +24,6 @@
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif; color: var(--text-color); background-color: #f5f7fa; line-height: 1.6; }
-
-        /* --- 新增：全局页面加载动画样式 --- */
-        #page-loading-overlay {
-            position: fixed; /* 覆盖整个视口 */
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.95); /* 使用稍不透明的背景以更好看 */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999; /* 确保在最顶层 */
-            opacity: 1;
-            visibility: visible;
-            /* 过渡效果：opacity 变化0.3秒，visibility 在0.3秒后变化（确保动画播放完） */
-            transition: opacity 0.3s ease-out, visibility 0s linear 0.3s;
-        }
-        #page-loading-overlay.hidden {
-            opacity: 0;
-            visibility: hidden;
-        }
-        #page-loading-overlay .page-spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid var(--primary-light, #ebf5fb); /* 使用已定义的颜色变量 */
-            border-top-color: var(--primary-color, #3498db); /* 顶部颜色不同以显示旋转 */
-            border-radius: 50%;
-            animation: page-spinner-spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        #page-loading-overlay p {
-            font-size: 16px;
-            color: var(--primary-dark, #2980b9); /* 使用已定义的颜色变量 */
-            font-weight: 500;
-        }
-        @keyframes page-spinner-spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-        /* --- 结束：全局页面加载动画样式 --- */
 
         /* --- Tab Structure Styles --- */
         body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -141,7 +96,7 @@
              display: block;
              min-height: 38px;
              line-height: 1.6;
-             white-space: pre-wrap;
+             white-space: pre-wrap; /* This will respect newlines from textContent if they exist */
              word-break: break-word;
              width: 100%;
              box-sizing: border-box;
@@ -353,12 +308,6 @@
     </style>
 </head>
 <body>
-    <!-- 新增：全局加载动画 -->
-    <div id="page-loading-overlay">
-        <div class="page-spinner"></div>
-        <p>数据加载中，请稍候...</p>
-    </div>
-
     <div class="tab-container">
         <div class="tab-buttons">
             <button class="tab-button active" data-tab="dailyReport">工作任务日报</button>
@@ -480,7 +429,7 @@
             alert(`数据库连接初始化失败！部分功能（数据加载/保存）将无法使用。\n错误: ${error.message}`);
         }
 
-        const fixedWorkshops = [ "砂浆", "无机膏料", "真金板", "石墨生产", "切割", "一体板", "免拆模板", "免拆板切割", "化验室", "线条", "机修" ];
+        const fixedWorkshops = [ "砂浆车间", "膏料车间", "真金板车间", "石墨车间", "切割车间", "一体板", "免拆模板", "免拆板切割", "化验室", "线条", "机修" ];
         const chartColors = [ '#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6', '#1abc9c', '#34495e', '#e67e22', '#16a085', '#c0392b', '#8e44ad' ];
         const dailyColWidths = ['40px','70px','280px','50px','60px','190px','120px','70px','70px'];
 
@@ -516,7 +465,7 @@
             const tasksTableBodyId = 'tasksTableBody';
             let isEditingDailyReport = false;
 
-            let departmentsData = [];
+            let departmentsData = []; // Will store { id, name, personnel: [{ id, name, department_id, department_name (added) }] }
             let currentPersonnelDropdown = null;
 
             async function fetchDepartmentsAndPersonnel() {
@@ -541,10 +490,12 @@
 
                     departmentsData = depts.map(dept => ({
                         ...dept,
-                        personnel: personnel.filter(p => p.department_id === dept.id)
-                    })).filter(dept => dept.personnel.length > 0 || fixedWorkshops.includes(dept.name));
+                        personnel: personnel
+                            .filter(p => p.department_id === dept.id)
+                            .map(p => ({ ...p, department_name: dept.name })) // Add department_name to person
+                    })).filter(dept => dept.personnel.length > 0 || fixedWorkshops.includes(dept.name)); // Keep fixedWorkshops even if no personnel from DB
 
-                    console.log("Daily: Fetched and grouped departments and personnel:", departmentsData);
+                    console.log("Daily: Fetched and grouped departments and personnel:", JSON.stringify(departmentsData, null, 2));
 
                 } catch (err) {
                     console.error("Daily: Error fetching departments/personnel data:", err);
@@ -572,14 +523,20 @@
                 listContainer.className = 'personnel-cascader-list';
 
                 let matchFound = false;
-                const departmentsToDisplay = departmentsData.length > 0 ? departmentsData : fixedWorkshops.map(fw => ({ id: fw, name: fw, personnel: []}));
+                // Use a combined list: DB departments + fixedWorkshops not in DB (as empty departments)
+                const allWorkshopNames = new Set([...departmentsData.map(d => d.name), ...fixedWorkshops]);
+                const departmentsToDisplay = Array.from(allWorkshopNames).map(wsName => {
+                    const dbDept = departmentsData.find(d => d.name === wsName);
+                    return dbDept || { id: wsName, name: wsName, personnel: [] }; // Create a shell if not in DB
+                });
 
 
                 departmentsToDisplay.forEach(dept => {
                     const deptNameLower = dept.name.toLowerCase();
                     const searchTermLower = searchTerm.toLowerCase();
 
-                    const actualPersonnel = departmentsData.find(d => d.id === dept.id)?.personnel || [];
+                    // Personnel for this department (could be empty if it's just a fixedWorkshop placeholder)
+                    const actualPersonnel = dept.personnel || [];
 
                     const matchingPersonnel = actualPersonnel.filter(p =>
                         p.name.toLowerCase().includes(searchTermLower)
@@ -589,7 +546,7 @@
                         matchFound = true;
                         const deptDiv = document.createElement('div');
                         deptDiv.className = 'personnel-cascader-department';
-                        deptDiv.dataset.deptId = dept.id;
+                        deptDiv.dataset.deptId = dept.id; // Use dept.id (can be name for fixed ones)
 
                         const deptHeader = document.createElement('div');
                         deptHeader.className = 'personnel-cascader-department-header';
@@ -681,17 +638,13 @@
 
                     const textarea = dropdownContainer.targetTextarea;
                     if (textarea && selectedNames.length > 0) {
-                        let currentText = textarea.value;
-                        let textToAppend = "";
+                        let currentText = textarea.value.trim(); // Trim to handle empty or newline-only existing text
+                        let textToAppend = selectedNames.join("\n");
 
-                        selectedNames.forEach((name) => {
-                            textToAppend += name + "\n";
-                        });
-
-                        if (currentText.length > 0 && currentText[currentText.length - 1] !== '\n') {
-                            textarea.value += '\n' + textToAppend;
+                        if (currentText.length > 0) {
+                            textarea.value = currentText + '\n' + textToAppend + '\n';
                         } else {
-                            textarea.value += textToAppend;
+                            textarea.value = textToAppend + '\n';
                         }
                         textarea.focus();
                     }
@@ -722,9 +675,10 @@
                     const parentDeptDiv = deptCb.closest('.personnel-cascader-department');
                      if (!parentDeptDiv) return;
                     const allPersonnelInDeptCheckboxes = Array.from(parentDeptDiv.querySelectorAll('.person-checkbox'));
-                     if (allPersonnelInDeptCheckboxes.length === 0) {
+                     if (allPersonnelInDeptCheckboxes.length === 0) { // Department has no personnel listed (e.g. fixedWorkshop not in DB)
                         deptCb.checked = false;
                         deptCb.indeterminate = false;
+                        // deptCb.disabled = true; // Optionally disable if no personnel
                         return;
                     }
                     const allChecked = allPersonnelInDeptCheckboxes.every(cb => cb.checked);
@@ -754,6 +708,10 @@
 
                 renderPersonnelCascader(dropdown);
                 dropdown.style.display = 'block';
+                // Focus the search input
+                const searchInputInDropdown = dropdown.querySelector('.personnel-cascader-search-input');
+                if (searchInputInDropdown) searchInputInDropdown.focus();
+
 
                 const clickOutsideHandler = (event) => {
                     if (currentPersonnelDropdown && !currentPersonnelDropdown.contains(event.target) && event.target !== buttonElement && !buttonElement.contains(event.target)) {
@@ -791,57 +749,149 @@
                      { selector: 'td.time-spent-cell', type: 'input', inputType: 'text', placeholder: 'HH:MM' },
                      { selector: 'td.cost-cell', type: 'input', inputType: 'number', step: 'any', placeholder: '车间总成本' }
                  ];
+
                 const remarkCell = row.querySelector('td.remark-cell');
                 if (remarkCell) {
-                    const remarkCellInfo = { type: 'textarea', placeholder: '备注' };
                     const existingTextarea = remarkCell.querySelector('textarea');
-                    const existingViewText = remarkCell.querySelector('span.view-mode-text');
-                    let currentValue = '';
+                    const existingViewSpan = remarkCell.querySelector('span.view-mode-text');
+                    let rawNamesString = ''; // This will hold the clean list of names, newline separated
+
                     if (isEditing) {
-                        if (existingViewText) currentValue = existingViewText.textContent;
-                        else if (existingTextarea) currentValue = existingTextarea.value;
+                        if (existingViewSpan) { // Transitioning from View to Edit
+                            let htmlContent = existingViewSpan.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = htmlContent;
+                            rawNamesString = (tempDiv.textContent || tempDiv.innerText || "").split('\n')
+                                .map(line => line.replace(/\s*（.*?）$/, '').trim()) // Remove (Workshop)
+                                .filter(Boolean) // Remove empty lines that might result
+                                .join('\n');
+                             if (rawNamesString) rawNamesString += '\n'; // Ensure trailing newline for consistency if not empty
+                        } else if (existingTextarea) { // Already in edit mode or new row
+                            rawNamesString = existingTextarea.value;
+                        }
+
                         remarkCell.innerHTML = '';
                         let textarea = document.createElement('textarea');
-                        textarea.rows = 2; textarea.placeholder = remarkCellInfo.placeholder; textarea.value = currentValue;
+                        textarea.rows = 2;
+                        textarea.placeholder = '备注';
+                        textarea.value = rawNamesString;
                         remarkCell.appendChild(textarea);
+
                         let personnelWrapper = document.createElement('div');
                         personnelWrapper.className = 'personnel-selector-wrapper';
                         const openBtn = document.createElement('button');
-                        openBtn.type = 'button'; openBtn.className = 'button open-personnel-selector-btn';
-                        openBtn.title = '选择人员'; openBtn.innerHTML = '<i class="fas fa-users"></i> 选择人员';
+                        openBtn.type = 'button';
+                        openBtn.className = 'button open-personnel-selector-btn';
+                        openBtn.title = '选择人员';
+                        openBtn.innerHTML = '<i class="fas fa-users"></i> 选择人员';
                         openBtn.onclick = (e) => { e.stopPropagation(); openPersonnelCascader(openBtn, textarea); };
-                        personnelWrapper.appendChild(openBtn); remarkCell.appendChild(personnelWrapper);
-                    } else {
-                        if (existingTextarea) currentValue = existingTextarea.value;
-                        else if (existingViewText) currentValue = existingViewText.textContent;
+                        personnelWrapper.appendChild(openBtn);
+                        remarkCell.appendChild(personnelWrapper);
+
+                    } else { // View Mode
+                        if (existingTextarea) { // Transitioning from Edit to View
+                            rawNamesString = existingTextarea.value;
+                        } else if (existingViewSpan) { // Already in View mode (e.g. initial load or refresh)
+                            let htmlContent = existingViewSpan.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = htmlContent;
+                            rawNamesString = (tempDiv.textContent || tempDiv.innerText || "").split('\n')
+                                .map(line => line.replace(/\s*（.*?）$/, '').trim())
+                                .filter(Boolean)
+                                .join('\n');
+                        }
+
                         remarkCell.innerHTML = '';
                         const span = document.createElement('span');
-                        span.className = 'view-mode-text'; span.textContent = currentValue;
+                        span.className = 'view-mode-text';
+
+                        const trimmedRawNamesString = rawNamesString.trim();
+                        if (trimmedRawNamesString && departmentsData && departmentsData.length > 0) {
+                            const workshopIndexForRow = parseInt(row.dataset.workshopIndex, 10);
+                            const workshopNameForRow = fixedWorkshops[workshopIndexForRow];
+                            
+                            const namesArray = trimmedRawNamesString.split('\n').map(name => name.trim()).filter(name => name);
+                            let processedHtmlParts = [];
+
+                            namesArray.forEach(name => {
+                                let personFound = false;
+                                let actualWorkshopOfPerson = null;
+
+                                for (const dept of departmentsData) { // departmentsData contains { name (dept_name), personnel: [{name (person_name), department_name}]}
+                                    const person = dept.personnel.find(p => p.name === name);
+                                    if (person) {
+                                        personFound = true;
+                                        actualWorkshopOfPerson = person.department_name; // Use the stored department_name from the person object
+                                        break;
+                                    }
+                                }
+                                
+                                if (personFound && actualWorkshopOfPerson && actualWorkshopOfPerson !== workshopNameForRow) {
+                                    processedHtmlParts.push(`${name}<span style="color: red;">（${actualWorkshopOfPerson}）</span>`);
+                                } else {
+                                    processedHtmlParts.push(name); // Just the name
+                                }
+                            });
+                            span.innerHTML = processedHtmlParts.join('<br>\n'); // Use <br> and newline for pre-wrap to work well
+                        } else {
+                            span.innerHTML = trimmedRawNamesString.replace(/\n/g, '<br>\n');
+                        }
                         remarkCell.appendChild(span);
                     }
                 }
+
                  cellSelectors.forEach(cellInfo => {
                      const cell = row.querySelector(cellInfo.selector);
                      if (!cell) return;
+                     // Skip cost-cell for non-primary rows entirely
                      if (cellInfo.selector === 'td.cost-cell' && !isDailyPrimaryRow(row)) { cell.innerHTML = ''; return; }
+
                      if (isEditing) {
-                         const currentContent = cell.querySelector('span.view-mode-text');
+                         const currentContentSpan = cell.querySelector('span.view-mode-text');
+                         const currentInput = cell.querySelector(cellInfo.type); // Check if an input already exists (e.g. from add row)
                          let value = '';
-                         if (currentContent) value = currentContent.textContent;
-                         else if (cell.querySelector(cellInfo.type)) value = cell.querySelector(cellInfo.type).value;
-                         cell.innerHTML = ''; let inputElement;
-                         if (cellInfo.type === 'textarea') { inputElement = document.createElement('textarea'); inputElement.rows = 2; }
-                         else { inputElement = document.createElement('input'); inputElement.type = cellInfo.inputType; if (cellInfo.step) inputElement.step = cellInfo.step; }
-                         inputElement.placeholder = cellInfo.placeholder; inputElement.value = value; cell.appendChild(inputElement);
-                     } else {
-                         const inputElement = cell.querySelector(cellInfo.type); let value = '';
-                         if (inputElement) value = inputElement.value;
-                         else if(cell.querySelector('span.view-mode-text')) value = cell.querySelector('span.view-mode-text').textContent;
-                         cell.innerHTML = ''; const span = document.createElement('span');
-                         span.className = 'view-mode-text'; span.textContent = value; cell.appendChild(span);
+
+                         if (currentInput) { // If input exists (e.g. newly added row, already has input)
+                            value = currentInput.value;
+                         } else if (currentContentSpan) { // If view span exists (transitioning from view to edit)
+                            value = currentContentSpan.textContent;
+                         }
+                         // else: cell might be empty or have unexpected content, value remains ''
+
+                         cell.innerHTML = ''; // Clear the cell
+                         let inputElement;
+                         if (cellInfo.type === 'textarea') {
+                            inputElement = document.createElement('textarea');
+                            inputElement.rows = 2; // Default rows
+                         } else {
+                            inputElement = document.createElement('input');
+                            inputElement.type = cellInfo.inputType;
+                            if (cellInfo.step) inputElement.step = cellInfo.step;
+                         }
+                         inputElement.placeholder = cellInfo.placeholder;
+                         inputElement.value = value;
+                         cell.appendChild(inputElement);
+                     } else { // View mode
+                         const inputElement = cell.querySelector(cellInfo.type);
+                         const currentContentSpan = cell.querySelector('span.view-mode-text');
+                         let value = '';
+
+                         if (inputElement) { // Transitioning from edit mode
+                            value = inputElement.value;
+                         } else if (currentContentSpan) { // Already in view mode (e.g. initial load)
+                            value = currentContentSpan.textContent;
+                         }
+                         // else: cell might be empty or have unexpected content, value remains ''
+
+                         cell.innerHTML = ''; // Clear the cell
+                         const span = document.createElement('span');
+                         span.className = 'view-mode-text';
+                         span.textContent = value;
+                         cell.appendChild(span);
                      }
                  });
              }
+
 
             async function renderAndLoadDailyTable() {
                showDailyLoading(true); isEditingDailyReport = false;
@@ -851,7 +901,7 @@
                    if (selectedDate && supabase) await fetchAndDisplayDailyTasks(selectedDate);
                    else if (!supabase) tableContainer.innerHTML = '<p style="text-align:center;padding:20px;color:var(--danger);">数据库连接失败。</p>';
                    else if (!selectedDate) tableContainer.innerHTML = '<p style="text-align:center;padding:20px;">请选择日期。</p>';
-                   updateDailyReportModeUI();
+                   updateDailyReportModeUI(); // This will call renderDailyRowForMode for all rows, switching them to view mode
                } catch (error) {
                    console.error("Error daily table render/load:", error);
                    tableContainer.innerHTML = `<p style="text-align:center;padding:20px;color:var(--danger);">加载数据出错</p>`;
@@ -867,7 +917,7 @@
              thead.innerHTML = `<tr><th>序号</th><th>车间</th><th class="task-header">工作任务</th><th>人数</th><th>人工工资</th><th>时间</th><th class="remark-header">备注</th><th>成本(人·h)</th><th>操作</th></tr>`;
              table.appendChild(thead);
              const tbody = document.createElement('tbody'); tbody.id = tasksTableBodyId;
-             fixedWorkshops.forEach((ws, idx) => tbody.appendChild(createDailyRow(idx, ws, true, null)));
+             fixedWorkshops.forEach((ws, idx) => tbody.appendChild(createDailyRow(idx, ws, true, null))); // Initially creates rows with inputs/textareas due to createDailyRow's structure
              table.appendChild(tbody); tableContainer.appendChild(table);
              const newTbody = document.getElementById(tasksTableBodyId);
              if (newTbody && !newTbody.dataset.listenerAttached) { newTbody.addEventListener('click', handleDailyTableClick); newTbody.dataset.listenerAttached = 'true';}
@@ -885,16 +935,24 @@
 
             function createDailyRow(index, workshopName, isPrimaryRow, taskData = null) {
                const tr = document.createElement('tr'); tr.dataset.workshopIndex = index;
-               if (taskData?.id) tr.dataset.taskId = taskData.id;
+               if (taskData?.id) tr.dataset.taskId = taskData.id; // Store task ID if available
                const workshopCellContent = isPrimaryRow ? workshopName : '';
+
+               // Values from taskData or empty strings
+               const taskDescValue = taskData?.task_description ?? '';
+               const numPeopleValue = taskData?.num_people ?? '';
+               const laborCostValue = taskData?.labor_cost ?? '';
+               const timeSpentValue = taskData?.time_spent ?? '';
+               const remarksValue = taskData?.remarks ?? ''; // This is raw remarks string
                const costValue = taskData?.workshop_cost_man_hours ?? '';
-               const taskDescValue = taskData?.task_description ?? ''; const numPeopleValue = taskData?.num_people ?? '';
-               const laborCostValue = taskData?.labor_cost ?? ''; const timeSpentValue = taskData?.time_spent ?? '';
-               const remarksValue = taskData?.remarks ?? '';
+
+               // Cost cell: only for primary row, contains an input
                const costCellContent = isPrimaryRow ? `<input type="number" step="any" placeholder="车间总成本" value="${costValue}" />` : '';
+               // Operations cell: add/delete buttons
                const buttonHTML = isPrimaryRow
                    ? `<button class="button add-task-btn" data-workshop-index="${index}" title="添加任务"><i class="fas fa-plus"></i> 添加</button>`
                    : `<button class="button delete-btn" title="删除任务"><i class="fas fa-trash-alt"></i> 删除</button>`;
+
                tr.innerHTML = `
                  <td class="serial-cell"></td><td class="workshop">${workshopCellContent}</td>
                  <td class="task-description-cell"><textarea placeholder="工作任务" rows="2">${taskDescValue}</textarea></td>
@@ -903,7 +961,11 @@
                  <td class="time-spent-cell"><input type="text" placeholder="HH:MM" value="${timeSpentValue}" /></td>
                  <td class="remark-cell"><textarea placeholder="备注" rows="2">${remarksValue}</textarea></td>
                  <td class="cost-cell">${costCellContent}</td><td class="operations">${buttonHTML}</td>`;
-               if (!isPrimaryRow) { const costTd = tr.querySelector('.cost-cell'); if (costTd) costTd.innerHTML = '';}
+
+               if (!isPrimaryRow) { // For secondary rows, clear the cost cell as it's handled by primary
+                   const costTd = tr.querySelector('.cost-cell');
+                   if (costTd) costTd.innerHTML = '';
+               }
                return tr;
             }
 
@@ -913,8 +975,12 @@
                 const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${idx}"]`));
                 const lastRow = rows[rows.length - 1];
                 if (lastRow) {
-                    const newRow = createDailyRow(idx, '', false, null); lastRow.after(newRow);
-                    renderDailyRowForMode(newRow, true); updateDailyTableUI();
+                    const newRow = createDailyRow(idx, '', false, null); // Creates with inputs/textareas
+                    lastRow.after(newRow);
+                    // Since we are in edit mode, renderDailyRowForMode will ensure inputs are there.
+                    // If createDailyRow already puts inputs, this call might be redundant for content but good for consistency.
+                    renderDailyRowForMode(newRow, true);
+                    updateDailyTableUI();
                     const firstInput = newRow.querySelector('textarea, input'); if (firstInput) firstInput.focus();
                 }
             }
@@ -935,19 +1001,51 @@
                 fixedWorkshops.forEach((workshopName, workshopIndex) => {
                     const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${workshopIndex}"]`));
                     if (rows.length === 0) return;
+
+                    // Reset all rowspans first to handle deletions correctly
                     rows.forEach(row => {
-                        row.querySelector('td.serial-cell')?.setAttribute('rowspan', '1');
-                        row.querySelector('td.workshop')?.setAttribute('rowspan', '1');
-                        row.querySelector('td.cost-cell')?.setAttribute('rowspan', '1');
+                        let serialCell = row.querySelector('td.serial-cell');
+                        if (!serialCell) { // If deleted due to previous rowspan, recreate it
+                            serialCell = document.createElement('td');
+                            serialCell.className = 'serial-cell';
+                            row.insertBefore(serialCell, row.cells[0]);
+                        }
+                        serialCell.setAttribute('rowspan', '1'); serialCell.style.display = '';
+
+                        let workshopCell = row.querySelector('td.workshop');
+                         if (!workshopCell) {
+                            workshopCell = document.createElement('td');
+                            workshopCell.className = 'workshop';
+                             if (row.cells[1]) row.insertBefore(workshopCell, row.cells[1]); else row.appendChild(workshopCell);
+                        }
+                        workshopCell.setAttribute('rowspan', '1'); workshopCell.style.display = '';
+                        if (isDailyPrimaryRow(row)) workshopCell.textContent = fixedWorkshops[workshopIndex]; else workshopCell.textContent = '';
+
+
+                        let costCell = row.querySelector('td.cost-cell');
+                         if (!costCell) { // Find where it should be (before operations)
+                            costCell = document.createElement('td');
+                            costCell.className = 'cost-cell';
+                            const opsCell = row.querySelector('td.operations');
+                            if (opsCell) row.insertBefore(costCell, opsCell); else row.appendChild(costCell);
+                        }
+                        costCell.setAttribute('rowspan', '1'); costCell.style.display = '';
+                        // Content for cost cell is handled by renderDailyRowForMode (input or span)
+                        // For primary rows, it might have an input. For others, it should be empty.
+                        if (!isDailyPrimaryRow(row)) costCell.innerHTML = '';
+                        // If it's primary and in edit mode, ensure it has an input (renderDailyRowForMode handles this)
+
                     });
+
                     const firstRow = rows[0];
                     firstRow.querySelector('td.serial-cell').textContent = currentSerial++;
+
                     if (rows.length > 1) {
                         ['td.serial-cell', 'td.workshop', 'td.cost-cell'].forEach(sel => {
                             firstRow.querySelector(sel)?.setAttribute('rowspan', rows.length);
                         });
-                        rows.slice(1).forEach(row => {
-                            row.querySelector('td.serial-cell')?.remove();
+                        rows.slice(1).forEach(row => { // For subsequent rows in the same workshop group
+                            row.querySelector('td.serial-cell')?.remove(); // remove() is fine here
                             row.querySelector('td.workshop')?.remove();
                             row.querySelector('td.cost-cell')?.remove();
                         });
@@ -955,9 +1053,11 @@
                 });
             }
 
+
             function isDailyPrimaryRow(rowElement) {
                 if (!rowElement?.dataset.workshopIndex) return false;
                 const tbody = rowElement.closest('tbody'); if (!tbody) return false;
+                // The first <tr> element with this workshopIndex is the primary.
                 return tbody.querySelector(`tr[data-workshop-index="${rowElement.dataset.workshopIndex}"]`) === rowElement;
             }
 
@@ -965,24 +1065,31 @@
                if (!supabase) return;
                try {
                    const { data: tasks, error } = await supabase.from('daily_tasks').select('*')
-                       .eq('report_date', selectedDate).order('workshop_index').order('id');
+                       .eq('report_date', selectedDate).order('workshop_index').order('id'); // Assuming 'id' gives consistent sub-order
                    if (error) throw error;
-                   populateDailyTableWithData(tasks);
-               } catch (err) { console.error('Daily: Error fetching tasks:', err); renderDailyTableStructure(); }
+                   populateDailyTableWithData(tasks); // This populates the inputs/textareas
+               } catch (err) { console.error('Daily: Error fetching tasks:', err); renderDailyTableStructure(); /* Fallback to empty structure */ }
             }
 
             function populateDailyTableWithData(tasks) {
                const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return;
+
+               // Clear existing dynamic rows and reset primary rows
                const primaryRowsMap = new Map();
                tbody.querySelectorAll('tr').forEach(row => {
                    const index = row.dataset.workshopIndex;
                    if (index !== undefined) {
-                       if (isDailyPrimaryRow(row)) { clearDailyRowInputs(row); primaryRowsMap.set(index, row); }
-                       else row.remove();
+                       if (isDailyPrimaryRow(row)) {
+                           clearDailyRowInputs(row); // Clears inputs/textareas
+                           primaryRowsMap.set(index, row);
+                       } else {
+                           row.remove(); // Remove non-primary rows, they will be re-added if data exists
+                       }
                    }
                });
+
                const tasksByWorkshop = tasks.reduce((acc, task) => {
-                   const index = task.workshop_index;
+                   const index = task.workshop_index; // This is the numeric index
                    if (index !== null && index >= 0 && index < fixedWorkshops.length) {
                        if (!acc[index]) acc[index] = [];
                        acc[index].push(task);
@@ -990,44 +1097,53 @@
                    return acc;
                }, {});
 
-               fixedWorkshops.forEach((_, workshopIndex) => {
-                   const wsIndexStr = String(workshopIndex);
-                   const workshopTasks = tasksByWorkshop[workshopIndex] || [];
-                   const primaryRow = primaryRowsMap.get(wsIndexStr);
+
+               fixedWorkshops.forEach((_, workshopIndex) => { // Iterate by index
+                   const wsIndexStr = String(workshopIndex); // For map key if needed, though index itself is fine
+                   const workshopTasks = tasksByWorkshop[workshopIndex] || []; // Tasks for this workshop index
+                   const primaryRow = primaryRowsMap.get(wsIndexStr); // Get the primary row using string index
+
                    if (!primaryRow) { console.error(`Primary row for index ${workshopIndex} not found in map`); return; }
 
                    if (workshopTasks.length > 0) {
-                       populateDailyRowInputs(primaryRow, workshopTasks[0]);
-                       primaryRow.dataset.taskId = workshopTasks[0].id;
+                       populateDailyRowInputs(primaryRow, workshopTasks[0]); // Populate the primary row
+                       primaryRow.dataset.taskId = workshopTasks[0].id; // Set task ID
                        let lastAddedRow = primaryRow;
-                       for (let i = 1; i < workshopTasks.length; i++) {
-                           const newRow = createDailyRow(workshopIndex, '', false, workshopTasks[i]);
-                           lastAddedRow.after(newRow);
-                           populateDailyRowInputs(newRow, workshopTasks[i]);
+                       for (let i = 1; i < workshopTasks.length; i++) { // For additional tasks in the same workshop
+                           const newRow = createDailyRow(workshopIndex, '', false, workshopTasks[i]); // Create a new non-primary row
+                           lastAddedRow.after(newRow); // Insert after the last row
+                           populateDailyRowInputs(newRow, workshopTasks[i]); // Populate its inputs
                            lastAddedRow = newRow;
                        }
                    }
                });
-               updateDailyTableUI();
+               updateDailyTableUI(); // Adjust rowspans, serials etc.
             }
 
-            function populateDailyRowInputs(row, data) {
+            function populateDailyRowInputs(row, data) { // Populates the INPUTS/TEXTAREAS
                 if (!row || !data) return;
                 row.querySelector('td.task-description-cell textarea').value = data.task_description ?? '';
                 row.querySelector('td.num-people-cell input').value = data.num_people ?? '';
                 row.querySelector('td.labor-cost-cell input').value = data.labor_cost ?? '';
                 row.querySelector('td.time-spent-cell input').value = data.time_spent ?? '';
-                row.querySelector('td.remark-cell textarea').value = data.remarks ?? '';
+                row.querySelector('td.remark-cell textarea').value = data.remarks ?? ''; // Raw remarks string
+
                 if (isDailyPrimaryRow(row)) {
-                    const costInput = row.querySelector('td.cost-cell input');
+                    const costInput = row.querySelector('td.cost-cell input'); // Assuming cost-cell contains an input
                     if (costInput) costInput.value = data.workshop_cost_man_hours ?? '';
                 }
+                row.dataset.taskId = data.id; // Store task ID on the row
             }
 
-            function clearDailyRowInputs(row) {
+            function clearDailyRowInputs(row) { // Clears the INPUTS/TEXTAREAS
                 if (!row) return;
                 row.querySelectorAll('textarea, input[type="text"], input[type="number"]').forEach(el => el.value = '');
-                delete row.dataset.taskId;
+                delete row.dataset.taskId; // Remove task ID
+                // Specifically clear the cost input if it's a primary row
+                if (isDailyPrimaryRow(row)) {
+                    const costInput = row.querySelector('td.cost-cell input');
+                    if (costInput) costInput.value = '';
+                }
             }
 
             async function saveDailyDataToSupabase() {
@@ -1041,32 +1157,58 @@
              const tbody = document.getElementById(tasksTableBodyId); if (!tbody) { alert('表格体未找到'); return; }
 
              const rows = tbody.querySelectorAll('tr'); const tasksToSave = []; const wsMaster = {};
-             fixedWorkshops.forEach((name, idx) => {
-                 const pRow = tbody.querySelector(`tr[data-workshop-index="${idx}"]`);
-                 if (pRow && isDailyPrimaryRow(pRow)) {
-                     const cInput = pRow.querySelector('td.cost-cell input');
-                     wsMaster[idx] = { name: name, costManHours: cInput?.value.trim() ? parseFloat(cInput.value) : null };
-                 } else { wsMaster[idx] = { name: name, costManHours: null }; }
+             // First, collect workshop-level data (cost_man_hours) from primary rows
+             fixedWorkshops.forEach((name, idx) => { // Iterate using fixedWorkshops index
+                 const primaryRowForWorkshop = tbody.querySelector(`tr[data-workshop-index="${idx}"]`); // Find the primary row
+                 if (primaryRowForWorkshop && isDailyPrimaryRow(primaryRowForWorkshop)) {
+                     const costInput = primaryRowForWorkshop.querySelector('td.cost-cell input');
+                     wsMaster[idx] = { // Store by index
+                         name: name, // The actual name from fixedWorkshops
+                         costManHours: costInput?.value.trim() ? parseFloat(costInput.value) : null
+                     };
+                 } else {
+                     wsMaster[idx] = { name: name, costManHours: null }; // Fallback
+                 }
              });
 
              rows.forEach(row => {
                 const wsIdx = parseInt(row.dataset.workshopIndex, 10);
-                if(isNaN(wsIdx) || !wsMaster[wsIdx]) { console.warn("Skipping row, invalid index or no master data:", row); return;}
-                const master = wsMaster[wsIdx];
-                const getVal = (sel, elType='textarea') => row.querySelector(sel)?.[elType === 'input' ? 'value' : 'value']?.trim() ?? '';
-                const sDesc = getVal('td.task-description-cell textarea');
-                const sPpl = getVal('td.num-people-cell input', 'input');
-                const sCost = getVal('td.labor-cost-cell input', 'input');
-                const sTime = getVal('td.time-spent-cell input', 'input') || null;
-                const sRemark = getVal('td.remark-cell textarea');
-                const nPpl = sPpl ? parseInt(sPpl, 10) : null;
-                const nCost = sCost ? parseFloat(sCost) : null;
-                const hasData = sDesc || nPpl !== null || nCost !== null || sTime || sRemark;
-                const isPrimaryWCost = isDailyPrimaryRow(row) && master.costManHours !== null;
-                if (hasData || isPrimaryWCost) {
-                    tasksToSave.push({ report_date: selDate, workshop_index: wsIdx, workshop_name: master.name,
-                        task_description: sDesc || '', num_people: nPpl, labor_cost: nCost, time_spent: sTime,
-                        remarks: sRemark, workshop_cost_man_hours: master.costManHours });
+                if(isNaN(wsIdx) || !wsMaster[wsIdx]) { console.warn("Skipping row, invalid index or no master data for workshop index:", wsIdx, row); return;}
+
+                const masterWorkshopData = wsMaster[wsIdx]; // Get master data using the index
+
+                // Helper to get value from input/textarea within the current row
+                const getVal = (selector, elementType = 'textarea') => {
+                    const element = row.querySelector(selector);
+                    return element ? (element.value?.trim() ?? '') : '';
+                };
+
+                const taskDesc = getVal('td.task-description-cell textarea');
+                const numPeopleStr = getVal('td.num-people-cell input', 'input');
+                const laborCostStr = getVal('td.labor-cost-cell input', 'input');
+                const timeSpent = getVal('td.time-spent-cell input', 'input') || null; // Keep as string or null
+                const remarks = getVal('td.remark-cell textarea'); // Raw remarks string
+
+                const numPeople = numPeopleStr ? parseInt(numPeopleStr, 10) : null;
+                const laborCost = laborCostStr ? parseFloat(laborCostStr) : null;
+
+                // A row is considered to have data if any of these fields are filled,
+                // OR if it's a primary row for a workshop that has a cost_man_hours value.
+                const hasTaskData = taskDesc || numPeople !== null || laborCost !== null || timeSpent || remarks;
+                const isPrimaryRowWithWorkshopCost = isDailyPrimaryRow(row) && masterWorkshopData.costManHours !== null;
+
+                if (hasTaskData || isPrimaryRowWithWorkshopCost) {
+                    tasksToSave.push({
+                        report_date: selDate,
+                        workshop_index: wsIdx, // Save the numeric index
+                        workshop_name: masterWorkshopData.name, // Save the actual workshop name
+                        task_description: taskDesc || '',
+                        num_people: numPeople,
+                        labor_cost: laborCost,
+                        time_spent: timeSpent,
+                        remarks: remarks,
+                        workshop_cost_man_hours: masterWorkshopData.costManHours // This will be same for all tasks under same workshop on same day
+                    });
                 }
              });
              showDailyLoading(true);
@@ -1078,11 +1220,13 @@
                      if (insErr) throw insErr;
                      alert(`成功保存 ${insData?.length || 0} 条记录！`);
                  } else { alert(`已清除 ${selDate} 的旧记录，无新数据保存。`); }
-                 isEditingDailyReport = false;
+                 isEditingDailyReport = false; // Switch to view mode
+                 // After saving, re-fetch and display. This will also trigger the new remark processing.
                  await fetchAndDisplayDailyTasks(selDate);
+                 updateDailyReportModeUI(); // Explicitly call to ensure UI is in view mode and remarks are processed
              } catch (error) {
                  console.error('Daily Save Error:', error); alert(`保存出错: ${error.message}`);
-                 isEditingDailyReport = true;
+                 isEditingDailyReport = true; // Stay in edit mode if save failed
              } finally {
                  saveButton.innerHTML = btnHTML; updateDailyReportModeUI(); showDailyLoading(false);
              }
@@ -1099,7 +1243,7 @@
                         datePicker.onchange = () => { isEditingDailyReport = false; renderAndLoadDailyTable(); };
                         datePicker.dataset.listenerAttached = 'true';
                     }
-                     renderAndLoadDailyTable();
+                     renderAndLoadDailyTable(); // This will populate and then switch to view mode via updateDailyReportModeUI
                 } else { if(tableContainer) tableContainer.innerHTML = '<p>日期选择器加载失败</p>'; showDailyLoading(false); isEditingDailyReport = false; updateDailyReportModeUI(); }
 
                 if (editButton && !editButton.dataset.listenerAttached) {
@@ -1110,7 +1254,7 @@
                     saveButton.onclick = saveDailyDataToSupabase;
                     saveButton.dataset.listenerAttached = 'true';
                 }
-                 updateDailyReportModeUI();
+                 // updateDailyReportModeUI(); // Called by renderAndLoadDailyTable's finally block effectively
                  console.log("Daily: Report Initialized.");
             }
             window.initDailyReport = initDailyReport;
@@ -1237,8 +1381,6 @@
 
         // ----- GLOBAL PAGE INITIALIZATION -----
         document.addEventListener('DOMContentLoaded', async () => {
-            const pageLoadingOverlay = document.getElementById('page-loading-overlay'); // 获取加载动画元素
-
             console.log("DOM fully loaded. Initializing Tabs...");
              if (window.initDailyReport) {
                 await window.initDailyReport();
@@ -1259,12 +1401,7 @@
             } else {
                  console.log("Supabase client ready globally.");
             }
-             console.log("Tab initialization complete. Hiding page loading overlay.");
-
-            // 新增：隐藏全局加载动画
-            if (pageLoadingOverlay) {
-                pageLoadingOverlay.classList.add('hidden');
-            }
+             console.log("Tab initialization complete.");
         });
     </script>
 </body>

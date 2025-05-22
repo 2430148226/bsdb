@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人员信息表</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        body { background-color: #f8f9fa; }
+        .sticky-header-container { position: sticky; top: 0; z-index: 1020; background-color: #f8f9fa; padding-bottom: 5px; }
+        .controls-container { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; }
+        .table thead th { background-color: #e9ecef; position: sticky; z-index: 1010; } /* z-index 确保在 sticky-header-container 之下 */
+        .day-col { min-width: 35px; max-width: 45px; }
+        .table tfoot tr { font-weight: bold; background-color: #dee2e6; }
+        .table th, .table td { vertical-align: middle; text-align: center; }
+        .modal-body .form-group { margin-bottom: 1rem; }
+        .person-selection-container { max-height: 150px; overflow-y: auto; border: 1px solid #ced4da; padding: 0.75rem; border-radius: 0.375rem; }
+        .person-selection-container .form-check { margin-bottom: 0.5rem; }
+        .person-selection-container label { font-weight: normal; }
+        .data-cell:empty::before { content: ""; }
+        tr[data-category="小计"] td { font-weight: bold !important; color: red !important; }
+        tr[data-category="小计"] td:empty::before { content: ""; }
+        /* 新增：加载动画容器样式 */
+        #loadingIndicator {
+            display: none; /* 默认隐藏 */
+            text-align: center;
+            padding: 40px 0; /* 增加上下内边距让动画更居中 */
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="sticky-header-container" id="stickyHeader">
+    <div class="container-fluid py-1">
+        <div class="controls-container">
+            <div id="currentMonthInfo" style="font-size: 0.9rem;">
+                <span class="fw-bold">当前月份: </span><span id="displaySelectedMonth">正在加载...</span>
+            </div>
+            <button class="btn btn-success btn-sm" id="openAddModalBtn" data-bs-toggle="modal" data-bs-target="#addEntryModalStatic" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle-fill me-1" viewBox="0 0 16 16">
+                  <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/>
+                </svg>
+                添加
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid mt-3 table-responsive-container">
+    <!-- 新增：加载动画的HTML结构 -->
+    <div id="loadingIndicator">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+        <p class="mt-2">数据加载中，请稍候...</p>
+    </div>
+
+    <table id="dataTable" class="table table-bordered table-striped table-hover">
+        <thead id="headerRowContainer"><tr id="headerRow"></tr></thead>
+        <tbody id="tableBody"></tbody>
+        <tfoot id="tableFoot"></tfoot>
+    </table>
+</div>
+
+<div class="modal fade" id="addEntryModalStatic" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="addEntryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEntryModalLabel">添加记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group mb-3">
+                    <label for="entryDate" class="form-label">选择日期:</label>
+                    <input type="date" id="entryDate" name="entryDate" class="form-control" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">选择人员:</label>
+                    <div class="person-selection-container">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="selectAllPersons" name="selectAllPersons">
+                            <label class="form-check-label fw-bold" for="selectAllPersons">全选/全不选</label>
+                        </div>
+                        <hr class="my-2">
+                        <div id="modalPersonCheckboxes"></div>
+                    </div>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="entryCategory" class="form-label">选择类别:</label>
+                    <select id="entryCategory" name="entryCategory" class="form-select" required></select>
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label">操作方式:</label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="entryMode" id="modeAccumulateType7" value="accumulate" checked>
+                            <label class="form-check-label" for="modeAccumulateType7">累加</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="entryMode" id="modeOverwriteType7" value="overwrite">
+                            <label class="form-check-label" for="modeOverwriteType7">覆盖</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="entryAmount" class="form-label" id="entryAmountLabel">输入金额 (整数):</label>
+                    <input type="text" id="entryAmount" name="entryAmount" class="form-control" placeholder="例如: 100 (留空表示清除/无)">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveAddEntryBtn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+<script>
+    const SUPABASE_URL = 'https://kkisabzmyiouksfczsrt.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtraXNhYnpteWlvdWtzZmN6c3J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1NTY5NjcsImV4cCI6MjA2MTEzMjk2N30.s_euUCvAyH9LQ-N7Oh4OiG7uTgQWFvbhDt8dwHdObOI';
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const CURRENT_DEPARTMENT_NAME = "砂浆车间";
+
+    let currentDepartmentPersonnelMap = new Map();
+    let currentDepartmentId = null;
+    let loadedDailyData = {};
+
+    const baseCategoriesForSum = ["生", "上", "下", "珍", "杂", "补贴"];
+    const subtotalCategoryName = "小计";
+    const displayCategories = [...baseCategoriesForSum, subtotalCategoryName];
+    const categoriesForModal = baseCategoriesForSum;
+
+    let currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth() + 1;
+
+    const headerRow = document.getElementById('headerRow');
+    const tableBody = document.getElementById('tableBody');
+    const tableFoot = document.getElementById('tableFoot');
+    const stickyHeaderElement = document.getElementById('stickyHeader');
+    const displaySelectedMonthEl = document.getElementById('displaySelectedMonth');
+    const entryDateInput = document.getElementById('entryDate');
+    const modalPersonCheckboxesContainer = document.getElementById('modalPersonCheckboxes');
+    const entryCategorySelect = document.getElementById('entryCategory');
+    const entryAmountInput = document.getElementById('entryAmount');
+    const entryAmountLabel = document.getElementById('entryAmountLabel');
+    const selectAllPersonsCheckbox = document.getElementById('selectAllPersons');
+    const saveAddEntryBtn = document.getElementById('saveAddEntryBtn');
+    const openAddModalBtn = document.getElementById('openAddModalBtn');
+    let addEntryModalInstance = null;
+
+    // 新增：获取加载动画和表格元素的引用
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const dataTableElement = document.getElementById('dataTable');
+
+    // --- MODIFICATION START (1/3): Declare variable to store last selected date ---
+    let lastSelectedEntryDate = null; 
+    // --- MODIFICATION END (1/3) ---
+
+    async function fetchDailyRecordsForMonth(departmentId, year, month) {
+        const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+        const daysInTargetMonth = getDaysInMonth(year, month);
+        const endDate = `${year}-${String(month).padStart(2, '0')}-${String(daysInTargetMonth).padStart(2, '0')}`;
+        console.log(`[${CURRENT_DEPARTMENT_NAME}] Fetching daily records for ${startDate} to ${endDate}`);
+        let { data: records, error } = await supabaseClient.from('daily_records').select(`record_date,personnel_id,category_name,entry_value,personnel(name)`).eq('department_id', departmentId).gte('record_date', startDate).lte('record_date', endDate);
+        if (error) { console.error(`[${CURRENT_DEPARTMENT_NAME}] Error fetching daily records:`, error); return {}; }
+        const organizedData = {};
+        records.forEach(record => {
+            if (!record.personnel || !record.personnel.name) return;
+            const personName = record.personnel.name;
+            const day = new Date(record.record_date + 'T00:00:00Z').getUTCDate();
+            if (!organizedData[personName]) organizedData[personName] = {};
+            if (!organizedData[personName][record.category_name]) organizedData[personName][record.category_name] = {};
+            organizedData[personName][record.category_name][day] = record.entry_value;
+        });
+        console.log(`[${CURRENT_DEPARTMENT_NAME}] Organized daily records:`, organizedData);
+        return organizedData;
+    }
+
+    async function fetchDepartmentData() {
+        if (!CURRENT_DEPARTMENT_NAME) { console.error("CURRENT_DEPARTMENT_NAME is not defined."); return false; }
+        console.log(`[${CURRENT_DEPARTMENT_NAME}] Fetching data for department...`);
+        try {
+            let { data: department, error: depError } = await supabaseClient.from('department').select('id, name').eq('name', CURRENT_DEPARTMENT_NAME).single();
+            if (depError) { console.error(`[${CURRENT_DEPARTMENT_NAME}] Supabase department query error:`, depError); throw depError; }
+            if (!department) { alert(`未找到部门: ${CURRENT_DEPARTMENT_NAME}`); console.error(`[${CURRENT_DEPARTMENT_NAME}] Department not found.`); return false; }
+            document.title = `${department.name} 信息表`;
+            currentDepartmentId = department.id;
+
+            let { data: personnel, error: persError } = await supabaseClient.from('personnel').select('id, name').eq('department_id', department.id).eq('is_active', true);
+            if (persError) { console.error(`[${CURRENT_DEPARTMENT_NAME}] Supabase personnel query error:`, persError); throw persError; }
+            console.log(`[${CURRENT_DEPARTMENT_NAME}] Fetched personnel:`, personnel);
+            currentDepartmentPersonnelMap.clear();
+            personnel.forEach(p => currentDepartmentPersonnelMap.set(p.name, p.id));
+            if (currentDepartmentPersonnelMap.size === 0) console.warn(`[${CURRENT_DEPARTMENT_NAME}] No active personnel.`);
+
+            loadedDailyData = await fetchDailyRecordsForMonth(currentDepartmentId, currentYear, currentMonth);
+            return true;
+        } catch (error) {
+            console.error(`[${CURRENT_DEPARTMENT_NAME}] Error in fetchDepartmentData:`, error);
+            alert(`[${CURRENT_DEPARTMENT_NAME}] 加载数据失败: ${error.message}`);
+            return false;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        const modalElement = document.getElementById('addEntryModalStatic');
+        if (modalElement) addEntryModalInstance = new bootstrap.Modal(modalElement);
+        
+        adjustStickyTableHeader(); // 初始调用一次
+
+        // 新增：显示加载动画并隐藏表格
+        if (loadingIndicator && dataTableElement) {
+            loadingIndicator.style.display = 'block';
+            dataTableElement.style.display = 'none';
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('year') && urlParams.has('month')) {
+            currentYear = parseInt(urlParams.get('year'));
+            currentMonth = parseInt(urlParams.get('month'));
+        }
+        if (displaySelectedMonthEl) displaySelectedMonthEl.textContent = `${currentYear}年${String(currentMonth).padStart(2, '0')}月`;
+        
+        const dataLoaded = await fetchDepartmentData();
+
+        // 新增：隐藏加载动画并显示表格 (无论成功或失败)
+        if (loadingIndicator && dataTableElement) {
+            loadingIndicator.style.display = 'none';
+            dataTableElement.style.display = '';
+        }
+
+        if (!dataLoaded) {
+            if (displaySelectedMonthEl) displaySelectedMonthEl.textContent = "数据加载失败";
+            if (openAddModalBtn) openAddModalBtn.disabled = true;
+            if (tableBody) {
+                 // 当数据加载失败时，表格主体显示错误信息，表头和表脚清空
+                if(headerRow) headerRow.innerHTML = '';
+                if(tableFoot) tableFoot.innerHTML = '';
+                tableBody.innerHTML = `<tr><td colspan="1" style="text-align: center; color: red; font-weight: bold;">无法加载部门或人员数据。请检查网络或联系管理员。</td></tr>`;
+            }
+            return;
+        }
+
+        if (openAddModalBtn) openAddModalBtn.disabled = false;
+
+        if (currentDepartmentPersonnelMap.size === 0) {
+            if (tableBody) {
+                // 当没有人员时，也清空表头表脚，并显示提示
+                if(headerRow) headerRow.innerHTML = '';
+                if(tableFoot) tableFoot.innerHTML = '';
+                tableBody.innerHTML = `<tr><td colspan="1" style="text-align: center;">此部门当前没有在职人员记录。</td></tr>`;
+            }
+        } else {
+            renderTable(); // 只有在数据加载成功且有人员时才渲染完整表格
+        }
+        populateModalForms();
+        setupModalEventListeners();
+    });
+
+    function adjustStickyTableHeader() {
+        if (stickyHeaderElement && document.querySelectorAll('#dataTable thead th').length > 0) {
+            const headerHeight = stickyHeaderElement.offsetHeight;
+            document.querySelectorAll('#dataTable thead th').forEach(th => {
+                th.style.top = `${headerHeight}px`;
+            });
+        } else if (stickyHeaderElement) { 
+             document.querySelectorAll('#dataTable thead th').forEach(th => {
+                th.style.top = `0px`; 
+            });
+        }
+    }
+
+    function getDaysInMonth(year, month) {
+        return new Date(Date.UTC(year, month, 0)).getUTCDate();
+    }
+
+    function renderTable() {
+        const year = currentYear;
+        const month = currentMonth;
+        const daysInMonth = getDaysInMonth(year, month);
+
+        headerRow.innerHTML = ''; tableBody.innerHTML = ''; tableFoot.innerHTML = '';
+        let thName = document.createElement('th'); thName.textContent = '姓名'; headerRow.appendChild(thName);
+        let thCategoryHeader = document.createElement('th'); thCategoryHeader.textContent = '类别'; headerRow.appendChild(thCategoryHeader);
+        for (let day = 1; day <= daysInMonth; day++) {
+            let thDay = document.createElement('th'); thDay.textContent = day; thDay.classList.add('day-col'); headerRow.appendChild(thDay);
+        }
+        let thTotal = document.createElement('th'); thTotal.textContent = '合计'; headerRow.appendChild(thTotal);
+
+        Array.from(currentDepartmentPersonnelMap.keys()).forEach(name => {
+            displayCategories.forEach((category, categoryIndex) => {
+                const tr = document.createElement('tr');
+                tr.dataset.person = name; tr.dataset.category = category;
+                if (categoryIndex === 0) {
+                    const tdName = document.createElement('td'); tdName.textContent = name; tdName.rowSpan = displayCategories.length; tr.appendChild(tdName);
+                }
+                const tdCategoryCell = document.createElement('td'); tdCategoryCell.textContent = category; tr.appendChild(tdCategoryCell);
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const tdDay = document.createElement('td'); tdDay.dataset.day = day; tdDay.classList.add('data-cell');
+                    const personData = loadedDailyData[name];
+                    if (personData && personData[category] && personData[category][day] !== undefined && personData[category][day] !== null) {
+                        tdDay.textContent = formatDisplayValueInteger(personData[category][day]);
+                    }
+                    tr.appendChild(tdDay);
+                }
+                const tdTotalCell = document.createElement('td'); tdTotalCell.classList.add('row-total', 'data-cell'); tr.appendChild(tdTotalCell);
+                tableBody.appendChild(tr);
+            });
+        });
+        const trGrandTotal = document.createElement('tr');
+        const tdTotalLabel = document.createElement('td'); tdTotalLabel.textContent = '总合计'; tdTotalLabel.colSpan = 2; trGrandTotal.appendChild(tdTotalLabel);
+        for (let day = 1; day <= daysInMonth; day++) { const tdDayGrandTotal = document.createElement('td'); tdDayGrandTotal.classList.add('grand-total-day', 'data-cell'); tdDayGrandTotal.dataset.day = day; trGrandTotal.appendChild(tdDayGrandTotal); }
+        const tdOverallTotal = document.createElement('td'); tdOverallTotal.classList.add('grand-total-overall', 'data-cell'); trGrandTotal.appendChild(tdOverallTotal);
+        tableFoot.appendChild(trGrandTotal);
+
+        adjustStickyTableHeader(); 
+        updateAllTotals();
+    }
+
+    function updateEntryValueInputTypeForSj() {
+        entryAmountLabel.textContent = '输入金额 (整数):';
+        entryAmountInput.placeholder = '例如: 100 (留空表示清除/无)';
+        entryAmountInput.type = 'text';
+        // entryAmountInput.value = ''; // Keep this reset in show.bs.modal if intended for each modal opening
+    }
+
+    function setupModalEventListeners() {
+        const modalElement = document.getElementById('addEntryModalStatic');
+        if (modalElement) {
+            modalElement.addEventListener('show.bs.modal', function () {
+                // --- MODIFICATION START (2/3): Implement new date logic ---
+                if (lastSelectedEntryDate) {
+                    entryDateInput.value = lastSelectedEntryDate;
+                } else {
+                    // Default to current system date
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed in JS
+                    const day = String(today.getDate()).padStart(2, '0');
+                    entryDateInput.value = `${year}-${month}-${day}`;
+                }
+                // --- MODIFICATION END (2/3) ---
+
+                // Reset other form fields
+                entryAmountInput.value = ''; // Moved from updateEntryValueInputTypeForSj to ensure it clears on each open
+                const personCheckboxes = modalPersonCheckboxesContainer.querySelectorAll('input[type="checkbox"]');
+                personCheckboxes.forEach(cb => cb.checked = false);
+                selectAllPersonsCheckbox.checked = false;
+                selectAllPersonsCheckbox.indeterminate = false;
+                if (entryCategorySelect.options.length > 0) entryCategorySelect.selectedIndex = 0;
+                document.getElementById('modeAccumulateType7').checked = true;
+                updateEntryValueInputTypeForSj(); // Call this for label/placeholder/type, not for value
+            });
+        }
+        saveAddEntryBtn.addEventListener('click', handleSaveEntryForSj);
+        selectAllPersonsCheckbox.addEventListener('change', handleSelectAllPersons);
+    }
+
+    function populateModalForms() {
+        modalPersonCheckboxesContainer.innerHTML = '';
+        Array.from(currentDepartmentPersonnelMap.keys()).forEach(name => {
+            const div = document.createElement('div'); div.classList.add('form-check');
+            const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.classList.add('form-check-input');
+            checkbox.id = `person_${name.replace(/\s+/g, '_')}`; checkbox.value = name; checkbox.name = 'selectedPersons';
+            checkbox.addEventListener('change', updateSelectAllCheckboxState);
+            const label = document.createElement('label'); label.classList.add('form-check-label'); label.htmlFor = checkbox.id; label.textContent = name;
+            div.appendChild(checkbox); div.appendChild(label);
+            modalPersonCheckboxesContainer.appendChild(div);
+        });
+        entryCategorySelect.innerHTML = '';
+        categoriesForModal.forEach(category => {
+            const option = document.createElement('option'); option.value = category; option.textContent = category;
+            entryCategorySelect.appendChild(option);
+        });
+    }
+
+    function handleSelectAllPersons(event) {
+        const isChecked = event.target.checked;
+        modalPersonCheckboxesContainer.querySelectorAll('input[type="checkbox"][name="selectedPersons"]').forEach(cb => cb.checked = isChecked);
+        selectAllPersonsCheckbox.indeterminate = false;
+    }
+
+    function updateSelectAllCheckboxState() {
+        const personCbs = Array.from(modalPersonCheckboxesContainer.querySelectorAll('input[type="checkbox"][name="selectedPersons"]'));
+        if (personCbs.length === 0) { selectAllPersonsCheckbox.checked = false; selectAllPersonsCheckbox.indeterminate = false; return; }
+        const allChecked = personCbs.every(cb => cb.checked);
+        const someChecked = personCbs.some(cb => cb.checked);
+        if (allChecked) { selectAllPersonsCheckbox.checked = true; selectAllPersonsCheckbox.indeterminate = false; }
+        else if (someChecked) { selectAllPersonsCheckbox.checked = false; selectAllPersonsCheckbox.indeterminate = true; }
+        else { selectAllPersonsCheckbox.checked = false; selectAllPersonsCheckbox.indeterminate = false; }
+    }
+
+    function formatDisplayValueInteger(value) {
+        if (value === null || value === undefined || (typeof value === 'number' && isNaN(value)) || Number(value) === 0) return '';
+        return String(Math.trunc(Number(value)));
+    }
+
+    async function handleSaveEntryForSj() {
+        const selectedDateStr = entryDateInput.value;
+        const selectedPersonsNames = Array.from(modalPersonCheckboxesContainer.querySelectorAll('input[name="selectedPersons"]:checked')).map(cb => cb.value);
+        const selectedCategory = entryCategorySelect.value;
+        const rawAmountStr = entryAmountInput.value.trim();
+        let valueToStore = null;
+        const entryMode = document.querySelector('input[name="entryMode"]:checked').value;
+
+        if (!selectedDateStr || selectedPersonsNames.length === 0 || !selectedCategory) {
+            alert("请确保已选择日期、至少一个人员和类别。"); return;
+        }
+
+        if (rawAmountStr !== "") {
+            if (!/^\d*$/.test(rawAmountStr) || parseInt(rawAmountStr, 10) < 0) {
+                alert("请输入有效的正整数金额，或留空以清除。"); return;
+            }
+            let parsedVal = parseInt(rawAmountStr, 10);
+            valueToStore = isNaN(parsedVal) ? null : parsedVal;
+        }
+
+        const entryDateObj = new Date(selectedDateStr + "T00:00:00Z"); // Ensure UTC context for day extraction
+        const record_date_iso = entryDateObj.toISOString().split('T')[0];
+        const entryDay = entryDateObj.getUTCDate(); // Use getUTCDate for consistency
+
+        if (entryDateObj.getUTCFullYear() !== currentYear || (entryDateObj.getUTCMonth() + 1) !== currentMonth) {
+             alert(`输入的日期 (${record_date_iso}) 不在当前表格显示的月份 (${currentYear}-${String(currentMonth).padStart(2,'0')})。`);
+             return;
+        }
+
+        const recordsToUpsert = [];
+        for (const personName of selectedPersonsNames) {
+            const personnel_id = currentDepartmentPersonnelMap.get(personName);
+            if (!personnel_id) continue;
+            const targetRow = tableBody.querySelector(`tr[data-person="${personName}"][data-category="${selectedCategory}"]`);
+            const dayCell = targetRow?.querySelector(`td[data-day="${entryDay}"]`);
+            let finalValueToSave = valueToStore;
+
+            if (entryMode === 'accumulate' && dayCell) {
+                let currentValueInCell = parseFloat(dayCell.textContent);
+                if (isNaN(currentValueInCell)) currentValueInCell = 0;
+                if (valueToStore === null) { 
+                    finalValueToSave = (isNaN(currentValueInCell) || currentValueInCell === 0) ? null : currentValueInCell;
+                } else {
+                    finalValueToSave = currentValueInCell + valueToStore;
+                }
+            }
+            
+            if (dayCell) dayCell.textContent = formatDisplayValueInteger(finalValueToSave);
+            if (!loadedDailyData[personName]) loadedDailyData[personName] = {};
+            if (!loadedDailyData[personName][selectedCategory]) loadedDailyData[personName][selectedCategory] = {};
+            loadedDailyData[personName][selectedCategory][entryDay] = finalValueToSave;
+
+            recordsToUpsert.push({
+                record_date: record_date_iso, personnel_id, department_id: currentDepartmentId,
+                category_name: selectedCategory, entry_value: finalValueToSave
+            });
+        }
+
+        if (recordsToUpsert.length > 0) {
+            const originalButtonHTML = saveAddEntryBtn.innerHTML;
+            saveAddEntryBtn.disabled = true;
+            saveAddEntryBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...`;
+            
+            try {
+                const { data, error } = await supabaseClient.from('daily_records').upsert(recordsToUpsert, { onConflict: 'record_date,personnel_id,category_name' }).select();
+                if (error) { 
+                    console.error(`[${CURRENT_DEPARTMENT_NAME}] Error saving:`, error); 
+                    alert(`保存失败: ${error.message}`); 
+                } else { 
+                    console.log(`[${CURRENT_DEPARTMENT_NAME}] Saved:`, data); 
+                }
+            } catch (e) {
+                console.error(`[${CURRENT_DEPARTMENT_NAME}] Exception during upsert:`, e);
+                alert(`保存操作时发生网络或未知错误: ${e.message}`);
+            } finally {
+                saveAddEntryBtn.disabled = false;
+                saveAddEntryBtn.innerHTML = originalButtonHTML;
+            }
+        }
+
+        // --- MODIFICATION START (3/3): Remember the selected date after processing ---
+        lastSelectedEntryDate = selectedDateStr;
+        // --- MODIFICATION END (3/3) ---
+
+        updateAllTotals();
+        if(addEntryModalInstance) addEntryModalInstance.hide();
+    }
+
+    function updateAllTotals() {
+        const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+        Array.from(currentDepartmentPersonnelMap.keys()).forEach(name => {
+            baseCategoriesForSum.forEach(category => {
+                const row = tableBody.querySelector(`tr[data-person="${name}"][data-category="${category}"]`);
+                if (row) {
+                    let rowSum = 0;
+                    row.querySelectorAll('td[data-day]').forEach(cell => { rowSum += (parseInt(cell.textContent, 10) || 0); });
+                    const rowTotalCell = row.querySelector('td.row-total');
+                    if (rowTotalCell) rowTotalCell.textContent = formatDisplayValueInteger(rowSum);
+                }
+            });
+            const subtotalRow = tableBody.querySelector(`tr[data-person="${name}"][data-category="${subtotalCategoryName}"]`);
+            if (!subtotalRow) return;
+            for (let day = 1; day <= daysInMonth; day++) {
+                let dailySubtotalForPerson = 0;
+                baseCategoriesForSum.forEach(catToSum => {
+                    const dataRowForCat = tableBody.querySelector(`tr[data-person="${name}"][data-category="${catToSum}"]`);
+                    if (dataRowForCat) {
+                        const dayCell = dataRowForCat.querySelector(`td[data-day="${day}"]`);
+                        dailySubtotalForPerson += (parseInt(dayCell?.textContent, 10) || 0);
+                    }
+                });
+                const subtotalDayCell = subtotalRow.querySelector(`td[data-day="${day}"]`);
+                if (subtotalDayCell) subtotalDayCell.textContent = formatDisplayValueInteger(dailySubtotalForPerson);
+            }
+            let personMonthlySubtotal = 0; 
+            baseCategoriesForSum.forEach(catToSum => {
+                const rowTotalCell = tableBody.querySelector(`tr[data-person="${name}"][data-category="${catToSum}"] td.row-total`);
+                if (rowTotalCell && rowTotalCell.textContent) personMonthlySubtotal += (parseInt(rowTotalCell.textContent, 10) || 0);
+            });
+            const subtotalRowTotalCell = subtotalRow.querySelector('td.row-total');
+            if (subtotalRowTotalCell) subtotalRowTotalCell.textContent = formatDisplayValueInteger(personMonthlySubtotal);
+        });
+        const grandTotalRow = tableFoot.querySelector('tr');
+        if (grandTotalRow) {
+            for (let day = 1; day <= daysInMonth; day++) {
+                let sumForDayFromSubtotals = 0;
+                Array.from(currentDepartmentPersonnelMap.keys()).forEach(name => {
+                    const subtotalDayCell = tableBody.querySelector(`tr[data-person="${name}"][data-category="${subtotalCategoryName}"] td[data-day="${day}"]`);
+                    if (subtotalDayCell && subtotalDayCell.textContent) sumForDayFromSubtotals += (parseInt(subtotalDayCell.textContent, 10) || 0);
+                });
+                const grandTotalDayCell = grandTotalRow.querySelector(`td.grand-total-day[data-day="${day}"]`);
+                if (grandTotalDayCell) grandTotalDayCell.textContent = formatDisplayValueInteger(sumForDayFromSubtotals);
+            }
+            let overallGrandTotal = 0;
+            Array.from(currentDepartmentPersonnelMap.keys()).forEach(name => {
+                const subtotalMonthlyCell = tableBody.querySelector(`tr[data-person="${name}"][data-category="${subtotalCategoryName}"] td.row-total`);
+                if (subtotalMonthlyCell && subtotalMonthlyCell.textContent) overallGrandTotal += (parseInt(subtotalMonthlyCell.textContent, 10) || 0);
+            });
+            const grandTotalOverallCell = grandTotalRow.querySelector('td.grand-total-overall');
+            if (grandTotalOverallCell) grandTotalOverallCell.textContent = formatDisplayValueInteger(overallGrandTotal);
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工资信息合并 - 优化月份选择</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 颜色变量定义 */
+        :root {
+            --primary-color: #2874c6;
+            --primary-hover: #3d7acb;
+            --primary-light: #e5f0fd;
+            --bg-gradient-start: #f6faff;
+            --bg-gradient-end: #e9f3fb;
+            --tab-bg: #f5f8fd;
+            --tab-hover-bg: #edf3fc;
+            --tab-active-bg: linear-gradient(90deg, #e5f0fd 0%, #f8fbff 100%);
+            --card-shadow: 0 4px 24px rgba(80, 130, 190, 0.1);
+            --content-bg: #f8fbff;
+            --border-radius: 1.25rem;
+            --tab-text: #6d829a;
+            --shadow-light: 0 2px 8px rgba(80, 130, 190, 0.07);
+        }
+
+        /* 基础样式 */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 主容器样式 */
+        .tabs-wrap {
+            width: 96%;
+            max-width: 1700px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            padding: 20px 20px 30px 20px;
+            min-height: 750px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        /* 导航栏头部容器，用于包含月份选择器和导航标签 */
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+        
+        /* 月份选择器样式 */
+        .month-selector {
+            display: flex;
+            align-items: center;
+            background: var(--primary-light);
+            border-radius: 14px;
+            padding: 0 6px;
+            height: 42px;
+            box-shadow: var(--shadow-light);
+            border: 1px solid rgba(208, 227, 247, 0.6);
+            min-width: 160px;
+            position: relative;
+        }
+        
+        .month-selector-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+        
+        .month-selector-btn:hover {
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--primary-hover);
+        }
+        
+        .month-display {
+            flex: 1;
+            text-align: center;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+            user-select: none;
+            position: relative;
+            cursor: pointer;
+            padding: 0 8px;
+        }
+        
+        .month-display:hover {
+            color: var(--primary-hover);
+        }
+        
+        /* 下拉菜单样式 */
+        .month-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            z-index: 1000;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 0;
+            margin-top: 0;
+            opacity: 0;
+        }
+        
+        .month-dropdown.show {
+            max-height: 240px;
+            padding: 12px;
+            margin-top: 8px;
+            opacity: 1;
+        }
+        
+        .month-option {
+            padding: 8px 5px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .month-option:hover {
+            background: var(--primary-light);
+            color: var(--primary-color);
+        }
+        
+        .month-option.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        /* 导航标签样式 */
+        .nav-tabs {
+            border-bottom: none;
+            display: flex;
+            justify-content: center; /* Default centering for larger screens */
+            gap: 8px;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            padding: 0 10px;
+            margin-bottom: 15px;
+            position: relative;
+            flex: 1; /* Allow tabs to take available space */
+        }
+        
+        .nav-tabs .nav-item {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            border-radius: 14px;
+            padding: 12px 28px;
+            background: var(--tab-bg);
+            font-size: 1.05rem;
+            color: var(--tab-text);
+            transition: all 0.25s ease;
+            margin-bottom: 0;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .nav-tabs .nav-link:hover, .nav-tabs .nav-link:focus {
+            background: var(--tab-hover-bg);
+            color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 106, 195, 0.1);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            background: var(--tab-active-bg);
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(52, 106, 195, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        /* 内容区域样式 */
+        .tab-content {
+            background: var(--content-bg);
+            border-radius: 1rem;
+            padding: 15px;
+            box-shadow: var(--shadow-light);
+            min-height: 650px; /* Adjust as needed */
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-pane {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            height: 100%;
+        }
+        
+        .tab-pane.active {
+            opacity: 1;
+        }
+        
+        /* iframe 样式 */
+        iframe {
+            width: 100%;
+            height: 74vh; /* Responsive height based on viewport */
+            min-height: 640px; /* Minimum height */
+            border: none;
+            background: transparent;
+            border-radius: 0.75rem;
+            transition: opacity 0.3s ease;
+        }
+        
+        /* 加载指示器 */
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none; /* Initially hidden */
+            z-index: 1001; 
+        }
+        
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 8px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1d1e3;
+            border-radius: 8px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a3b8d4;
+        }
+        
+        /* 标签页导航滚动条 */
+        .nav-tabs::-webkit-scrollbar {
+            height: 5px;
+        }
+        .nav-tabs.grabbing { /* Optional: for visual feedback during drag */
+            cursor: grabbing;
+        }
+        
+        /* 响应式调整 (确保你的响应式CSS在这里) */
+        @media (max-width: 1200px) {
+            .tabs-wrap {
+                width: 98%;
+                max-width: 1400px;
+                padding: 15px 15px 25px 15px;
+                min-height: 700px;
+            }
+            
+            .nav-tabs .nav-link {
+                padding: 10px 22px;
+                font-size: 1rem;
+            }
+            
+            iframe {
+                height: 72vh;
+                min-height: 600px;
+            }
+            
+            .nav-header {
+                /* flex-direction: row; */ /* Already default for flex */
+                /* justify-content: space-between; */ /* Already default */
+                margin-bottom: 12px;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .tabs-wrap {
+                padding: 12px 12px 20px 12px;
+                min-height: 650px;
+            }
+            
+            .nav-header {
+                /* flex-direction: row; */ /* Already default */
+                gap: 10px; /* Add gap for spacing if month selector and tabs are close */
+                margin-bottom: 10px;
+            }
+            
+            .month-selector {
+                min-width: 150px;
+            }
+            
+            .nav-tabs {
+                justify-content: flex-start; /* Align tabs to start for smaller screens */
+                /* gap: 5px; */ /* Already set */
+                padding: 0 5px;
+                margin-bottom: 12px;
+                /* flex: 1; */ /* Already set */
+            }
+            
+            .nav-tabs .nav-link {
+                padding: 10px 18px;
+                font-size: 0.95rem;
+                border-radius: 12px;
+            }
+            
+            .tab-content {
+                padding: 12px;
+                min-height: 600px;
+            }
+            
+            iframe {
+                height: 70vh;
+                min-height: 550px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px 0;
+            }
+            
+            .tabs-wrap {
+                width: 98%;
+                border-radius: 15px;
+                padding: 10px 10px 15px 10px;
+                min-height: 600px;
+                box-shadow: 0 2px 12px rgba(80, 130, 190, 0.08);
+            }
+            
+            .nav-header {
+                flex-direction: column; /* Stack month selector and tabs */
+                align-items: flex-start; /* Align items to the start */
+                gap: 8px;
+                margin-bottom: 8px;
+            }
+            
+            .month-selector {
+                align-self: flex-end; /* Move month selector to the right if desired when stacked */
+                min-width: 140px;
+                height: 38px;
+            }
+            
+            .nav-tabs {
+                flex-wrap: nowrap; /* Prevent wrapping to enable horizontal scroll */
+                overflow-x: auto; /* Enable horizontal scrolling for tabs */
+                justify-content: flex-start; /* Align tabs to the start */
+                gap: 4px;
+                padding: 5px 2px;
+                margin-bottom: 10px;
+                scrollbar-width: thin; /* For Firefox */
+                width: 100%; /* Ensure tabs take full width for scrolling */
+            }
+            
+            .nav-tabs .nav-link {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+                border-radius: 10px;
+                white-space: nowrap; /* Prevent tab text from wrapping */
+                flex: 0 0 auto; /* Prevent tabs from shrinking when scrolling */
+            }
+            
+            .tab-content {
+                padding: 10px;
+                border-radius: 12px;
+                min-height: 500px;
+            }
+            
+            iframe {
+                height: 65vh;
+                min-height: 450px;
+                border-radius: 8px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            body {
+                padding: 5px 0;
+            }
+            
+            .tabs-wrap {
+                width: 100%; /* Full width on very small screens */
+                border-radius: 10px;
+                padding: 8px 8px 12px 8px;
+                min-height: 500px;
+            }
+            
+            .month-selector {
+                min-width: 130px; /* Slightly smaller */
+                height: 36px;
+            }
+            
+            .month-display {
+                font-size: 0.95rem;
+            }
+            
+            .nav-tabs .nav-link {
+                padding: 8px 14px;
+                font-size: 0.85rem;
+                border-radius: 8px;
+            }
+            
+            .tab-content {
+                padding: 8px;
+                border-radius: 8px;
+                min-height: 450px;
+            }
+            
+            iframe {
+                height: 60vh;
+                min-height: 400px;
+                border-radius: 5px;
+            }
+            
+            .month-dropdown {
+                grid-template-columns: repeat(2, 1fr); /* Two columns for dropdown on small screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tabs-wrap">
+        <div class="nav-header">
+            <div class="month-selector">
+                <button class="month-selector-btn prev-month">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <!-- MODIFICATION 1: Removed hardcoded date. JavaScript will populate this. -->
+                <div class="month-display" id="currentMonth"></div> 
+                <button class="month-selector-btn next-month">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="month-dropdown" id="monthDropdown">
+                    <!-- Month options will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <ul class="nav nav-tabs" id="workshopTabs" role="tablist">
+                <!-- 新的顺序开始 -->
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#panel-sj" type="button" role="tab" aria-controls="panel-sj" aria-selected="true">砂浆车间</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panel-gy" type="button" role="tab" aria-controls="panel-gy" aria-selected="false">膏料车间</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panel-zjb" type="button" role="tab" aria-controls="panel-zjb" aria-selected="false">真金板车间</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panel-sm" type="button" role="tab" aria-controls="panel-sm" aria-selected="false">石墨车间</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panel-qg" type="button" role="tab" aria-controls="panel-qg" aria-selected="false">切割车间</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panel-mcmb" type="button" role="tab" aria-controls="panel-mcmb" aria-selected="false">免拆模板</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panel-hys" type="button" role="tab" aria-controls="panel-hys" aria-selected="false">化验室</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panel-xz" type="button" role="tab" aria-controls="panel-xz" aria-selected="false">行政部门</button>
+                </li>
+                 <!-- 新的顺序结束 -->
+            </ul>
+        </div>
+        
+        <div class="tab-content">
+            <div class="loading-indicator" id="loading-spinner"></div>
+            
+            <!-- 新的顺序开始 -->
+            <div class="tab-pane fade show active" id="panel-sj" role="tabpanel" aria-labelledby="sj-tab">
+                <iframe data-original-src="砂浆.html" title="砂浆车间" loading="lazy"></iframe>
+            </div>
+            <div class="tab-pane fade" id="panel-gy" role="tabpanel" aria-labelledby="gy-tab">
+                <iframe data-original-src="膏料.html" title="膏料车间" loading="lazy"></iframe>
+            </div>
+            <div class="tab-pane fade" id="panel-zjb" role="tabpanel" aria-labelledby="zjb-tab">
+                <iframe data-original-src="真金板.html" title="真金板车间" loading="lazy"></iframe>
+            </div>
+            <div class="tab-pane fade" id="panel-sm" role="tabpanel" aria-labelledby="sm-tab">
+                <iframe data-original-src="石墨.html" title="石墨车间" loading="lazy"></iframe>
+            </div>
+            <div class="tab-pane fade" id="panel-qg" role="tabpanel" aria-labelledby="qg-tab">
+                <iframe data-original-src="切割.html" title="切割车间" loading="lazy"></iframe>
+            </div>
+            <div class="tab-pane fade" id="panel-mcmb" role="tabpanel" aria-labelledby="mcmb-tab">
+                <iframe data-original-src="免拆模板.html" title="免拆模板车间" loading="lazy"></iframe>
+            </div>
+            <div class="tab-pane fade" id="panel-hys" role="tabpanel" aria-labelledby="hys-tab">
+                <iframe data-original-src="化验室.html" title="化验室" loading="lazy"></iframe>
+            </div>
+            <div class="tab-pane fade" id="panel-xz" role="tabpanel" aria-labelledby="xz-tab">
+                <iframe data-original-src="行政.html" title="行政部门" loading="lazy"></iframe>
+            </div>
+            <!-- 新的顺序结束 -->
+        </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const allTabButtons = document.querySelectorAll('.nav-link');
+            const spinner = document.getElementById('loading-spinner');
+            
+            const currentMonthDisplay = document.getElementById('currentMonth');
+            const monthDropdown = document.getElementById('monthDropdown');
+            const prevMonthBtn = document.querySelector('.prev-month');
+            const nextMonthBtn = document.querySelector('.next-month');
+            
+            const currentDate = new Date();
+            let currentYear = currentDate.getFullYear(); // Always initialize with current year
+            let selectedMonth = currentDate.getMonth() + 1; // Always initialize with current month (1-12)
+
+            // MODIFICATION 2: Removed loading of year/month from localStorage
+            // This ensures the month selector always defaults to the current system month on page load.
+            /*
+            const savedYear = localStorage.getItem('selectedYear');
+            const savedMonth = localStorage.getItem('selectedMonth');
+            if (savedYear && savedMonth) {
+                currentYear = parseInt(savedYear);
+                selectedMonth = parseInt(savedMonth);
+            }
+            */
+
+            function updateIframeSrc(iframeElement, year, month) {
+                if (!iframeElement) {
+                    console.error("updateIframeSrc: iframeElement is null or undefined");
+                    if(spinner) spinner.style.display = 'none';
+                    return;
+                }
+                
+                const originalSrc = iframeElement.getAttribute('data-original-src');
+                if (!originalSrc) {
+                    console.error('Iframe is missing data-original-src attribute:', iframeElement);
+                    if(spinner) spinner.style.display = 'none';
+                    return;
+                }
+                
+                const newSrc = `${originalSrc}?year=${year}&month=${month}`;
+
+                if (iframeElement.src !== newSrc) {
+                    if(spinner) spinner.style.display = 'block';
+                    
+                    iframeElement.onload = () => {
+                        if(spinner) spinner.style.display = 'none';
+                        // console.log("Iframe loaded:", iframeElement.src); // Optional: for debugging
+                    };
+                    iframeElement.onerror = () => { 
+                        if(spinner) spinner.style.display = 'none';
+                        console.error('Error loading iframe:', iframeElement.src);
+                    };
+                    
+                    // console.log("Setting iframe src to:", newSrc); // Optional: for debugging
+                    iframeElement.src = newSrc;
+                } else {
+                    if(spinner) spinner.style.display = 'none';
+                    // console.log("Iframe src already correct, not reloading:", iframeElement.src); // Optional: for debugging
+                }
+            }
+
+            function setupMonthSelector() {
+                monthDropdown.innerHTML = ''; 
+                for (let i = 1; i <= 12; i++) {
+                    const option = document.createElement('div');
+                    option.classList.add('month-option');
+                    option.textContent = `${i}月`;
+                    option.setAttribute('data-month', i);
+                    if (i === selectedMonth) {
+                        option.classList.add('active');
+                    }
+                    option.addEventListener('click', function() {
+                        selectedMonth = parseInt(this.getAttribute('data-month'));
+                        updateMonthDisplay();
+                        updateActiveMonthOption();
+                        monthDropdown.classList.remove('show');
+                        triggerActiveIframeReload();
+                    });
+                    monthDropdown.appendChild(option);
+                }
+            }
+            
+            function updateMonthDisplay() {
+                currentMonthDisplay.textContent = `${currentYear}年${selectedMonth}月`;
+            }
+            
+            function updateActiveMonthOption() {
+                monthDropdown.querySelectorAll('.month-option').forEach(opt => {
+                    opt.classList.remove('active');
+                    if (parseInt(opt.getAttribute('data-month')) === selectedMonth) {
+                        opt.classList.add('active');
+                    }
+                });
+            }
+
+            function triggerActiveIframeReload() {
+                const activePane = document.querySelector('.tab-pane.active');
+                if (activePane) {
+                    const activeIframe = activePane.querySelector('iframe');
+                    if (activeIframe && activeIframe.hasAttribute('data-original-src')) {
+                         updateIframeSrc(activeIframe, currentYear, selectedMonth);
+                    } else if (activeIframe) {
+                        console.warn('Active iframe is missing data-original-src.');
+                    }
+                }
+                // Still save to localStorage, though it won't be used for initial month display on next load
+                localStorage.setItem('selectedYear', String(currentYear));
+                localStorage.setItem('selectedMonth', String(selectedMonth));
+            }
+            
+            currentMonthDisplay.addEventListener('click', () => monthDropdown.classList.toggle('show'));
+            
+            prevMonthBtn.addEventListener('click', () => {
+                selectedMonth--;
+                if (selectedMonth < 1) {
+                    selectedMonth = 12;
+                    currentYear--;
+                }
+                updateMonthDisplay();
+                updateActiveMonthOption();
+                triggerActiveIframeReload();
+            });
+            
+            nextMonthBtn.addEventListener('click', () => {
+                selectedMonth++;
+                if (selectedMonth > 12) {
+                    selectedMonth = 1;
+                    currentYear++;
+                }
+                updateMonthDisplay();
+                updateActiveMonthOption();
+                triggerActiveIframeReload();
+            });
+            
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.month-selector')) {
+                    monthDropdown.classList.remove('show');
+                }
+            });
+            
+            setupMonthSelector(); 
+            updateMonthDisplay(); 
+
+            allTabButtons.forEach(tabButton => {
+                tabButton.addEventListener('shown.bs.tab', function(event) {
+                    const targetPaneId = event.target.getAttribute('data-bs-target');
+                    const targetPane = document.querySelector(targetPaneId);
+                    if (targetPane) {
+                        const iframe = targetPane.querySelector('iframe');
+                        if (iframe && iframe.hasAttribute('data-original-src')) {
+                            updateIframeSrc(iframe, currentYear, selectedMonth);
+                        } else if (iframe) {
+                            console.warn('Iframe in tab', targetPaneId, 'is missing data-original-src.');
+                        } else {
+                             console.warn('No iframe found in tab pane', targetPaneId);
+                        }
+                    } else {
+                        console.warn('Target pane not found for tab', targetPaneId);
+                    }
+                    localStorage.setItem('activeTab', targetPaneId);
+                });
+            });
+
+            const activeTabIdFromStorage = localStorage.getItem('activeTab');
+            let activeTabButtonToLoad = null; 
+
+            if (activeTabIdFromStorage) {
+                activeTabButtonToLoad = document.querySelector(`.nav-link[data-bs-target="${activeTabIdFromStorage}"]`);
+            }
+
+            if (!activeTabButtonToLoad) {
+                activeTabButtonToLoad = document.querySelector('.nav-link.active');
+            }
+            
+            if (activeTabButtonToLoad) {
+                const targetPaneId = activeTabButtonToLoad.getAttribute('data-bs-target');
+                const targetPane = document.querySelector(targetPaneId);
+
+                if (targetPane) {
+                    const iframe = targetPane.querySelector('iframe');
+                    if (iframe && iframe.hasAttribute('data-original-src')) {
+                        if (!activeTabButtonToLoad.classList.contains('active')) {
+                            // Ensure the tab is shown before loading iframe, if it's not already active
+                            const tabInstance = bootstrap.Tab.getInstance(activeTabButtonToLoad) || new bootstrap.Tab(activeTabButtonToLoad);
+                            if (tabInstance) {
+                                tabInstance.show(); 
+                                // The 'shown.bs.tab' event will then handle iframe loading
+                            } else {
+                                console.warn("Could not get Bootstrap Tab instance for:", activeTabButtonToLoad);
+                                updateIframeSrc(iframe, currentYear, selectedMonth); // Fallback
+                            }
+                        } else {
+                             // If tab is already active, directly update its iframe
+                            updateIframeSrc(iframe, currentYear, selectedMonth);
+                        }
+                    } else if (iframe) {
+                         console.warn('Initial active iframe in tab', targetPaneId, 'is missing data-original-src.');
+                         if(spinner) spinner.style.display = 'none';
+                    } else {
+                        console.warn('No iframe found in initial active tab pane:', targetPaneId);
+                        if(spinner) spinner.style.display = 'none';
+                    }
+                } else {
+                    console.warn('Initial active tab pane not found:', targetPaneId);
+                    if(spinner) spinner.style.display = 'none';
+                }
+            } else {
+                console.warn("No active tab found on initial load. Check HTML for a default .active tab button.");
+                if(spinner) spinner.style.display = 'none';
+            }
+            
+            const tabList = document.querySelector('.nav-tabs');
+            if (tabList) { // Check if tabList exists
+                let isDown = false;
+                let startX;
+                let scrollLeft;
+                
+                tabList.addEventListener('mousedown', (e) => {
+                    isDown = true;
+                    startX = e.pageX - tabList.offsetLeft;
+                    scrollLeft = tabList.scrollLeft;
+                    tabList.classList.add('grabbing');
+                });
+                
+                tabList.addEventListener('mouseleave', () => {
+                    if (isDown) { // Only remove if it was down
+                        isDown = false;
+                        tabList.classList.remove('grabbing');
+                    }
+                });
+                
+                tabList.addEventListener('mouseup', () => {
+                     if (isDown) { // Only remove if it was down
+                        isDown = false;
+                        tabList.classList.remove('grabbing');
+                    }
+                });
+                
+                tabList.addEventListener('mousemove', (e) => {
+                    if(!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - tabList.offsetLeft;
+                    const walk = (x - startX) * 2; 
+                    tabList.scrollLeft = scrollLeft - walk;
+                });
+            }
+        });
+    </script>
+</body>
+</html>

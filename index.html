@@ -296,6 +296,7 @@
     .menu-list .menu-item:nth-child(3) { animation-delay: 0.4s; }
     .menu-list .menu-item:nth-child(4) { animation-delay: 0.45s; }
     .menu-list .menu-item:nth-child(5) { animation-delay: 0.5s; }
+    .menu-list .menu-item:nth-child(6) { animation-delay: 0.55s; } /* Added for new menu item */
 
     .menu-item::before { /* Animated underline/indicator */
         content: '';
@@ -570,6 +571,11 @@
           <i class="fas fa-users-cog"></i>
           <span>工作内容</span>
         </li>
+        <!-- 修改了下面的onclick事件 -->
+        <li class="menu-item" onclick="promptForPasswordAndShowPage('page-yggz', 'yggz.html?page=main', this, '员工工资')">
+          <i class="fas fa-file-invoice-dollar"></i>
+          <span>员工工资</span>
+        </li>
       </ul>
     </div>
     
@@ -597,8 +603,8 @@
         <div id="page-kl-bscp" class="page">
           <iframe id="iframe-kl-bscp" src="" title="公司产品页面"></iframe>
         </div>
-        <div id="page-ydhz" class="page active">
-          <iframe id="iframe-ydhz" src="ydhz.html?page=main" title="月度报表页面"></iframe>
+        <div id="page-ydhz" class="page">
+          <iframe id="iframe-ydhz" src="" title="月度报表页面"></iframe>
         </div>
         <div id="page-kl" class="page">
           <iframe id="iframe-kl" src="" title="抗拉计算页面"></iframe>
@@ -608,6 +614,9 @@
         </div>
         <div id="page-bsgz" class="page">
           <iframe id="iframe-bsgz" src="" title="人工工资页面"></iframe>
+        </div>
+        <div id="page-yggz" class="page">
+          <iframe id="iframe-yggz" src="" title="员工工资页面"></iframe>
         </div>
       </div>
     </div>
@@ -623,6 +632,34 @@
       if(loadingOverlay) loadingOverlay.classList.remove('show');
     }
 
+    // 新增：员工工资页面的密码
+    const SALARY_PAGE_PASSWORD = "000"; // 您可以在这里设置密码
+
+    // 新增：密码验证并显示页面的函数
+    function promptForPasswordAndShowPage(pageId, pageUrl, element, pageName) {
+      // 检查 sessionStorage 中此页面是否已解锁
+      if (sessionStorage.getItem(pageId + '_unlocked') === 'true') {
+        showPage(pageId, pageUrl, element, pageName);
+        return;
+      }
+
+      const enteredPassword = prompt("请输入密码以访问 " + pageName + ":");
+
+      if (enteredPassword === null) {
+        // 用户点击了取消
+        // console.log("密码输入已取消。");
+        return; // 不执行任何操作
+      }
+
+      if (enteredPassword === SALARY_PAGE_PASSWORD) {
+        // 密码正确，将会话 sessionStorage 标记为已解锁
+        sessionStorage.setItem(pageId + '_unlocked', 'true');
+        showPage(pageId, pageUrl, element, pageName);
+      } else {
+        alert("密码错误！无法访问 " + pageName + "。");
+      }
+    }
+
     function showPage(pageId, pageUrl, element, pageName) {
       const currentPageElement = document.getElementById('current-page');
       if (currentPageElement) {
@@ -635,7 +672,9 @@
         currentlyActivePage.classList.remove('active');
         // Remove 'exiting' after animation. Duration should match CSS.
         setTimeout(() => {
-            currentlyActivePage.classList.remove('exiting');
+            if (currentlyActivePage) { // Check if element still exists
+                currentlyActivePage.classList.remove('exiting');
+            }
         }, 450); 
       }
       
@@ -798,31 +837,59 @@
       let initialMenuElement = document.querySelector(`.menu-item[onclick*="'${initialPageId}'"]`);
 
       if (savedId && savedName) {
-        const menu = document.querySelector(`.menu-item[onclick*="'${savedId}'"]`);
-        if (menu) {
-            const onclickAttr = menu.getAttribute('onclick');
-            const urlMatch = onclickAttr ? onclickAttr.match(/'([^',]+\.html[^']*)'/) : null;
-            if (urlMatch && urlMatch[1]) {
-                initialPageId = savedId;
-                initialPageName = savedName;
-                initialPageUrl = urlMatch[1];
-                initialMenuElement = menu;
+        // 检查保存的页面是否是需要密码的页面，如果是，则不自动加载，除非已解锁
+        const isPasswordProtectedPage = savedId === 'page-yggz';
+        const isUnlocked = sessionStorage.getItem(savedId + '_unlocked') === 'true';
+
+        if (isPasswordProtectedPage && !isUnlocked) {
+            // 如果是受保护页面且未解锁，则不加载它，恢复到默认页面
+            // initialPageId, initialPageName, initialPageUrl, initialMenuElement 保持默认值
+            console.log("上次打开的页面是受密码保护的员工工资页，且未在本会话解锁，将加载默认页面。");
+        } else {
+            const menu = document.querySelector(`.menu-item[onclick*="'${savedId}'"]`);
+            if (menu) {
+                const onclickAttr = menu.getAttribute('onclick');
+                // 更新正则表达式以匹配两种 onclick 格式
+                const paramsMatch = onclickAttr ? onclickAttr.match(/'([^']*)',\s*'([^']*)',\s*this,\s*'([^']*)'/) : null;
+                if (paramsMatch && paramsMatch.length > 3) { // 确保至少捕获了 pageId, pageUrl, pageName
+                    initialPageId = paramsMatch[1];
+                    initialPageUrl = paramsMatch[2];
+                    initialPageName = paramsMatch[4] || savedName; // paramsMatch[3] is `this`, paramsMatch[4] is name
+                    initialMenuElement = menu;
+                }
             }
         }
       }
       
       if (initialMenuElement) {
-        showPage(initialPageId, initialPageUrl, initialMenuElement, initialPageName);
-      } else {
+        // 如果初始页面是需要密码的页面，并且在本会话中尚未解锁，则不自动显示
+        if (initialPageId === 'page-yggz' && sessionStorage.getItem(initialPageId + '_unlocked') !== 'true') {
+            // 不显示员工工资页面，让默认选中的月度报表（或第一个菜单项）显示
+            // 此处需要确保一个非密码保护的页面被加载
+            // 默认已经是 'page-ydhz'，如果 localStorage 不是 'page-yggz'，它会正常工作
+            // 如果 localStorage 是 'page-yggz' 并且未解锁，上面逻辑会重置回默认页
+            const defaultPageElement = document.querySelector(`.menu-item[onclick*="'page-ydhz'"]`); // 或您希望的默认页
+            if (defaultPageElement) {
+                 const onclickAttr = defaultPageElement.getAttribute('onclick');
+                 const paramsMatch = onclickAttr ? onclickAttr.match(/'([^']*)',\s*'([^']*)',\s*this,\s*'([^']*)'/) : null;
+                 if (paramsMatch && paramsMatch.length > 4) {
+                     showPage(paramsMatch[1], paramsMatch[2], defaultPageElement, paramsMatch[4]);
+                 } else { hideLoading(); }
+            } else { hideLoading(); } // Fallback
+        } else {
+             // 正常显示，或者如果它是密码保护页但已解锁
+            showPage(initialPageId, initialPageUrl, initialMenuElement, initialPageName);
+        }
+      } else { // Fallback if initialMenuElement wasn't found (e.g. after clearing localStorage or first run)
         const firstMenuItem = document.querySelector('.menu-list .menu-item');
         if (firstMenuItem) {
             const onclickAttr = firstMenuItem.getAttribute('onclick');
             const paramsMatch = onclickAttr ? onclickAttr.match(/'([^']*)',\s*'([^']*)',\s*this,\s*'([^']*)'/) : null;
-            if (paramsMatch) {
+            if (paramsMatch && paramsMatch.length > 4) {
                 showPage(paramsMatch[1], paramsMatch[2], firstMenuItem, paramsMatch[4]);
             } else {
                  hideLoading();
-                 console.warn("无法解析第一个菜单项的参数。");
+                 console.warn("无法解析第一个菜单项的参数。OnClick:", onclickAttr);
             }
         } else {
             const currentPageElement = document.getElementById('current-page');
@@ -833,7 +900,6 @@
       }
       
       document.querySelectorAll('iframe').forEach(iframe => {
-        // Ensure onload is set if not already by showPage
         if (!iframe.onload) { 
           iframe.onload = () => hideLoading();
           iframe.onerror = () => {

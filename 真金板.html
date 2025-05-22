@@ -174,7 +174,7 @@
                     <input type="date" id="entryDate" name="entryDate" class="form-control" required>
                 </div>
                 <div class="form-group mb-3">
-                    <label class="form-label">选择人员:</label>
+                    <label class="form-label">选择人员:<span id="selectedPersonsCountText" class="ms-2 badge bg-secondary"></span></label>
                     <div class="person-selection-container">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="selectAllPersons" name="selectAllPersons">
@@ -699,6 +699,66 @@
             if(grandTotalOverallCell) grandTotalOverallCell.textContent = formatValueForDisplay(overallGrandTotalValueBasedOnMonthly, false, true);
         }
     }
+    // --- 新增功能：集中处理已选人数显示 ---
+function initializeSelectedCountFeature() {
+    const countDisplaySpan = document.getElementById('selectedPersonsCountText');
+    const checkboxesContainer = document.getElementById('modalPersonCheckboxes'); // 人员复选框的父容器
+    const selectAllToggle = document.getElementById('selectAllPersons'); // “全选/全不选”复选框
+    const modalInstance = document.getElementById('addEntryModalStatic'); // 模态框
+
+    if (!countDisplaySpan || !checkboxesContainer || !selectAllToggle || !modalInstance) {
+        console.error('计数功能所需的一个或多个元素未找到，功能可能无法正常工作。');
+        if(countDisplaySpan) countDisplaySpan.textContent = '初始化错误';
+        return;
+    }
+
+    // 核心的更新函数
+    const updateCount = () => {
+        // 确保在DOM更新完成后再获取状态
+        setTimeout(() => {
+            const selected = checkboxesContainer.querySelectorAll('input[name="selectedPersons"]:checked');
+            countDisplaySpan.textContent = `已选 ${selected.length} 人`;
+        }, 0); // 使用 setTimeout 0 将执行推迟到当前调用栈清空之后
+    };
+
+    // 1. 监听人员复选框容器的变化 (事件委托)
+    // 当任何一个 name="selectedPersons" 的复选框状态改变时触发
+    checkboxesContainer.addEventListener('change', (event) => {
+        if (event.target && event.target.name === 'selectedPersons') {
+            updateCount();
+            // 原有的 updateSelectAllCheckboxState 应该会由这些复选框的change事件触发，
+            // 它负责更新 selectAllToggle 的 indeterminate 状态。
+        }
+    });
+
+    // 2. 监听“全选/全不选”复选框的变化
+    selectAllToggle.addEventListener('change', () => {
+        // 当全选框改变时，它的 'change' 事件会先触发，
+        // 你的 handleSelectAllPersons 函数会执行（它会改变子复选框的状态）。
+        // 然后我们的 updateCount 会执行。
+        updateCount();
+    });
+
+    // 3. 监听模态框的 'shown.bs.modal' 事件
+    // 'shown.bs.modal' 事件在模态框完全显示并且动画完成后触发
+    // 这确保了所有在 'show.bs.modal' 期间发生的表单重置操作已经完成
+    modalInstance.addEventListener('shown.bs.modal', () => {
+        updateCount(); // 模态框打开后，更新一次计数（通常是0）
+    });
+
+    // 初始设置一次文本，以防万一（例如，如果模态框默认是打开的，虽然不常见）
+    // 但主要依赖 shown.bs.modal
+    updateCount();
+}
+
+// 确保在DOM完全加载后执行初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSelectedCountFeature);
+} else {
+    // DOMContentLoaded 已经发生
+    initializeSelectedCountFeature();
+}
+// --- 新增功能代码结束 ---
 </script>
 </body>
 </html>

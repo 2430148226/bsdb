@@ -27,6 +27,49 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif; color: var(--text-color); background-color: #f5f7fa; line-height: 1.6; }
 
+        /* --- 新增：全局页面加载动画样式 --- */
+        #page-loading-overlay {
+            position: fixed; /* 覆盖整个视口 */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.95); /* 使用稍不透明的背景以更好看 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; /* 确保在最顶层 */
+            opacity: 1;
+            visibility: visible;
+            /* 过渡效果：opacity 变化0.3秒，visibility 在0.3秒后变化（确保动画播放完） */
+            transition: opacity 0.3s ease-out, visibility 0s linear 0.3s;
+        }
+        #page-loading-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        #page-loading-overlay .page-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--primary-light, #ebf5fb); /* 使用已定义的颜色变量 */
+            border-top-color: var(--primary-color, #3498db); /* 顶部颜色不同以显示旋转 */
+            border-radius: 50%;
+            animation: page-spinner-spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        #page-loading-overlay p {
+            font-size: 16px;
+            color: var(--primary-dark, #2980b9); /* 使用已定义的颜色变量 */
+            font-weight: 500;
+        }
+        @keyframes page-spinner-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        /* --- 结束：全局页面加载动画样式 --- */
+
         /* --- Tab Structure Styles --- */
         body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .tab-container { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
@@ -53,9 +96,9 @@
         #dailyReport th, #dailyReport td {
             border: 1px solid var(--border-color);
             padding: 12px 16px;
-            text-align: center; 
+            text-align: center;
             font-size: 14px;
-            vertical-align: middle; 
+            vertical-align: middle;
             word-break: break-word;
         }
         #dailyReport thead th {
@@ -68,11 +111,11 @@
         #dailyReport td.task-description-cell,
         #dailyReport td.remark-cell {
             text-align: left;
-            vertical-align: top; 
+            vertical-align: top;
         }
-        #dailyReport td.workshop { font-weight: 500; color: var(--primary-dark); background-color: #f8fbff; } 
+        #dailyReport td.workshop { font-weight: 500; color: var(--primary-dark); background-color: #f8fbff; }
         #dailyReport .serial-cell { font-weight: 600; background-color: #eef6fc; }
-        #dailyReport .cost-cell { font-weight: 500; color: var(--accent-color); background-color: #fffaf0; } 
+        #dailyReport .cost-cell { font-weight: 500; color: var(--accent-color); background-color: #fffaf0; }
         #dailyReport .cost-cell input[type="number"] { text-align: center; }
         #dailyReport .button { padding: 6px 12px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.2s; color: white; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
         #dailyReport .add-task-btn { background-color: var(--primary-color); color: white; }
@@ -83,7 +126,7 @@
         #dailyReport #saveButton:hover:not(:disabled) { background-color: #27ae60 !important; }
         #dailyReport #saveButton:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; opacity: 0.7; }
         #dailyReport #editButton { background-color: var(--accent-color); }
-        #dailyReport #editButton:hover { background-color: #d35400; } 
+        #dailyReport #editButton:hover { background-color: #d35400; }
         #dailyReport #saveButton .spinner-border { width: 1em; height: 1em; border-width: .2em; }
         #dailyReport textarea, #dailyReport input[type="text"], #dailyReport input[type="number"] {
             width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius);
@@ -94,15 +137,15 @@
         #dailyReport input[type="number"]::-webkit-outer-spin-button, #dailyReport input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         #dailyReport textarea:focus, #dailyReport input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); outline: none; }
         .view-mode-text {
-             padding: 9px 13px; 
+             padding: 9px 13px;
              display: block;
-             min-height: 38px; 
+             min-height: 38px;
              line-height: 1.6;
-             white-space: pre-wrap; 
+             white-space: pre-wrap;
              word-break: break-word;
              width: 100%;
              box-sizing: border-box;
-             cursor: default; 
+             cursor: default;
         }
         #dailyReport:not(.edit-mode) td.operations button { display: none; }
         #dailyReport.edit-mode .controls-container #editButton { display: none; }
@@ -139,7 +182,7 @@
             border: 1px solid #ccc;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 1001; /* Ensure it's above sticky table header and other elements */
-            width: 300px; 
+            width: 300px;
             max-width: 90%; /* Prevent overflow on small cells */
             border-radius: var(--radius);
             padding: 10px;
@@ -287,11 +330,11 @@
             #dailyReport .header { flex-direction: column; align-items: stretch; gap: 12px; height: auto; padding: 12px; }
             #dailyReport .controls-container { flex-direction: column; align-items: stretch; gap: 10px; }
             #dailyReport #datePicker { width: 100%; }
-            #dailyReport #editButton, 
+            #dailyReport #editButton,
             #dailyReport #saveButton { width: 100%; }
             #dailyReport .table-wrapper { padding: 12px; --wrapper-padding: 12px; }
             #dailyReport th, #dailyReport td { padding: 10px 8px; font-size: 13px; }
-            #dailyReport thead th { position: static; } 
+            #dailyReport thead th { position: static; }
              #monthlySummary { padding: 10px; }
             #monthlySummary .header { flex-direction: column; align-items: flex-start; gap: 15px; }
             #monthlySummary .controls-wrapper { flex-direction: column; align-items: stretch; width: 100%;}
@@ -310,6 +353,12 @@
     </style>
 </head>
 <body>
+    <!-- 新增：全局加载动画 -->
+    <div id="page-loading-overlay">
+        <div class="page-spinner"></div>
+        <p>数据加载中，请稍候...</p>
+    </div>
+
     <div class="tab-container">
         <div class="tab-buttons">
             <button class="tab-button active" data-tab="dailyReport">工作任务日报</button>
@@ -320,7 +369,7 @@
             <!-- ======================= -->
             <!-- Daily Report Tab Content -->
             <!-- ======================= -->
-            <div id="dailyReport" class="tab-content active"> 
+            <div id="dailyReport" class="tab-content active">
                 <div class="header">
                     <div class="header-title">工作任务日报表</div>
                     <div class="controls-container">
@@ -433,11 +482,11 @@
 
         const fixedWorkshops = [ "砂浆", "无机膏料", "真金板", "石墨生产", "切割", "一体板", "免拆模板", "免拆板切割", "化验室", "线条", "机修" ];
         const chartColors = [ '#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6', '#1abc9c', '#34495e', '#e67e22', '#16a085', '#c0392b', '#8e44ad' ];
-        const dailyColWidths = ['40px','70px','280px','50px','60px','190px','120px','70px','70px']; 
+        const dailyColWidths = ['40px','70px','280px','50px','60px','190px','120px','70px','70px'];
 
-        let monthlyLineChart, monthlyPieChart, monthlyBarChart; 
-        let monthlyDailyWages = {}; 
-        let monthlyCurrentSelectedYear = null, monthlyCurrentSelectedMonth = null; 
+        let monthlyLineChart, monthlyPieChart, monthlyBarChart;
+        let monthlyDailyWages = {};
+        let monthlyCurrentSelectedYear = null, monthlyCurrentSelectedMonth = null;
 
         // ----- TAB SWITCHING LOGIC -----
         const tabButtons = document.querySelectorAll('.tab-button');
@@ -461,14 +510,14 @@
             const dailyReportContainer = document.getElementById('dailyReport');
             const loadingOverlay = document.getElementById('loadingOverlay');
             const saveButton = document.getElementById('saveButton');
-            const editButton = document.getElementById('editButton'); 
+            const editButton = document.getElementById('editButton');
             const datePicker = document.getElementById('datePicker');
             const tableContainer = document.getElementById('tableContainer');
             const tasksTableBodyId = 'tasksTableBody';
-            let isEditingDailyReport = false; 
-            
-            let departmentsData = []; 
-            let currentPersonnelDropdown = null; 
+            let isEditingDailyReport = false;
+
+            let departmentsData = [];
+            let currentPersonnelDropdown = null;
 
             async function fetchDepartmentsAndPersonnel() {
                 if (!supabase) {
@@ -478,9 +527,9 @@
                 }
                 try {
                     const { data: depts, error: deptError } = await supabase
-                        .from('department') 
+                        .from('department')
                         .select('id, name')
-                        .order('name'); 
+                        .order('name');
                     if (deptError) throw deptError;
 
                     const { data: personnel, error: personnelError } = await supabase
@@ -489,31 +538,31 @@
                         .eq('is_active', true)
                         .order('name');
                     if (personnelError) throw personnelError;
-                    
+
                     departmentsData = depts.map(dept => ({
                         ...dept,
                         personnel: personnel.filter(p => p.department_id === dept.id)
-                    })).filter(dept => dept.personnel.length > 0 || fixedWorkshops.includes(dept.name)); 
-                    
+                    })).filter(dept => dept.personnel.length > 0 || fixedWorkshops.includes(dept.name));
+
                     console.log("Daily: Fetched and grouped departments and personnel:", departmentsData);
 
                 } catch (err) {
                     console.error("Daily: Error fetching departments/personnel data:", err);
                     alert(`加载部门或人员列表失败: ${err.message}. 备注中的选人功能可能不完整或不可用。`);
-                    departmentsData = []; 
+                    departmentsData = [];
                 }
             }
-            
+
             function renderPersonnelCascader(dropdownContainer, searchTerm = "") {
-                dropdownContainer.innerHTML = ''; 
+                dropdownContainer.innerHTML = '';
 
                 const searchInput = document.createElement('input');
                 searchInput.type = 'text';
                 searchInput.placeholder = '搜索车间/人员...';
-                searchInput.className = 'personnel-cascader-search-input'; 
+                searchInput.className = 'personnel-cascader-search-input';
                 searchInput.value = searchTerm;
                 searchInput.oninput = (e) => renderPersonnelCascader(dropdownContainer, e.target.value);
-                
+
                 const searchWrapper = document.createElement('div');
                 searchWrapper.className = 'personnel-cascader-search';
                 searchWrapper.appendChild(searchInput);
@@ -532,7 +581,7 @@
 
                     const actualPersonnel = departmentsData.find(d => d.id === dept.id)?.personnel || [];
 
-                    const matchingPersonnel = actualPersonnel.filter(p => 
+                    const matchingPersonnel = actualPersonnel.filter(p =>
                         p.name.toLowerCase().includes(searchTermLower)
                     );
 
@@ -544,7 +593,7 @@
 
                         const deptHeader = document.createElement('div');
                         deptHeader.className = 'personnel-cascader-department-header';
-                        
+
                         const deptCheckbox = document.createElement('input');
                         deptCheckbox.type = 'checkbox';
                         deptCheckbox.dataset.deptId = dept.id;
@@ -553,16 +602,16 @@
                         const deptNameSpan = document.createElement('span');
                         deptNameSpan.className = 'dept-name';
                         deptNameSpan.textContent = dept.name;
-                        
+
                         const toggleIcon = document.createElement('i');
                         toggleIcon.className = 'fas fa-chevron-right toggle-icon';
 
                         deptHeader.appendChild(deptCheckbox);
                         deptHeader.appendChild(deptNameSpan);
-                        if (actualPersonnel.length > 0) { 
+                        if (actualPersonnel.length > 0) {
                            deptHeader.appendChild(toggleIcon);
                         }
-                        
+
                         const personnelListDiv = document.createElement('div');
                         personnelListDiv.className = 'personnel-cascader-personnel-list';
 
@@ -570,13 +619,13 @@
                             matchingPersonnel.forEach(person => {
                                 const personItem = document.createElement('div');
                                 personItem.className = 'personnel-cascader-personnel-item';
-                                
+
                                 const personCheckbox = document.createElement('input');
                                 personCheckbox.type = 'checkbox';
                                 personCheckbox.dataset.personId = person.id;
                                 personCheckbox.dataset.personName = person.name;
                                 personCheckbox.className = 'person-checkbox';
-                                
+
                                 const personNameSpan = document.createElement('span');
                                 personNameSpan.textContent = person.name;
 
@@ -599,7 +648,7 @@
                         listContainer.appendChild(deptDiv);
 
                         deptHeader.onclick = (e) => {
-                            if (e.target.type === 'checkbox' || actualPersonnel.length === 0) return; 
+                            if (e.target.type === 'checkbox' || actualPersonnel.length === 0) return;
                             personnelListDiv.classList.toggle('expanded');
                             toggleIcon.classList.toggle('expanded');
                         };
@@ -623,20 +672,20 @@
                 const cancelButton = document.createElement('button');
                 cancelButton.type = 'button'; cancelButton.className = 'button cancel-btn'; cancelButton.textContent = '取消';
                 cancelButton.onclick = () => { if (currentPersonnelDropdown) currentPersonnelDropdown.style.display = 'none'; currentPersonnelDropdown = null; };
-                
+
                 const confirmButton = document.createElement('button');
                 confirmButton.type = 'button'; confirmButton.className = 'button confirm-btn'; confirmButton.textContent = '确认添加';
                 confirmButton.onclick = () => {
                     const selectedNames = [];
                     dropdownContainer.querySelectorAll('.person-checkbox:checked').forEach(cb => selectedNames.push(cb.dataset.personName));
-                    
+
                     const textarea = dropdownContainer.targetTextarea;
                     if (textarea && selectedNames.length > 0) {
                         let currentText = textarea.value;
                         let textToAppend = "";
 
                         selectedNames.forEach((name) => {
-                            textToAppend += name + "\n"; 
+                            textToAppend += name + "\n";
                         });
 
                         if (currentText.length > 0 && currentText[currentText.length - 1] !== '\n') {
@@ -658,7 +707,7 @@
                         const deptCb = parentDeptDiv.querySelector('.dept-checkbox');
                         if (!deptCb) return;
                         const allPersonnelInDeptCheckboxes = Array.from(parentDeptDiv.querySelectorAll('.person-checkbox'));
-                        if (allPersonnelInDeptCheckboxes.length === 0) { 
+                        if (allPersonnelInDeptCheckboxes.length === 0) {
                             deptCb.checked = false;
                             deptCb.indeterminate = false;
                             return;
@@ -674,7 +723,7 @@
                      if (!parentDeptDiv) return;
                     const allPersonnelInDeptCheckboxes = Array.from(parentDeptDiv.querySelectorAll('.person-checkbox'));
                      if (allPersonnelInDeptCheckboxes.length === 0) {
-                        deptCb.checked = false; 
+                        deptCb.checked = false;
                         deptCb.indeterminate = false;
                         return;
                     }
@@ -684,7 +733,7 @@
                     deptCb.indeterminate = !allChecked && someChecked;
                 });
             }
-            
+
             function openPersonnelCascader(buttonElement, textareaElement) {
                 if (currentPersonnelDropdown && currentPersonnelDropdown.style.display === 'block' && currentPersonnelDropdown.targetTextarea === textareaElement) {
                     currentPersonnelDropdown.style.display = 'none';
@@ -700,9 +749,9 @@
                     dropdown.className = 'personnel-cascader-dropdown';
                     wrapper.appendChild(dropdown);
                 }
-                dropdown.targetTextarea = textareaElement; 
+                dropdown.targetTextarea = textareaElement;
                 currentPersonnelDropdown = dropdown;
-                
+
                 renderPersonnelCascader(dropdown);
                 dropdown.style.display = 'block';
 
@@ -718,15 +767,15 @@
 
             function showDailyLoading(show = true) {
                if (loadingOverlay) loadingOverlay.classList.toggle('active', show);
-               if (datePicker) datePicker.disabled = show || isEditingDailyReport; 
+               if (datePicker) datePicker.disabled = show || isEditingDailyReport;
             }
 
             function updateDailyReportModeUI() {
                 if (!dailyReportContainer || !editButton || !saveButton || !datePicker) return;
                 dailyReportContainer.classList.toggle('edit-mode', isEditingDailyReport);
-                saveButton.disabled = !isEditingDailyReport || !supabase; 
-                editButton.disabled = isEditingDailyReport || !supabase;   
-                datePicker.disabled = isEditingDailyReport; 
+                saveButton.disabled = !isEditingDailyReport || !supabase;
+                editButton.disabled = isEditingDailyReport || !supabase;
+                datePicker.disabled = isEditingDailyReport;
                 const tbody = document.getElementById(tasksTableBodyId);
                 if (tbody) tbody.querySelectorAll('tr').forEach(row => renderDailyRowForMode(row, isEditingDailyReport));
                 if(tableContainer) tableContainer.scrollTop = 0;
@@ -751,7 +800,7 @@
                     if (isEditing) {
                         if (existingViewText) currentValue = existingViewText.textContent;
                         else if (existingTextarea) currentValue = existingTextarea.value;
-                        remarkCell.innerHTML = ''; 
+                        remarkCell.innerHTML = '';
                         let textarea = document.createElement('textarea');
                         textarea.rows = 2; textarea.placeholder = remarkCellInfo.placeholder; textarea.value = currentValue;
                         remarkCell.appendChild(textarea);
@@ -762,10 +811,10 @@
                         openBtn.title = '选择人员'; openBtn.innerHTML = '<i class="fas fa-users"></i> 选择人员';
                         openBtn.onclick = (e) => { e.stopPropagation(); openPersonnelCascader(openBtn, textarea); };
                         personnelWrapper.appendChild(openBtn); remarkCell.appendChild(personnelWrapper);
-                    } else { 
+                    } else {
                         if (existingTextarea) currentValue = existingTextarea.value;
                         else if (existingViewText) currentValue = existingViewText.textContent;
-                        remarkCell.innerHTML = ''; 
+                        remarkCell.innerHTML = '';
                         const span = document.createElement('span');
                         span.className = 'view-mode-text'; span.textContent = currentValue;
                         remarkCell.appendChild(span);
@@ -781,7 +830,7 @@
                          if (currentContent) value = currentContent.textContent;
                          else if (cell.querySelector(cellInfo.type)) value = cell.querySelector(cellInfo.type).value;
                          cell.innerHTML = ''; let inputElement;
-                         if (cellInfo.type === 'textarea') { inputElement = document.createElement('textarea'); inputElement.rows = 2; } 
+                         if (cellInfo.type === 'textarea') { inputElement = document.createElement('textarea'); inputElement.rows = 2; }
                          else { inputElement = document.createElement('input'); inputElement.type = cellInfo.inputType; if (cellInfo.step) inputElement.step = cellInfo.step; }
                          inputElement.placeholder = cellInfo.placeholder; inputElement.value = value; cell.appendChild(inputElement);
                      } else {
@@ -795,18 +844,18 @@
              }
 
             async function renderAndLoadDailyTable() {
-               showDailyLoading(true); isEditingDailyReport = false; 
+               showDailyLoading(true); isEditingDailyReport = false;
                try {
-                   renderDailyTableStructure(); 
+                   renderDailyTableStructure();
                    const selectedDate = datePicker?.value;
-                   if (selectedDate && supabase) await fetchAndDisplayDailyTasks(selectedDate); 
+                   if (selectedDate && supabase) await fetchAndDisplayDailyTasks(selectedDate);
                    else if (!supabase) tableContainer.innerHTML = '<p style="text-align:center;padding:20px;color:var(--danger);">数据库连接失败。</p>';
                    else if (!selectedDate) tableContainer.innerHTML = '<p style="text-align:center;padding:20px;">请选择日期。</p>';
-                   updateDailyReportModeUI(); 
+                   updateDailyReportModeUI();
                } catch (error) {
                    console.error("Error daily table render/load:", error);
                    tableContainer.innerHTML = `<p style="text-align:center;padding:20px;color:var(--danger);">加载数据出错</p>`;
-                   isEditingDailyReport = false; updateDailyReportModeUI(); 
+                   isEditingDailyReport = false; updateDailyReportModeUI();
                } finally { showDailyLoading(false); }
             }
 
@@ -825,9 +874,9 @@
             }
 
             function handleDailyTableClick(e) {
-                if (!isEditingDailyReport) return; 
+                if (!isEditingDailyReport) return;
                 const target = e.target;
-                if (target.closest('.open-personnel-selector-btn') || target.closest('.personnel-cascader-dropdown')) return; 
+                if (target.closest('.open-personnel-selector-btn') || target.closest('.personnel-cascader-dropdown')) return;
                 const addButton = target.closest('.add-task-btn');
                 const deleteButton = target.closest('.delete-btn');
                 if (addButton) addDailyTaskRowUI(Number(addButton.dataset.workshopIndex));
@@ -841,8 +890,8 @@
                const costValue = taskData?.workshop_cost_man_hours ?? '';
                const taskDescValue = taskData?.task_description ?? ''; const numPeopleValue = taskData?.num_people ?? '';
                const laborCostValue = taskData?.labor_cost ?? ''; const timeSpentValue = taskData?.time_spent ?? '';
-               const remarksValue = taskData?.remarks ?? ''; 
-               const costCellContent = isPrimaryRow ? `<input type="number" step="any" placeholder="车间总成本" value="${costValue}" />` : ''; 
+               const remarksValue = taskData?.remarks ?? '';
+               const costCellContent = isPrimaryRow ? `<input type="number" step="any" placeholder="车间总成本" value="${costValue}" />` : '';
                const buttonHTML = isPrimaryRow
                    ? `<button class="button add-task-btn" data-workshop-index="${index}" title="添加任务"><i class="fas fa-plus"></i> 添加</button>`
                    : `<button class="button delete-btn" title="删除任务"><i class="fas fa-trash-alt"></i> 删除</button>`;
@@ -859,33 +908,33 @@
             }
 
             function addDailyTaskRowUI(idx) {
-                if (!isEditingDailyReport) return; 
+                if (!isEditingDailyReport) return;
                 const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return;
                 const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${idx}"]`));
                 const lastRow = rows[rows.length - 1];
                 if (lastRow) {
                     const newRow = createDailyRow(idx, '', false, null); lastRow.after(newRow);
-                    renderDailyRowForMode(newRow, true); updateDailyTableUI(); 
+                    renderDailyRowForMode(newRow, true); updateDailyTableUI();
                     const firstInput = newRow.querySelector('textarea, input'); if (firstInput) firstInput.focus();
                 }
             }
 
             function deleteDailyTaskRowUI(deleteButton) {
-                 if (!isEditingDailyReport) return; 
+                 if (!isEditingDailyReport) return;
                  const rowToDelete = deleteButton.closest('tr'); if (!rowToDelete) return;
                  const tbody = rowToDelete.closest('tbody'); if (!tbody) return;
                  const workshopIndex = Number(rowToDelete.dataset.workshopIndex);
                  const rowsForWorkshop = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${workshopIndex}"]`));
-                 if (rowsForWorkshop.length > 1) { rowToDelete.remove(); updateDailyTableUI(); } 
+                 if (rowsForWorkshop.length > 1) { rowToDelete.remove(); updateDailyTableUI(); }
                  else { alert("每个车间至少需保留一行。"); }
             }
 
             function updateDailyTableUI() {
                 const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return;
                 let currentSerial = 1;
-                fixedWorkshops.forEach((workshopName, workshopIndex) => { 
+                fixedWorkshops.forEach((workshopName, workshopIndex) => {
                     const rows = Array.from(tbody.querySelectorAll(`tr[data-workshop-index="${workshopIndex}"]`));
-                    if (rows.length === 0) return; 
+                    if (rows.length === 0) return;
                     rows.forEach(row => {
                         row.querySelector('td.serial-cell')?.setAttribute('rowspan', '1');
                         row.querySelector('td.workshop')?.setAttribute('rowspan', '1');
@@ -916,24 +965,24 @@
                if (!supabase) return;
                try {
                    const { data: tasks, error } = await supabase.from('daily_tasks').select('*')
-                       .eq('report_date', selectedDate).order('workshop_index').order('id'); 
+                       .eq('report_date', selectedDate).order('workshop_index').order('id');
                    if (error) throw error;
-                   populateDailyTableWithData(tasks); 
+                   populateDailyTableWithData(tasks);
                } catch (err) { console.error('Daily: Error fetching tasks:', err); renderDailyTableStructure(); }
             }
 
             function populateDailyTableWithData(tasks) {
                const tbody = document.getElementById(tasksTableBodyId); if (!tbody) return;
                const primaryRowsMap = new Map();
-               tbody.querySelectorAll('tr').forEach(row => { 
+               tbody.querySelectorAll('tr').forEach(row => {
                    const index = row.dataset.workshopIndex;
                    if (index !== undefined) {
-                       if (isDailyPrimaryRow(row)) { clearDailyRowInputs(row); primaryRowsMap.set(index, row); } 
-                       else row.remove(); 
+                       if (isDailyPrimaryRow(row)) { clearDailyRowInputs(row); primaryRowsMap.set(index, row); }
+                       else row.remove();
                    }
                });
                const tasksByWorkshop = tasks.reduce((acc, task) => {
-                   const index = task.workshop_index; 
+                   const index = task.workshop_index;
                    if (index !== null && index >= 0 && index < fixedWorkshops.length) {
                        if (!acc[index]) acc[index] = [];
                        acc[index].push(task);
@@ -941,25 +990,25 @@
                    return acc;
                }, {});
 
-               fixedWorkshops.forEach((_, workshopIndex) => { 
-                   const wsIndexStr = String(workshopIndex); 
-                   const workshopTasks = tasksByWorkshop[workshopIndex] || []; 
-                   const primaryRow = primaryRowsMap.get(wsIndexStr); 
+               fixedWorkshops.forEach((_, workshopIndex) => {
+                   const wsIndexStr = String(workshopIndex);
+                   const workshopTasks = tasksByWorkshop[workshopIndex] || [];
+                   const primaryRow = primaryRowsMap.get(wsIndexStr);
                    if (!primaryRow) { console.error(`Primary row for index ${workshopIndex} not found in map`); return; }
-                   
+
                    if (workshopTasks.length > 0) {
-                       populateDailyRowInputs(primaryRow, workshopTasks[0]); 
+                       populateDailyRowInputs(primaryRow, workshopTasks[0]);
                        primaryRow.dataset.taskId = workshopTasks[0].id;
                        let lastAddedRow = primaryRow;
-                       for (let i = 1; i < workshopTasks.length; i++) { 
+                       for (let i = 1; i < workshopTasks.length; i++) {
                            const newRow = createDailyRow(workshopIndex, '', false, workshopTasks[i]);
-                           lastAddedRow.after(newRow); 
-                           populateDailyRowInputs(newRow, workshopTasks[i]); 
+                           lastAddedRow.after(newRow);
+                           populateDailyRowInputs(newRow, workshopTasks[i]);
                            lastAddedRow = newRow;
                        }
                    }
                });
-               updateDailyTableUI(); 
+               updateDailyTableUI();
             }
 
             function populateDailyRowInputs(row, data) {
@@ -975,25 +1024,25 @@
                 }
             }
 
-            function clearDailyRowInputs(row) { 
+            function clearDailyRowInputs(row) {
                 if (!row) return;
                 row.querySelectorAll('textarea, input[type="text"], input[type="number"]').forEach(el => el.value = '');
-                delete row.dataset.taskId; 
+                delete row.dataset.taskId;
             }
 
             async function saveDailyDataToSupabase() {
              if (!supabase || !datePicker?.value || !isEditingDailyReport) {
                  alert('无法保存。请检查日期选择、编辑模式和数据库连接。'); return;
              }
-             const btnHTML = saveButton.innerHTML; 
-             saveButton.disabled = true; editButton.disabled = true; 
+             const btnHTML = saveButton.innerHTML;
+             saveButton.disabled = true; editButton.disabled = true;
              saveButton.innerHTML = `<span class="spinner-border spinner-border-sm"></span> 保存中...`;
              const selDate = datePicker.value;
              const tbody = document.getElementById(tasksTableBodyId); if (!tbody) { alert('表格体未找到'); return; }
-             
-             const rows = tbody.querySelectorAll('tr'); const tasksToSave = []; const wsMaster = {}; 
-             fixedWorkshops.forEach((name, idx) => { 
-                 const pRow = tbody.querySelector(`tr[data-workshop-index="${idx}"]`); 
+
+             const rows = tbody.querySelectorAll('tr'); const tasksToSave = []; const wsMaster = {};
+             fixedWorkshops.forEach((name, idx) => {
+                 const pRow = tbody.querySelector(`tr[data-workshop-index="${idx}"]`);
                  if (pRow && isDailyPrimaryRow(pRow)) {
                      const cInput = pRow.querySelector('td.cost-cell input');
                      wsMaster[idx] = { name: name, costManHours: cInput?.value.trim() ? parseFloat(cInput.value) : null };
@@ -1001,41 +1050,41 @@
              });
 
              rows.forEach(row => {
-                const wsIdx = parseInt(row.dataset.workshopIndex, 10); 
+                const wsIdx = parseInt(row.dataset.workshopIndex, 10);
                 if(isNaN(wsIdx) || !wsMaster[wsIdx]) { console.warn("Skipping row, invalid index or no master data:", row); return;}
-                const master = wsMaster[wsIdx]; 
+                const master = wsMaster[wsIdx];
                 const getVal = (sel, elType='textarea') => row.querySelector(sel)?.[elType === 'input' ? 'value' : 'value']?.trim() ?? '';
                 const sDesc = getVal('td.task-description-cell textarea');
                 const sPpl = getVal('td.num-people-cell input', 'input');
                 const sCost = getVal('td.labor-cost-cell input', 'input');
                 const sTime = getVal('td.time-spent-cell input', 'input') || null;
-                const sRemark = getVal('td.remark-cell textarea'); 
+                const sRemark = getVal('td.remark-cell textarea');
                 const nPpl = sPpl ? parseInt(sPpl, 10) : null;
                 const nCost = sCost ? parseFloat(sCost) : null;
-                const hasData = sDesc || nPpl !== null || nCost !== null || sTime || sRemark; 
+                const hasData = sDesc || nPpl !== null || nCost !== null || sTime || sRemark;
                 const isPrimaryWCost = isDailyPrimaryRow(row) && master.costManHours !== null;
                 if (hasData || isPrimaryWCost) {
-                    tasksToSave.push({ report_date: selDate, workshop_index: wsIdx, workshop_name: master.name, 
+                    tasksToSave.push({ report_date: selDate, workshop_index: wsIdx, workshop_name: master.name,
                         task_description: sDesc || '', num_people: nPpl, labor_cost: nCost, time_spent: sTime,
                         remarks: sRemark, workshop_cost_man_hours: master.costManHours });
                 }
              });
-             showDailyLoading(true); 
+             showDailyLoading(true);
              try {
                  const { error: delErr } = await supabase.from('daily_tasks').delete().eq('report_date', selDate);
                  if (delErr) throw delErr;
                  if (tasksToSave.length > 0) {
-                     const { data: insData, error: insErr } = await supabase.from('daily_tasks').insert(tasksToSave).select(); 
+                     const { data: insData, error: insErr } = await supabase.from('daily_tasks').insert(tasksToSave).select();
                      if (insErr) throw insErr;
                      alert(`成功保存 ${insData?.length || 0} 条记录！`);
                  } else { alert(`已清除 ${selDate} 的旧记录，无新数据保存。`); }
-                 isEditingDailyReport = false; 
-                 await fetchAndDisplayDailyTasks(selDate); 
+                 isEditingDailyReport = false;
+                 await fetchAndDisplayDailyTasks(selDate);
              } catch (error) {
                  console.error('Daily Save Error:', error); alert(`保存出错: ${error.message}`);
-                 isEditingDailyReport = true; 
+                 isEditingDailyReport = true;
              } finally {
-                 saveButton.innerHTML = btnHTML; updateDailyReportModeUI(); showDailyLoading(false); 
+                 saveButton.innerHTML = btnHTML; updateDailyReportModeUI(); showDailyLoading(false);
              }
             }
 
@@ -1043,16 +1092,16 @@
 
             async function initDailyReport() {
                 console.log("Daily: Initializing Report...");
-                await fetchDepartmentsAndPersonnel(); 
+                await fetchDepartmentsAndPersonnel();
                 if (datePicker) {
                     datePicker.value = formatDailyToday();
                     if (!datePicker.dataset.listenerAttached) {
                         datePicker.onchange = () => { isEditingDailyReport = false; renderAndLoadDailyTable(); };
                         datePicker.dataset.listenerAttached = 'true';
                     }
-                     renderAndLoadDailyTable(); 
+                     renderAndLoadDailyTable();
                 } else { if(tableContainer) tableContainer.innerHTML = '<p>日期选择器加载失败</p>'; showDailyLoading(false); isEditingDailyReport = false; updateDailyReportModeUI(); }
-                
+
                 if (editButton && !editButton.dataset.listenerAttached) {
                     editButton.onclick = () => { if (!isEditingDailyReport) { isEditingDailyReport = true; updateDailyReportModeUI();}};
                     editButton.dataset.listenerAttached = 'true';
@@ -1061,7 +1110,7 @@
                     saveButton.onclick = saveDailyDataToSupabase;
                     saveButton.dataset.listenerAttached = 'true';
                 }
-                 updateDailyReportModeUI(); 
+                 updateDailyReportModeUI();
                  console.log("Daily: Report Initialized.");
             }
             window.initDailyReport = initDailyReport;
@@ -1079,12 +1128,12 @@
             const displaySelectedMonthSpan = document.getElementById('displaySelectedMonth');
             const loadingIndicator = document.getElementById('monthlyLoadingIndicator');
             const dataDisplayArea = document.getElementById('monthlyDataDisplay');
-            const libsLoaded = typeof Chart !== 'undefined'; 
+            const libsLoaded = typeof Chart !== 'undefined';
 
             if (!libsLoaded) { console.error("Monthly Summary Error: Chart.js library not loaded."); }
 
             function showMonthlyLoading(show = true) {
-                 if (loadingIndicator) loadingIndicator.classList.toggle('active', show); 
+                 if (loadingIndicator) loadingIndicator.classList.toggle('active', show);
                  if (dataDisplayArea) dataDisplayArea.style.display = show ? 'none' : 'block';
                  if(selectYear) selectYear.disabled = show; if(selectMonth) selectMonth.disabled = show;
             }
@@ -1124,7 +1173,7 @@
                 if (!supabase || !libsLoaded || !year || !month) { /* Handled by caller/init */ return; }
                 showMonthlyLoading(true); displaySelectedMonthSpan.textContent = `正在加载 ${year}年${month}月 数据...`;
                 resetMonthlyUI(); monthlyDailyWages = {}; fixedWorkshops.forEach(wk => { monthlyDailyWages[wk] = []; });
-                monthlyCurrentSelectedYear = year; monthlyCurrentSelectedMonth = month; 
+                monthlyCurrentSelectedYear = year; monthlyCurrentSelectedMonth = month;
 
                 try {
                     const startDate = `${year}-${String(month).padStart(2, '0')}-01`; const endDate = new Date(year, month, 0); const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
@@ -1188,16 +1237,18 @@
 
         // ----- GLOBAL PAGE INITIALIZATION -----
         document.addEventListener('DOMContentLoaded', async () => {
+            const pageLoadingOverlay = document.getElementById('page-loading-overlay'); // 获取加载动画元素
+
             console.log("DOM fully loaded. Initializing Tabs...");
-             if (window.initDailyReport) { 
-                await window.initDailyReport(); 
-            } else { 
-                console.error("Init Error: Daily Report init function missing."); 
+             if (window.initDailyReport) {
+                await window.initDailyReport();
+            } else {
+                console.error("Init Error: Daily Report init function missing.");
             }
-             if (window.initMonthlySummary) { 
-                window.initMonthlySummary(); 
-            } else { 
-                console.error("Init Error: Monthly Summary init function missing."); 
+             if (window.initMonthlySummary) {
+                window.initMonthlySummary();
+            } else {
+                console.error("Init Error: Monthly Summary init function missing.");
             }
             if (!supabase) {
                 console.warn("Supabase init failed globally. Adjusting UI.");
@@ -1208,7 +1259,12 @@
             } else {
                  console.log("Supabase client ready globally.");
             }
-             console.log("Tab initialization complete.");
+             console.log("Tab initialization complete. Hiding page loading overlay.");
+
+            // 新增：隐藏全局加载动画
+            if (pageLoadingOverlay) {
+                pageLoadingOverlay.classList.add('hidden');
+            }
         });
     </script>
 </body>

@@ -857,199 +857,107 @@
                 });
             }
 
-            // **** 导出功能相关的 JavaScript 代码 (已修改为使用 SheetJS) ****
+                        // **** 导出功能相关的 JavaScript 代码 (已修改为使用 SheetJS) ****
             const exportButton = document.getElementById('exportButton');
 
             if (exportButton) {
                 exportButton.addEventListener('click', function() {
+                    // 这些获取元素和名称的逻辑保持不变，因为最小化测试不依赖它们，但为了完整性可以留着
                     const activePane = document.querySelector('.tab-pane.active');
-                    if (!activePane) {
-                        alert('错误：没有找到当前激活的标签页。');
-                        return;
-                    }
-
+                    if (!activePane) { /* ... */ return; }
                     const activeIframe = activePane.querySelector('iframe');
-                    if (!activeIframe) {
-                        alert('错误：当前标签页内没有找到 iframe。');
-                        return;
-                    }
-
+                    if (!activeIframe) { /* ... */ return; }
                     let iframeDocument;
                     try {
                         iframeDocument = activeIframe.contentDocument || (activeIframe.contentWindow && activeIframe.contentWindow.document);
-                    } catch (e) {
-                        console.error("访问iframe内容时出错: ", e);
-                        alert('错误：无法访问 iframe 内容。这可能是由于跨域安全限制。\n错误信息: ' + e.message);
-                        return;
-                    }
-                    
-                    if (!iframeDocument) {
-                        alert('提示：当前车间的工资表页面可能尚未完全加载或无法访问，请稍后再试。');
-                        return;
-                    }
-
+                    } catch (e) { /* ... */ return; }
+                    if (!iframeDocument) { /* ... */ return; }
                     const tableElement = iframeDocument.querySelector('table'); 
-                    if (!tableElement) {
-                        if (iframeDocument.body && iframeDocument.body.innerHTML.trim() === "") {
-                             alert('提示：当前车间页面内容为空，无法导出工资表格。');
-                        } else {
-                             alert('提示：在当前车间页面中未找到可导出的工资表格数据 (未找到 <table> 元素)。');
-                        }
-                        return;
-                    }
+                    // 对于最小化测试，我们不使用 tableElement，但如果它不存在导致前面return了，测试也执行不到
+                    // if (!tableElement) { /* ... */ return; } // 可以暂时注释掉这个检查，如果它干扰了最小化测试的执行
                     
                     const activeTabButton = document.querySelector('.nav-tabs .nav-link.active');
                     let workshopName = '未知车间'; 
                     if (activeTabButton) {
                         workshopName = activeTabButton.textContent.trim(); 
                     }
-                    
-                    const filename = `${workshopName}_${currentYear}年${selectedMonth}月_工资表.xlsx`;
-                    
-                    try { // ▼▼▼▼▼ 从这里开始是修改后的 try 块 ▼▼▼▼▼
-                        // 检查 SheetJS 是否已加载
+                    // const filename = `${workshopName}_${currentYear}年${selectedMonth}月_工资表.xlsx`; // 最小化测试会用自己的文件名
+
+
+                    try {
+                        // 检查 SheetJS 是否已加载 (这行保留)
                         if (typeof XLSX === 'undefined') {
                             alert('错误：导出库 (SheetJS) 未加载，请检查网络连接或刷新页面，并确保已在HTML中引入xlsx.full.min.js。');
                             console.error("SheetJS (XLSX) is not defined. Make sure the library is loaded.");
                             return;
                         }
 
-                        // 1. 使用 table_to_sheet 获取基础工作表，它包含数据和合并信息
-                        const ws = XLSX.utils.table_to_sheet(tableElement, { raw: true });
+                        // --- MINIMAL TEST START ---
+                        console.log("Starting Minimal Style Test...");
 
-                        // 2. 定义一些基本样式
-                        const baseFont = { name: "Arial Black", sz: 8 }; // 非常规字体和非常小的字号
+                        const minimal_ws = {}; // 创建一个空的工作表对象
 
-                        const headerStyle = {
+                        // 定义一个夸张的样式
+                        const exaggeratedStyle = {
                             font: { name: "Impact", sz: 24, bold: true, color: { rgb: "FF00FF" } }, // 品红色、Impact字体、24号
-                            alignment: { horizontal: "right", vertical: "bottom", wrapText: false }, // 右下对齐，不换行
                             fill: { fgColor: { rgb: "00FFFF" } }, // 青色背景
-                            border: { // 非常粗的边框
-                                top: { style: "thick", color: { rgb: "00FF00" } }, // 绿色粗上边框
-                                bottom: { style: "double", color: { rgb: "0000FF" } }, // 蓝色双线下边框
-                                left: { style: "dashed", color: { rgb: "FF0000" } }, // 红色虚线左边框
-                                right: { style: "dotted", color: { rgb: "FFFF00" } }  // 黄色点线右边框
-                            }
+                            alignment: { horizontal: "center" }
+                        };
+                        const normalStyle = {
+                            font: { name: "Arial", sz: 10 },
+                            border: { top: {style: "thin", color: {rgb: "000000"}}, bottom: {style: "thin", color: {rgb: "000000"}}} // 添加黑色边框
                         };
 
-                        const cellStyle = { // 数据单元格也用夸张样式
-                            font: { name: "Courier New", sz: 16, italic: true, color: { rgb: "FFA500" } }, // 橙色、Courier New、16号、斜体
-                            alignment: { horizontal: "left", vertical: "top", wrapText: true }, // 左上对齐
-                            fill: { fgColor: { rgb: "D3D3D3" } }, // 浅灰色背景
-                            border: {
-                                top: { style: "thin", color: { rgb: "800080" } }, // 紫色细上边框
-                                bottom: { style: "thin", color: { rgb: "800080" } }
-                            }
+
+                        // 设置单元格 A1
+                        const cell_A1_ref = XLSX.utils.encode_cell({c:0, r:0}); // A1
+                        minimal_ws[cell_A1_ref] = {
+                            v: "Styled A1 Test", // 值
+                            t: "s",         // 类型：字符串
+                            s: JSON.parse(JSON.stringify(exaggeratedStyle)) // 应用夸张样式
+                        };
+
+                        // 设置单元格 B1
+                        const cell_B1_ref = XLSX.utils.encode_cell({c:1, r:0}); // B1
+                        minimal_ws[cell_B1_ref] = {
+                            v: 123.45,
+                            t: "n",
+                            z: "0.00",
+                            s: JSON.parse(JSON.stringify(normalStyle))
                         };
                         
-                        // centerCellStyle 和 rightCellStyle 也会基于这个夸张的 cellStyle
-                        const centerCellStyle = JSON.parse(JSON.stringify(cellStyle));
-                        centerCellStyle.alignment.horizontal = "center";
+                        // 设置单元格 A2 (合并 A2:B2)
+                        const cell_A2_ref = XLSX.utils.encode_cell({c:0, r:1}); // A2
+                        minimal_ws[cell_A2_ref] = {
+                            v: "Merged A2:B2 with Style Test",
+                            t: "s",
+                            s: JSON.parse(JSON.stringify(exaggeratedStyle))
+                        };
+                        // 合并信息
+                        minimal_ws['!merges'] = [
+                            { s: {r:1, c:0}, e: {r:1, c:1} } // 合并 A2 (行1,列0) 到 B2 (行1,列1)
+                        ];
 
-                        const rightCellStyle = JSON.parse(JSON.stringify(cellStyle));
-                        rightCellStyle.alignment.horizontal = "right";
 
-                        // 3. 遍历单元格应用样式
-                        const range = XLSX.utils.decode_range(ws['!ref']);
-                        const tHeadRows = tableElement.querySelectorAll('thead tr');
-                        // 智能一点判断表头行，如果没有thead，则看第一行是否有th，否则认为没有严格表头
-                        const headerRowCount = tHeadRows.length > 0 ? tHeadRows.length : 
-                                               (tableElement.rows.length > 0 && tableElement.rows[0].querySelectorAll('th').length > 0 ? 1 : 0);
+                        // 设置工作表的范围 (非常重要！)
+                        minimal_ws['!ref'] = XLSX.utils.encode_range({s:{c:0,r:0}, e:{c:1,r:1}}); // A1:B2
 
-                        for (let R = range.s.r; R <= range.e.r; ++R) {
-                            const isHeaderRow = (R < headerRowCount);
-                            for (let C = range.s.c; C <= range.e.c; ++C) {
-                                const cell_address = { c: C, r: R };
-                                const cell_ref = XLSX.utils.encode_cell(cell_address);
-                                
-                                if (!ws[cell_ref]) continue; // 跳过空单元格或被合并单元格的非主单元格
+                        console.log("Minimal WS object for test:", JSON.parse(JSON.stringify(minimal_ws))); // 打印这个手动构建的对象
 
-                                if (isHeaderRow) {
-                                    ws[cell_ref].s = JSON.parse(JSON.stringify(headerStyle));
-                                } else {
-                                    const cellValue = ws[cell_ref].v;
-                                    const cellText = ws[cell_ref].w || (cellValue !== null && cellValue !== undefined ? String(cellValue) : "");
-
-                                    if (typeof cellValue === 'number' && !cellText.includes('%')) {
-                                        ws[cell_ref].s = JSON.parse(JSON.stringify(rightCellStyle));
-                                        ws[cell_ref].t = 'n';
-                                        if (String(cellValue).includes('.')) {
-                                            ws[cell_ref].z = '0.00';
-                                        } else {
-                                            ws[cell_ref].z = '0';
-                                        }
-                                    } else if (cellText.includes('%')) {
-                                        ws[cell_ref].s = JSON.parse(JSON.stringify(rightCellStyle));
-                                        ws[cell_ref].t = 'n';
-                                        let numericValue = parseFloat(cellText.replace(/%/g, '')) / 100;
-                                        if (!isNaN(numericValue) && typeof ws[cell_ref].v !== 'number') {
-                                            ws[cell_ref].v = numericValue;
-                                        }
-                                        ws[cell_ref].z = '0.00%';
-                                    } else {
-                                        if (cellText.length < 10 && !/[\u4e00-\u9fa5]{5,}/.test(cellText) && !/\n/.test(cellText)) { 
-                                            ws[cell_ref].s = JSON.parse(JSON.stringify(centerCellStyle));
-                                        } else { 
-                                            ws[cell_ref].s = JSON.parse(JSON.stringify(cellStyle));
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        const minimal_wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(minimal_wb, minimal_ws, "MinimalStyleTestSheet"); // 给sheet一个名字
+                        XLSX.writeFile(minimal_wb, "minimal_styled_test.xlsx"); // 指定文件名
                         
-                        // 4. 设置列宽
-                        const columnWidths = [];
-                        if (ws['!ref']) { 
-                            for (let C = range.s.c; C <= range.e.c; ++C) {
-                                let maxColWidth = 0;
-                                for (let R = range.s.r; R <= range.e.r; ++R) {
-                                    const cell_ref = XLSX.utils.encode_cell({ r: R, c: C });
-                                    const cell = ws[cell_ref];
-                                    if (cell && cell.v !== null && cell.v !== undefined) {
-                                        const cellText = cell.w || String(cell.v); 
-                                        let charCount = 0;
-                                        for (let k = 0; k < cellText.length; k++) {
-                                            charCount += (cellText.charCodeAt(k) > 255 ? 1.8 : 1); // 中文算1.8，英文算1
-                                        }
-                                        if (charCount > maxColWidth) {
-                                            maxColWidth = charCount;
-                                        }
-                                    }
-                                }
-                                columnWidths[C] = { wch: Math.min(Math.max(maxColWidth + 1.5, 8), 60) }; // 最小8，最大60
-                            }
-                            ws['!cols'] = columnWidths;
-                        }
+                        alert('Minimal test file "minimal_styled_test.xlsx" has been generated. Please check it.');
+                        return; // 非常重要：暂时中断，不执行后续的正常导出流程
+                        // --- MINIMAL TEST END ---
 
-                        // DEBUG: 检查样式是否被应用
-                    console.log("Generated Worksheet Object (ws):", JSON.parse(JSON.stringify(ws))); // 打印整个工作表对象 (深拷贝以避免循环引用问题)
-                    if (ws['A1']) { // 假设A1是表头
-                        console.log("Style for A1:", ws['A1'].s);
-                    }
-                    let firstDataCellRef = '';
-                    if (headerRowCount < range.e.r +1) { // 确保有数据行
-                        firstDataCellRef = XLSX.utils.encode_cell({r: headerRowCount, c: 0}); // 获取第一个数据单元格的引用，如A2或A3
-                        if(ws[firstDataCellRef]){
-                            console.log(`Style for ${firstDataCellRef}:`, ws[firstDataCellRef].s);
-                        } else {
-                            console.log(`${firstDataCellRef} not found in ws.`);
-                        }
-                    }
-
-
-                        // 5. 创建工作簿并写入文件
-                        const wb = XLSX.utils.book_new();
-                        XLSX.utils.book_append_sheet(wb, ws, workshopName);
-                        XLSX.writeFile(wb, filename);
-                        
-                        // alert(`工资表 "${filename}" 已开始下载。`); // 可选提示
-
-                    } catch (error) { // ▲▲▲▲▲ try 块结束，catch 开始 ▲▲▲▲▲
-                        console.error("导出 XLSX 时发生错误:", error);
+                    } catch (error) { 
+                        console.error("导出 XLSX 时发生错误 (during minimal test or normal export):", error);
                         alert("导出 XLSX 失败，详情请查看浏览器控制台。");
                     }
-                }); // 这个是 addEventListener 的结束
-            } // 这个是 if (exportButton) 的结束
+                }); 
+            }
 
             // 以下用于CSV导出的旧函数不再需要，已被移除或注释
             /*

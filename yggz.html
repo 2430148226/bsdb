@@ -857,11 +857,11 @@
                 });
             }
 
-                       // **** 导出功能相关的 JavaScript 代码 (使用 ExcelJS 通过 CDN - 修正版) ****
+                        // **** 导出功能相关的 JavaScript 代码 (使用 ExcelJS - 小计行特殊样式，其他数据居中) ****
             const exportButton = document.getElementById('exportButton');
 
             if (exportButton) {
-                exportButton.addEventListener('click', async function() { // 1. 改为 async function
+                exportButton.addEventListener('click', async function() {
                     // --- 获取元素和基本信息的代码 ---
                     const activePane = document.querySelector('.tab-pane.active');
                     if (!activePane) {
@@ -900,7 +900,6 @@
                         workshopName = activeTabButton.textContent.trim(); 
                     }
                     // currentYear 和 selectedMonth 变量需要在此作用域内可访问
-                    // 假设它们是在外部定义的 (例如在 DOMContentLoaded 回调的顶层)
                     const filename = `${workshopName}_${currentYear}年${selectedMonth}月_工资表.xlsx`;
                     // --- 获取元素和基本信息的代码结束 ---
 
@@ -921,39 +920,36 @@
                         // 4. 定义样式
                         const headerStyle = {
                             font: { name: '宋体', size: 12, bold: true, color: { argb: 'FF000000' } },
-                            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } },
+                            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }, // 浅蓝色背景
                             alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
                             border: { 
                                 top: { style: 'thin', color: { argb: 'FF000000' } }, bottom: { style: 'thin', color: { argb: 'FF000000' } },
                                 left: { style: 'thin', color: { argb: 'FF000000' } }, right: { style: 'thin', color: { argb: 'FF000000' } }
                             }
                         };
-                        const cellStyle = { 
+
+                        const cellStyle = { // 普通数据单元格的默认样式 (居中)
                             font: { name: '宋体', size: 11, color: { argb: 'FF000000' } },
-                            alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
+                            alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, // 默认居中
                             border: { 
                                 top: { style: 'thin', color: { argb: 'FFB2B2B2' } }, bottom: { style: 'thin', color: { argb: 'FFB2B2B2' } },
                                 left: { style: 'thin', color: { argb: 'FFB2B2B2' } }, right: { style: 'thin', color: { argb: 'FFB2B2B2' } }
                             }
                         };
-                        const rightCellStyle = JSON.parse(JSON.stringify(cellStyle));
-                        rightCellStyle.alignment = { ...rightCellStyle.alignment, horizontal: 'right' }; // 保留 vertical 和 wrapText
-                        const centerCellStyle = JSON.parse(JSON.stringify(cellStyle));
-                        centerCellStyle.alignment = { ...centerCellStyle.alignment, horizontal: 'center' };
-
-                       const subtotalStyle = {
-                       font: { name: '宋体', size: 11, bold: true, color: { argb: 'FFFF0000' } }, // 红色、加粗
-                       alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, // 确保水平居中
-                       border: { 
-                       top: { style: 'thin', color: { argb: 'FFB2B2B2' } }, bottom: { style: 'thin', color: { argb: 'FFB2B2B2' } },
-                       left: { style: 'thin', color: { argb: 'FFB2B2B2' } }, right: { style: 'thin', color: { argb: 'FFB2B2B2' } }
-                    }
-                    // 可选：fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFCC' } } // 例如淡黄色背景
-                     };
+                        
+                        const subtotalStyle = { // “小计”行样式
+                            font: { name: '宋体', size: 11, bold: true, color: { argb: 'FFFF0000' } }, // 红色、加粗
+                            alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, // 居中
+                            border: { // 与普通单元格边框一致或自定义
+                                top: { style: 'thin', color: { argb: 'FFB2B2B2' } }, bottom: { style: 'thin', color: { argb: 'FFB2B2B2' } },
+                                left: { style: 'thin', color: { argb: 'FFB2B2B2' } }, right: { style: 'thin', color: { argb: 'FFB2B2B2' } }
+                            }
+                            // 可选：fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFE0' } } // 例如非常浅的黄色背景
+                        };
 
 
                         // 5. 遍历 HTML 表格填充数据和样式
-                        const rows = tableElement.rows; // HTMLCollection of <tr> elements
+                        const rows = tableElement.rows;
                         let headerRowCount = 0;
                         if (tableElement.tHead && tableElement.tHead.rows.length > 0) {
                             headerRowCount = tableElement.tHead.rows.length;
@@ -961,7 +957,6 @@
                             headerRowCount = 1;
                         }
 
-                        // 估算最大HTML列数，用于初始化 cellOccupied
                         let maxHtmlCols = 0;
                         if (rows.length > 0) {
                             for (let k = 0; k < rows.length; k++) {
@@ -974,28 +969,24 @@
                                 }
                             }
                         }
-                        // 如果表格完全为空，给一个默认的小尺寸
                         if (maxHtmlCols === 0 && rows.length > 0 && rows[0].cells.length > 0) maxHtmlCols = rows[0].cells.length;
                         else if (maxHtmlCols === 0) maxHtmlCols = 1;
 
+                        const cellOccupied = Array(rows.length).fill(null).map(() => Array(maxHtmlCols + 20).fill(false));
 
-                        const cellOccupied = Array(rows.length).fill(null).map(() => Array(maxHtmlCols + 20).fill(false)); // 增加 buffer
-
-                        for (let i = 0; i < rows.length; i++) { // HTML 行索引
+                        for (let i = 0; i < rows.length; i++) { 
                             const htmlRow = rows[i];
                             const excelRowNumber = i + 1; 
-                            
                             let currentExcelCol = 1; 
 
                             for (let j = 0; j < htmlRow.cells.length; j++) { 
                                 while (cellOccupied[i] && currentExcelCol <= maxHtmlCols && cellOccupied[i][currentExcelCol-1] ) { 
                                     currentExcelCol++;
                                 }
-                                if (currentExcelCol > maxHtmlCols + 10 && htmlRow.cells.length > 0) { // 防止死循环或越界过多
+                                if (currentExcelCol > maxHtmlCols + 10 && htmlRow.cells.length > 0) {
                                     console.warn(`Skipping further cells in HTML row ${i} due to excessive column offset.`);
                                     break; 
                                 }
-
 
                                 const htmlCell = htmlRow.cells[j];
                                 const excelCell = worksheet.getCell(excelRowNumber, currentExcelCol);
@@ -1008,13 +999,11 @@
                                 if (cellText.includes('%')) {
                                     const num = parseFloat(cellText.replace(/%/g, '')) / 100;
                                     if (!isNaN(num)) { cellValue = num; numFmt = '0.00%';}
-                                } else if (/^-?[\d,]+(\.\d+)?$/.test(cellText.replace(/,/g, '')) && !isNaN(parseFloat(cellText.replace(/,/g, '')))) { // 检查是否是数字（可能带千分位）
+                                } else if (/^-?[\d,]+(\.\d+)?$/.test(cellText.replace(/,/g, '')) && !isNaN(parseFloat(cellText.replace(/,/g, '')))) {
                                     cellValue = parseFloat(cellText.replace(/,/g, ''));
                                     const parts = cellText.split('.');
                                     if (parts.length > 1 && parts[1].length > 0) {
                                         numFmt = `0.${'0'.repeat(parts[1].length)}`;
-                                    } else {
-                                       // numFmt = '0'; // 整数，或不设置让Excel自动判断
                                     }
                                 }
                                 excelCell.value = cellValue;
@@ -1022,26 +1011,29 @@
                                 // --- 数据类型和格式转换结束 ---
 
                                 // --- 应用样式 ---
-                                if (i < headerRowCount) { // 表头行
+                                if (i < headerRowCount) { 
                                     excelCell.style = JSON.parse(JSON.stringify(headerStyle));
-                                } else { // 数据行
-                        let isSubtotalRow = false;
-                        // 假设“小计”文字通常在行的前几个单元格，例如第一个或第二个
-                        // 你需要根据你的实际表格结构调整这里的判断条件
-                        if (htmlRow.cells[0] && (htmlRow.cells[0].innerText || htmlRow.cells[0].textContent || "").includes("小计")) {
-                            isSubtotalRow = true;
-                        } else if (htmlRow.cells[1] && (htmlRow.cells[1].innerText || htmlRow.cells[1].textContent || "").includes("小计")) {
-                            isSubtotalRow = true;
-                        }
-                        // 你也可以根据需要添加更复杂的“小计”行识别逻辑
+                                } else { 
+                                    let isSubtotalRow = false;
+                                    // 检查当前行的任意单元格是否包含 "小计"
+                                    for (let k=0; k < htmlRow.cells.length; k++) {
+                                       if ((htmlRow.cells[k].innerText || htmlRow.cells[k].textContent || "").includes("小计")) {
+                                           isSubtotalRow = true;
+                                           break;
+                                       }
+                                    }
+                                    // 或者，如果你知道 "小计" 总是在特定列，可以简化判断:
+                                    // if (htmlRow.cells[0] && (htmlRow.cells[0].innerText || htmlRow.cells[0].textContent || "").includes("小计")) {
+                                    //     isSubtotalRow = true;
+                                    // }
 
-                        if (isSubtotalRow) {
-                            // “小计”行所有单元格（包括文字和数字）都应用 subtotalStyle (已包含居中)
-                            excelCell.style = JSON.parse(JSON.stringify(subtotalStyle));
-                        } else {
-                            // 非小计数据行，所有单元格都应用居中的 cellStyle
-                            excelCell.style = JSON.parse(JSON.stringify(cellStyle));
+                                    if (isSubtotalRow) {
+                                        excelCell.style = JSON.parse(JSON.stringify(subtotalStyle));
+                                    } else {
+                                        excelCell.style = JSON.parse(JSON.stringify(cellStyle));
+                                    }
                                 }
+                                // --- 应用样式结束 ---
 
                                 // --- 处理 colspan 和 rowspan ---
                                 const colspan = parseInt(htmlCell.getAttribute('colspan') || '1');
@@ -1067,7 +1059,7 @@
                         worksheet.columns.forEach((column, idx) => { 
                             let maxLength = 0;
                             column.eachCell({ includeEmpty: true }, (cell) => {
-                                let textLength = 8; // 默认最小宽度对应的字符数 (给空单元格一个基础宽度)
+                                let textLength = 8; 
                                 if (cell.value) {
                                     const cellText = cell.text || cell.value.toString(); 
                                     textLength = 0;

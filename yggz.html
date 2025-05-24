@@ -1065,19 +1065,19 @@
                         worksheet.columns.forEach((column, idx) => { 
                             let maxLength = 0;
                             column.eachCell({ includeEmpty: true }, (cell) => {
-                                let textLength = 8; 
+                                let textLength = 3; 
                                 if (cell.value) {
                                     const cellText = cell.text || cell.value.toString(); 
                                     textLength = 0;
                                     for (let k = 0; k < cellText.length; k++) {
-                                        textLength += (cellText.charCodeAt(k) > 255 ? 1.8 : 1); 
+                                        textLength += (cellText.charCodeAt(k) > 255 ? 1.2 : 0.7); 
                                     }
                                 }
                                 if (textLength > maxLength) {
                                     maxLength = textLength;
                                 }
                             });
-                            column.width = Math.min(Math.max(maxLength + 2, 8), 50); 
+                            column.width = Math.min(Math.max(maxLength + 2, 5), 15); 
                         });
 
                         // 7. 生成并下载文件

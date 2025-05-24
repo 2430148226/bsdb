@@ -918,32 +918,32 @@
                         const ws = XLSX.utils.table_to_sheet(tableElement, { raw: true });
 
                         // 2. 定义一些基本样式
-                        const baseFont = { name: "宋体", sz: 11 }; // 基础字体，你可以改为 "Calibri" 或其他
-                        
+                        const baseFont = { name: "Arial Black", sz: 8 }; // 非常规字体和非常小的字号
+
                         const headerStyle = {
-                            font: { ...baseFont, bold: true, sz: 12, color: { rgb: "000000"} },
-                            alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                            fill: { fgColor: { rgb: "DDEBF7" } }, // 浅蓝色背景 (Office 风格)
-                            border: {
-                                top: { style: "thin", color: { rgb: "000000" } },
-                                bottom: { style: "thin", color: { rgb: "000000" } },
-                                left: { style: "thin", color: { rgb: "000000" } },
-                                right: { style: "thin", color: { rgb: "000000" } }
+                            font: { name: "Impact", sz: 24, bold: true, color: { rgb: "FF00FF" } }, // 品红色、Impact字体、24号
+                            alignment: { horizontal: "right", vertical: "bottom", wrapText: false }, // 右下对齐，不换行
+                            fill: { fgColor: { rgb: "00FFFF" } }, // 青色背景
+                            border: { // 非常粗的边框
+                                top: { style: "thick", color: { rgb: "00FF00" } }, // 绿色粗上边框
+                                bottom: { style: "double", color: { rgb: "0000FF" } }, // 蓝色双线下边框
+                                left: { style: "dashed", color: { rgb: "FF0000" } }, // 红色虚线左边框
+                                right: { style: "dotted", color: { rgb: "FFFF00" } }  // 黄色点线右边框
                             }
                         };
 
-                        const cellStyle = {
-                            font: { ...baseFont },
-                            alignment: { vertical: "center", wrapText: true }, // 默认左对齐
+                        const cellStyle = { // 数据单元格也用夸张样式
+                            font: { name: "Courier New", sz: 16, italic: true, color: { rgb: "FFA500" } }, // 橙色、Courier New、16号、斜体
+                            alignment: { horizontal: "left", vertical: "top", wrapText: true }, // 左上对齐
+                            fill: { fgColor: { rgb: "D3D3D3" } }, // 浅灰色背景
                             border: {
-                                top: { style: "thin", color: { rgb: "B2B2B2" } },    // 稍浅的边框颜色
-                                bottom: { style: "thin", color: { rgb: "B2B2B2" } },
-                                left: { style: "thin", color: { rgb: "B2B2B2" } },
-                                right: { style: "thin", color: { rgb: "B2B2B2" } }
+                                top: { style: "thin", color: { rgb: "800080" } }, // 紫色细上边框
+                                bottom: { style: "thin", color: { rgb: "800080" } }
                             }
                         };
                         
-                        const centerCellStyle = JSON.parse(JSON.stringify(cellStyle)); // 深拷贝
+                        // centerCellStyle 和 rightCellStyle 也会基于这个夸张的 cellStyle
+                        const centerCellStyle = JSON.parse(JSON.stringify(cellStyle));
                         centerCellStyle.alignment.horizontal = "center";
 
                         const rightCellStyle = JSON.parse(JSON.stringify(cellStyle));

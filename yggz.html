@@ -1021,6 +1021,22 @@
                             ws['!cols'] = columnWidths;
                         }
 
+                        // DEBUG: 检查样式是否被应用
+                    console.log("Generated Worksheet Object (ws):", JSON.parse(JSON.stringify(ws))); // 打印整个工作表对象 (深拷贝以避免循环引用问题)
+                    if (ws['A1']) { // 假设A1是表头
+                        console.log("Style for A1:", ws['A1'].s);
+                    }
+                    let firstDataCellRef = '';
+                    if (headerRowCount < range.e.r +1) { // 确保有数据行
+                        firstDataCellRef = XLSX.utils.encode_cell({r: headerRowCount, c: 0}); // 获取第一个数据单元格的引用，如A2或A3
+                        if(ws[firstDataCellRef]){
+                            console.log(`Style for ${firstDataCellRef}:`, ws[firstDataCellRef].s);
+                        } else {
+                            console.log(`${firstDataCellRef} not found in ws.`);
+                        }
+                    }
+
+
                         // 5. 创建工作簿并写入文件
                         const wb = XLSX.utils.book_new();
                         XLSX.utils.book_append_sheet(wb, ws, workshopName);

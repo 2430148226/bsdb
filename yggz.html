@@ -930,7 +930,7 @@
                         };
                         const cellStyle = { 
                             font: { name: '宋体', size: 11, color: { argb: 'FF000000' } },
-                            alignment: { vertical: 'middle', wrapText: true }, // 默认左对齐
+                            alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
                             border: { 
                                 top: { style: 'thin', color: { argb: 'FFB2B2B2' } }, bottom: { style: 'thin', color: { argb: 'FFB2B2B2' } },
                                 left: { style: 'thin', color: { argb: 'FFB2B2B2' } }, right: { style: 'thin', color: { argb: 'FFB2B2B2' } }
@@ -1012,21 +1012,12 @@
                                 // --- 数据类型和格式转换结束 ---
 
                                 // --- 应用样式 ---
-                                if (i < headerRowCount) {
+                                if (i < headerRowCount) { // 表头行
                                     excelCell.style = JSON.parse(JSON.stringify(headerStyle));
-                                } else {
-                                    if (typeof excelCell.value === 'number' && !cellText.includes('%')) {
-                                        excelCell.style = JSON.parse(JSON.stringify(rightCellStyle));
-                                    } else if (cellText.includes('%')) {
-                                        excelCell.style = JSON.parse(JSON.stringify(rightCellStyle));
-                                    } else {
-                                        // 简单文本居中逻辑（可按需调整）
-                                        if (cellText.length < 10 && !/[\u4e00-\u9fa5]{5,}/.test(cellText) && !/\n/.test(cellText)) {
-                                            excelCell.style = JSON.parse(JSON.stringify(centerCellStyle));
-                                        } else {
-                                            excelCell.style = JSON.parse(JSON.stringify(cellStyle));
-                                        }
-                                    }
+                                } else { // 数据行
+                                    // ▼▼▼ 所有数据单元格都应用居中的 cellStyle ▼▼▼
+                                    excelCell.style = JSON.parse(JSON.stringify(cellStyle)); 
+                                    // ▲▲▲ 修改结束 ▲▲▲
                                 }
                                 // --- 应用样式结束 ---
 

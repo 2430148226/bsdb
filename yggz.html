@@ -914,7 +914,7 @@
                         minimal_ws[cell_A1_ref] = {
                             v: "Styled A1 Test", // 值
                             t: "s",         // 类型：字符串
-                            s: JSON.parse(JSON.stringify(exaggeratedStyle)) // 应用夸张样式
+                            s: exaggeratedStyle // 应用夸张样式
                         };
 
                         // 设置单元格 B1
@@ -923,7 +923,7 @@
                             v: 123.45,
                             t: "n",
                             z: "0.00",
-                            s: JSON.parse(JSON.stringify(normalStyle))
+                            s: exaggeratedStyle
                         };
                         
                         // 设置单元格 A2 (合并 A2:B2)
@@ -931,7 +931,7 @@
                         minimal_ws[cell_A2_ref] = {
                             v: "Merged A2:B2 with Style Test",
                             t: "s",
-                            s: JSON.parse(JSON.stringify(exaggeratedStyle))
+                            s: exaggeratedStyle
                         };
                         // 合并信息
                         minimal_ws['!merges'] = [

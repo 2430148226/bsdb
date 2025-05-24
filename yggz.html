@@ -861,10 +861,6 @@
             const exportButton = document.getElementById('exportButton');
 
             if (exportButton) {
-            // **** 导出功能相关的 JavaScript 代码 (使用 SheetJS - 增强样式版) ****
-            const exportButton = document.getElementById('exportButton');
-
-            if (exportButton) {
                 exportButton.addEventListener('click', function() {
                     const activePane = document.querySelector('.tab-pane.active');
                     if (!activePane) {
@@ -903,14 +899,15 @@
                     }
                     
                     const activeTabButton = document.querySelector('.nav-tabs .nav-link.active');
-                    let workshopName = '未知车间';
+                    let workshopName = '未知车间'; 
                     if (activeTabButton) {
-                        workshopName = activeTabButton.textContent.trim();
+                        workshopName = activeTabButton.textContent.trim(); 
                     }
                     
                     const filename = `${workshopName}_${currentYear}年${selectedMonth}月_工资表.xlsx`;
-
-                    try {
+                    
+                    try { // ▼▼▼▼▼ 从这里开始是修改后的 try 块 ▼▼▼▼▼
+                        // 检查 SheetJS 是否已加载
                         if (typeof XLSX === 'undefined') {
                             alert('错误：导出库 (SheetJS) 未加载，请检查网络连接或刷新页面，并确保已在HTML中引入xlsx.full.min.js。');
                             console.error("SheetJS (XLSX) is not defined. Make sure the library is loaded.");
@@ -955,7 +952,9 @@
                         // 3. 遍历单元格应用样式
                         const range = XLSX.utils.decode_range(ws['!ref']);
                         const tHeadRows = tableElement.querySelectorAll('thead tr');
-                        const headerRowCount = tHeadRows.length > 0 ? tHeadRows.length : (tableElement.querySelector('tr th') ? 1 : 0); // 智能一点判断表头行
+                        // 智能一点判断表头行，如果没有thead，则看第一行是否有th，否则认为没有严格表头
+                        const headerRowCount = tHeadRows.length > 0 ? tHeadRows.length : 
+                                               (tableElement.rows.length > 0 && tableElement.rows[0].querySelectorAll('th').length > 0 ? 1 : 0);
 
                         for (let R = range.s.r; R <= range.e.r; ++R) {
                             const isHeaderRow = (R < headerRowCount);
@@ -963,74 +962,61 @@
                                 const cell_address = { c: C, r: R };
                                 const cell_ref = XLSX.utils.encode_cell(cell_address);
                                 
-                                if (!ws[cell_ref]) continue;
+                                if (!ws[cell_ref]) continue; // 跳过空单元格或被合并单元格的非主单元格
 
                                 if (isHeaderRow) {
-                                    ws[cell_ref].s = JSON.parse(JSON.stringify(headerStyle)); // 应用表头样式
+                                    ws[cell_ref].s = JSON.parse(JSON.stringify(headerStyle));
                                 } else {
                                     const cellValue = ws[cell_ref].v;
-                                    const cellText = ws[cell_ref].w || (cellValue ? String(cellValue) : ""); // 获取显示文本
+                                    const cellText = ws[cell_ref].w || (cellValue !== null && cellValue !== undefined ? String(cellValue) : "");
 
-                                    if (typeof cellValue === 'number' && !cellText.includes('%')) { // 是数字且不是百分比
+                                    if (typeof cellValue === 'number' && !cellText.includes('%')) {
                                         ws[cell_ref].s = JSON.parse(JSON.stringify(rightCellStyle));
                                         ws[cell_ref].t = 'n';
-                                        // 你可以根据需要设置更具体的数字格式
-                                        // 例如，保留两位小数: ws[cell_ref].z = '0.00';
-                                        // 例如，整数: ws[cell_ref].z = '0';
                                         if (String(cellValue).includes('.')) {
-                                            ws[cell_ref].z = '0.00'; // 或者根据实际小数位数
+                                            ws[cell_ref].z = '0.00';
                                         } else {
                                             ws[cell_ref].z = '0';
                                         }
-                                    } else if (cellText.includes('%')) { // 如果包含百分号
-                                        ws[cell_ref].s = JSON.parse(JSON.stringify(rightCellStyle)); // 百分比也右对齐
+                                    } else if (cellText.includes('%')) {
+                                        ws[cell_ref].s = JSON.parse(JSON.stringify(rightCellStyle));
                                         ws[cell_ref].t = 'n';
-                                        // 尝试转换百分比值为数字，如果已经是数字则跳过
-                                        let numericValue = parseFloat(cellText.replace('%', '')) / 100;
+                                        let numericValue = parseFloat(cellText.replace(/%/g, '')) / 100;
                                         if (!isNaN(numericValue) && typeof ws[cell_ref].v !== 'number') {
                                             ws[cell_ref].v = numericValue;
                                         }
                                         ws[cell_ref].z = '0.00%';
-                                    } else { // 默认文本单元格
-                                        // 根据内容长度判断是否需要居中或左对齐
-                                        if (cellText.length < 10 && !/[\u4e00-\u9fa5]{5,}/.test(cellText)) { // 较短文本或非连续中文，居中
+                                    } else {
+                                        if (cellText.length < 10 && !/[\u4e00-\u9fa5]{5,}/.test(cellText) && !/\n/.test(cellText)) { 
                                             ws[cell_ref].s = JSON.parse(JSON.stringify(centerCellStyle));
-                                        } else { // 较长文本，左对齐
+                                        } else { 
                                             ws[cell_ref].s = JSON.parse(JSON.stringify(cellStyle));
                                         }
                                     }
-                                    // 如果原始单元格有特定的文本对齐，可以尝试读取并应用
-                                    // const htmlCell = tableElement.rows[R]?.cells[C];
-                                    // if(htmlCell) {
-                                    //    const textAlign = window.getComputedStyle(htmlCell).textAlign;
-                                    //    if (textAlign === 'center' && ws[cell_ref].s) ws[cell_ref].s.alignment.horizontal = 'center';
-                                    //    if (textAlign === 'right' && ws[cell_ref].s) ws[cell_ref].s.alignment.horizontal = 'right';
-                                    // }
                                 }
                             }
                         }
                         
-                        // 4. 设置列宽 (这是一个比较通用的自动列宽估算)
+                        // 4. 设置列宽
                         const columnWidths = [];
-                        if (ws['!ref']) { // 确保 ws['!ref'] 存在
+                        if (ws['!ref']) { 
                             for (let C = range.s.c; C <= range.e.c; ++C) {
                                 let maxColWidth = 0;
                                 for (let R = range.s.r; R <= range.e.r; ++R) {
                                     const cell_ref = XLSX.utils.encode_cell({ r: R, c: C });
                                     const cell = ws[cell_ref];
                                     if (cell && cell.v !== null && cell.v !== undefined) {
-                                        const cellText = cell.w || String(cell.v); // 使用格式化后的文本 .w 估算宽度
+                                        const cellText = cell.w || String(cell.v); 
                                         let charCount = 0;
                                         for (let k = 0; k < cellText.length; k++) {
-                                            // 简单估算：中文字符算2，英文字符算1
-                                            charCount += (cellText.charCodeAt(k) > 255 ? 1.8 : 1);
+                                            charCount += (cellText.charCodeAt(k) > 255 ? 1.8 : 1); // 中文算1.8，英文算1
                                         }
                                         if (charCount > maxColWidth) {
                                             maxColWidth = charCount;
                                         }
                                     }
                                 }
-                                columnWidths[C] = { wch: Math.min(Math.max(maxColWidth + 1, 8), 50) }; // 最小宽度8，最大50，加一点padding
+                                columnWidths[C] = { wch: Math.min(Math.max(maxColWidth + 1.5, 8), 60) }; // 最小8，最大60
                             }
                             ws['!cols'] = columnWidths;
                         }
@@ -1042,12 +1028,12 @@
                         
                         // alert(`工资表 "${filename}" 已开始下载。`); // 可选提示
 
-                    } catch (error) {
+                    } catch (error) { // ▲▲▲▲▲ try 块结束，catch 开始 ▲▲▲▲▲
                         console.error("导出 XLSX 时发生错误:", error);
                         alert("导出 XLSX 失败，详情请查看浏览器控制台。");
                     }
-                });
-            }
+                }); // 这个是 addEventListener 的结束
+            } // 这个是 if (exportButton) 的结束
 
             // 以下用于CSV导出的旧函数不再需要，已被移除或注释
             /*

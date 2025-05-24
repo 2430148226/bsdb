@@ -857,7 +857,7 @@
                 });
             }
 
-                        // **** 导出功能相关的 JavaScript 代码 (使用 ExcelJS - 小计行特殊样式，其他数据居中) ****
+                        // **** 导出功能相关的 JavaScript 代码 (使用 ExcelJS - 增加总标题，小计行特殊样式，其他数据居中) ****
             const exportButton = document.getElementById('exportButton');
 
             if (exportButton) {
@@ -917,36 +917,70 @@
                         const workbook = new ExcelJS.Workbook();
                         const worksheet = workbook.addWorksheet(workshopName);
 
-                        // 4. 定义样式
+                        // --- 新增步骤：添加和设置总标题 ---
+                        const titleText = `${currentYear}年${selectedMonth}月${workshopName}记工单`;
+                        const titleRowNumber = 1; 
+
+                        const rowsForColCount = tableElement.rows;
+                        let maxActualCols = 0; 
+                        if (rowsForColCount.length > 0) {
+                            for (let k = 0; k < rowsForColCount.length; k++) {
+                                let currentVisualCells = 0;
+                                for (let l = 0; l < rowsForColCount[k].cells.length; l++) {
+                                    currentVisualCells += parseInt(rowsForColCount[k].cells[l].getAttribute('colspan') || '1');
+                                }
+                                if (currentVisualCells > maxActualCols) {
+                                    maxActualCols = currentVisualCells;
+                                }
+                            }
+                        }
+                        if (maxActualCols === 0) maxActualCols = Math.max(tableElement.rows[0]?.cells.length || 1, 5); // 至少合并1列或5列，取较大者
+
+                        const titleCell = worksheet.getCell(titleRowNumber, 1); 
+                        titleCell.value = titleText;
+                        titleCell.font = {
+                            name: '黑体', // 你可以改成 '宋体' 或其他
+                            size: 18,     // 标题字号
+                            bold: true,
+                            color: { argb: 'FF000000' } 
+                        };
+                        titleCell.alignment = {
+                            horizontal: 'center',
+                            vertical: 'middle'
+                        };
+                        if (maxActualCols > 0) { // 确保至少有1列才合并
+                           worksheet.mergeCells(titleRowNumber, 1, titleRowNumber, maxActualCols);
+                        }
+                        worksheet.getRow(titleRowNumber).height = 35; 
+                        const dataStartRow = titleRowNumber + 1; 
+                        // --- 新增步骤结束 ---
+
+                        // 4. 定义其他样式
                         const headerStyle = {
                             font: { name: '宋体', size: 12, bold: true, color: { argb: 'FF000000' } },
-                            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }, // 浅蓝色背景
+                            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } },
                             alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
                             border: { 
                                 top: { style: 'thin', color: { argb: 'FF000000' } }, bottom: { style: 'thin', color: { argb: 'FF000000' } },
                                 left: { style: 'thin', color: { argb: 'FF000000' } }, right: { style: 'thin', color: { argb: 'FF000000' } }
                             }
                         };
-
-                        const cellStyle = { // 普通数据单元格的默认样式 (居中)
+                        const cellStyle = { 
                             font: { name: '宋体', size: 11, color: { argb: 'FF000000' } },
-                            alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, // 默认居中
+                            alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
                             border: { 
                                 top: { style: 'thin', color: { argb: 'FFB2B2B2' } }, bottom: { style: 'thin', color: { argb: 'FFB2B2B2' } },
                                 left: { style: 'thin', color: { argb: 'FFB2B2B2' } }, right: { style: 'thin', color: { argb: 'FFB2B2B2' } }
                             }
                         };
-                        
-                        const subtotalStyle = { // “小计”行样式
-                            font: { name: '宋体', size: 11, bold: true, color: { argb: 'FFFF0000' } }, // 红色、加粗
-                            alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, // 居中
-                            border: { // 与普通单元格边框一致或自定义
+                        const subtotalStyle = { 
+                            font: { name: '宋体', size: 11, bold: true, color: { argb: 'FFFF0000' } }, 
+                            alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, 
+                            border: { 
                                 top: { style: 'thin', color: { argb: 'FFB2B2B2' } }, bottom: { style: 'thin', color: { argb: 'FFB2B2B2' } },
                                 left: { style: 'thin', color: { argb: 'FFB2B2B2' } }, right: { style: 'thin', color: { argb: 'FFB2B2B2' } }
                             }
-                            // 可选：fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFE0' } } // 例如非常浅的黄色背景
                         };
-
 
                         // 5. 遍历 HTML 表格填充数据和样式
                         const rows = tableElement.rows;
@@ -957,33 +991,19 @@
                             headerRowCount = 1;
                         }
 
-                        let maxHtmlCols = 0;
-                        if (rows.length > 0) {
-                            for (let k = 0; k < rows.length; k++) {
-                                let currentCellsLength = 0;
-                                for(let l=0; l < rows[k].cells.length; l++){
-                                    currentCellsLength += parseInt(rows[k].cells[l].getAttribute('colspan') || '1');
-                                }
-                                if (currentCellsLength > maxHtmlCols) {
-                                    maxHtmlCols = currentCellsLength;
-                                }
-                            }
-                        }
-                        if (maxHtmlCols === 0 && rows.length > 0 && rows[0].cells.length > 0) maxHtmlCols = rows[0].cells.length;
-                        else if (maxHtmlCols === 0) maxHtmlCols = 1;
-
-                        const cellOccupied = Array(rows.length).fill(null).map(() => Array(maxHtmlCols + 20).fill(false));
+                        // maxActualCols 已经计算过了，cellOccupied 可以用它
+                        const cellOccupied = Array(rows.length).fill(null).map(() => Array(maxActualCols + 20).fill(false));
 
                         for (let i = 0; i < rows.length; i++) { 
                             const htmlRow = rows[i];
-                            const excelRowNumber = i + 1; 
+                            const excelRowNumber = dataStartRow + i; 
                             let currentExcelCol = 1; 
 
                             for (let j = 0; j < htmlRow.cells.length; j++) { 
-                                while (cellOccupied[i] && currentExcelCol <= maxHtmlCols && cellOccupied[i][currentExcelCol-1] ) { 
+                                while (cellOccupied[i] && currentExcelCol <= maxActualCols && cellOccupied[i][currentExcelCol-1] ) { 
                                     currentExcelCol++;
                                 }
-                                if (currentExcelCol > maxHtmlCols + 10 && htmlRow.cells.length > 0) {
+                                if (currentExcelCol > maxActualCols + 10 && htmlRow.cells.length > 0) {
                                     console.warn(`Skipping further cells in HTML row ${i} due to excessive column offset.`);
                                     break; 
                                 }
@@ -995,7 +1015,6 @@
                                 let cellValue = cellText;
                                 let numFmt = undefined;
 
-                                // --- 数据类型和格式转换 ---
                                 if (cellText.includes('%')) {
                                     const num = parseFloat(cellText.replace(/%/g, '')) / 100;
                                     if (!isNaN(num)) { cellValue = num; numFmt = '0.00%';}
@@ -1008,41 +1027,29 @@
                                 }
                                 excelCell.value = cellValue;
                                 if (numFmt) excelCell.numFmt = numFmt;
-                                // --- 数据类型和格式转换结束 ---
 
-                                // --- 应用样式 ---
                                 if (i < headerRowCount) { 
                                     excelCell.style = JSON.parse(JSON.stringify(headerStyle));
                                 } else { 
                                     let isSubtotalRow = false;
-                                    // 检查当前行的任意单元格是否包含 "小计"
                                     for (let k=0; k < htmlRow.cells.length; k++) {
                                        if ((htmlRow.cells[k].innerText || htmlRow.cells[k].textContent || "").includes("小计")) {
                                            isSubtotalRow = true;
                                            break;
                                        }
                                     }
-                                    // 或者，如果你知道 "小计" 总是在特定列，可以简化判断:
-                                    // if (htmlRow.cells[0] && (htmlRow.cells[0].innerText || htmlRow.cells[0].textContent || "").includes("小计")) {
-                                    //     isSubtotalRow = true;
-                                    // }
-
                                     if (isSubtotalRow) {
                                         excelCell.style = JSON.parse(JSON.stringify(subtotalStyle));
                                     } else {
                                         excelCell.style = JSON.parse(JSON.stringify(cellStyle));
                                     }
                                 }
-                                // --- 应用样式结束 ---
 
-                                // --- 处理 colspan 和 rowspan ---
                                 const colspan = parseInt(htmlCell.getAttribute('colspan') || '1');
                                 const rowspan = parseInt(htmlCell.getAttribute('rowspan') || '1');
-
                                 if (colspan > 1 || rowspan > 1) {
                                     worksheet.mergeCells(excelRowNumber, currentExcelCol, excelRowNumber + rowspan - 1, currentExcelCol + colspan - 1);
                                 }
-                                
                                 for (let rs = 0; rs < rowspan; rs++) {
                                     for (let cs = 0; cs < colspan; cs++) {
                                         if (i + rs < cellOccupied.length && cellOccupied[i+rs] && currentExcelCol -1 + cs < cellOccupied[i+rs].length) {
@@ -1051,7 +1058,6 @@
                                     }
                                 }
                                 currentExcelCol += colspan; 
-                                // --- 处理 colspan 和 rowspan 结束 ---
                             }
                         }
                         
@@ -1094,7 +1100,6 @@
                     }
                 }); 
             } // end if (exportButton)
-
             // 以下用于CSV导出的旧函数不再需要，已被移除或注释
             /*
             function tableToCSV(tableElement) {

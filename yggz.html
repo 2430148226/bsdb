@@ -857,222 +857,238 @@
                 });
             }
 
-           // **** 导出功能相关的 JavaScript 代码 (使用 ExcelJS 通过 CDN) ****
-const exportButton = document.getElementById('exportButton');
+                       // **** 导出功能相关的 JavaScript 代码 (使用 ExcelJS 通过 CDN - 修正版) ****
+            const exportButton = document.getElementById('exportButton');
 
-if (exportButton) {
-    exportButton.addEventListener('click', async function() { // 1. 改为 async function
-        // --- 获取元素和基本信息的代码 (保持和你原来的一致) ---
-        const activePane = document.querySelector('.tab-pane.active');
-        if (!activePane) {
-            alert('错误：没有找到当前激活的标签页。');
-            return;
-        }
-        const activeIframe = activePane.querySelector('iframe');
-        if (!activeIframe) {
-            alert('错误：当前标签页内没有找到 iframe。');
-            return;
-        }
-        let iframeDocument;
-        try {
-            iframeDocument = activeIframe.contentDocument || (activeIframe.contentWindow && activeIframe.contentWindow.document);
-        } catch (e) {
-            console.error("访问iframe内容时出错: ", e);
-            alert('错误：无法访问 iframe 内容。这可能是由于跨域安全限制。\n错误信息: ' + e.message);
-            return;
-        }
-        if (!iframeDocument) {
-            alert('提示：当前车间的工资表页面可能尚未完全加载或无法访问，请稍后再试。');
-            return;
-        }
-        const tableElement = iframeDocument.querySelector('table'); 
-        if (!tableElement) {
-            if (iframeDocument.body && iframeDocument.body.innerHTML.trim() === "") {
-                 alert('提示：当前车间页面内容为空，无法导出工资表格。');
-            } else {
-                 alert('提示：在当前车间页面中未找到可导出的工资表格数据 (未找到 <table> 元素)。');
-            }
-            return;
-        }
-        const activeTabButton = document.querySelector('.nav-tabs .nav-link.active');
-        let workshopName = '未知车间'; 
-        if (activeTabButton) {
-            workshopName = activeTabButton.textContent.trim(); 
-        }
-        const filename = `${workshopName}_${currentYear}年${selectedMonth}月_工资表.xlsx`;
-        // --- 获取元素和基本信息的代码结束 ---
-
-        try {
-            // 2. 检查 ExcelJS 是否已加载
-            if (typeof ExcelJS === 'undefined') {
-                alert('错误：导出库 (ExcelJS) 未加载，请检查CDN链接或网络。');
-                console.error("ExcelJS is not defined. Make sure the library is loaded via CDN.");
-                return;
-            }
-
-            console.log("ExcelJS library found, proceeding with export..."); // 调试信息
-
-            // 3. 创建 ExcelJS 工作簿和工作表
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet(workshopName);
-
-            // 4. 定义样式 (你可以从我之前提供的更详细的样式开始，这里用一个简化版)
-            const headerStyle = {
-                font: { name: '宋体', size: 12, bold: true, color: { argb: 'FF000000' } },
-                fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } }, // 浅蓝色
-                alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
-                border: { /* ... 你可以添加边框样式对象 ... */ 
-                    top: { style: 'thin', color: { argb: 'FF000000' } }, bottom: { style: 'thin', color: { argb: 'FF000000' } },
-                    left: { style: 'thin', color: { argb: 'FF000000' } }, right: { style: 'thin', color: { argb: 'FF000000' } }
-                }
-            };
-            const cellStyle = { // 基础数据单元格样式
-                font: { name: '宋体', size: 11, color: { argb: 'FF000000' } },
-                alignment: { vertical: 'middle', wrapText: true }, // 默认左对齐
-                border: { /* ... 边框样式 ... */ 
-                    top: { style: 'thin', color: { argb: 'FFB2B2B2' } }, bottom: { style: 'thin', color: { argb: 'FFB2B2B2' } },
-                    left: { style: 'thin', color: { argb: 'FFB2B2B2' } }, right: { style: 'thin', color: { argb: 'FFB2B2B2' } }
-                }
-            };
-             const rightCellStyle = JSON.parse(JSON.stringify(cellStyle)); // 深拷贝用于右对齐
-            rightCellStyle.alignment.horizontal = 'right';
-
-
-            // 5. 遍历 HTML 表格填充数据和样式
-            const rows = tableElement.rows;
-            let headerRowCount = 0;
-            if (tableElement.tHead && tableElement.tHead.rows.length > 0) {
-                headerRowCount = tableElement.tHead.rows.length;
-            } else if (rows.length > 0 && rows[0].querySelectorAll('th').length > 0) {
-                headerRowCount = 1;
-            }
-
-           // 估算最大HTML列数，用于初始化 cellOccupied
-            let maxHtmlCols = 0;
-            if (rows.length > 0) { // 确保 rows 存在且有内容
-                for (let k = 0; k < rows.length; k++) { // 使用不同的循环变量 k
-                    if (rows[k].cells.length > maxHtmlCols) {
-                        maxHtmlCols = rows[k].cells.length;
+            if (exportButton) {
+                exportButton.addEventListener('click', async function() { // 1. 改为 async function
+                    // --- 获取元素和基本信息的代码 ---
+                    const activePane = document.querySelector('.tab-pane.active');
+                    if (!activePane) {
+                        alert('错误：没有找到当前激活的标签页。');
+                        return;
                     }
-                }
-            }
-             // 如果表格完全为空，给一个默认的小尺寸，避免 maxHtmlCols 为 0
-            if (maxHtmlCols === 0 && rows.length > 0) maxHtmlCols = rows[0].cells.length || 1;
-            else if (maxHtmlCols === 0) maxHtmlCols = 1;
-
-
-            // 用于处理 rowspan 的辅助二维数组 (标记单元格是否已被占用)
-            // true 表示 (row, col) 在 Excel 中已被占用
-            // 使用估算的 maxHtmlCols，并增加一些 buffer
-            const cellOccupied = Array(rows.length).fill(null).map(() => Array(maxHtmlCols + 20).fill(false)); 
-
-                for (let j = 0; j < htmlRow.cells.length; j++) { // HTML 单元格索引
-                    while (cellOccupied[i][currentExcelCol-1]) { // 如果 Excel 单元格已被 rowspan 占用，则跳到下一列
-                        currentExcelCol++;
+                    const activeIframe = activePane.querySelector('iframe');
+                    if (!activeIframe) {
+                        alert('错误：当前标签页内没有找到 iframe。');
+                        return;
                     }
-
-                    const htmlCell = htmlRow.cells[j];
-                    const excelCell = worksheet.getCell(excelRowNumber, currentExcelCol);
-
-                    let cellText = (htmlCell.innerText || htmlCell.textContent || "").trim();
-                    let cellValue = cellText;
-                    let numFmt = undefined;
-
-                    // --- 数据类型和格式转换 (与之前 exceljs 示例类似) ---
-                    if (cellText.includes('%')) {
-                        const num = parseFloat(cellText.replace(/%/g, '')) / 100;
-                        if (!isNaN(num)) { cellValue = num; numFmt = '0.00%';}
-                    } else if (/^-?[\d,]+(\.\d+)?$/.test(cellText.replace(/,/g, '')) && !isNaN(parseFloat(cellText.replace(/,/g, '')))) {
-                        cellValue = parseFloat(cellText.replace(/,/g, '')); // 处理千分位
-                        if (cellText.includes('.')) {
-                             const decimalPart = cellText.split('.')[1];
-                             if (decimalPart) numFmt = `0.${'0'.repeat(decimalPart.length)}`;
+                    let iframeDocument;
+                    try {
+                        iframeDocument = activeIframe.contentDocument || (activeIframe.contentWindow && activeIframe.contentWindow.document);
+                    } catch (e) {
+                        console.error("访问iframe内容时出错: ", e);
+                        alert('错误：无法访问 iframe 内容。这可能是由于跨域安全限制。\n错误信息: ' + e.message);
+                        return;
+                    }
+                    if (!iframeDocument) {
+                        alert('提示：当前车间的工资表页面可能尚未完全加载或无法访问，请稍后再试。');
+                        return;
+                    }
+                    const tableElement = iframeDocument.querySelector('table'); 
+                    if (!tableElement) {
+                        if (iframeDocument.body && iframeDocument.body.innerHTML.trim() === "") {
+                             alert('提示：当前车间页面内容为空，无法导出工资表格。');
                         } else {
-                            // numFmt = '0'; // 整数
+                             alert('提示：在当前车间页面中未找到可导出的工资表格数据 (未找到 <table> 元素)。');
                         }
+                        return;
                     }
-                    excelCell.value = cellValue;
-                    if (numFmt) excelCell.numFmt = numFmt;
-                    // --- 数据类型和格式转换结束 ---
+                    const activeTabButton = document.querySelector('.nav-tabs .nav-link.active');
+                    let workshopName = '未知车间'; 
+                    if (activeTabButton) {
+                        workshopName = activeTabButton.textContent.trim(); 
+                    }
+                    // currentYear 和 selectedMonth 变量需要在此作用域内可访问
+                    // 假设它们是在外部定义的 (例如在 DOMContentLoaded 回调的顶层)
+                    const filename = `${workshopName}_${currentYear}年${selectedMonth}月_工资表.xlsx`;
+                    // --- 获取元素和基本信息的代码结束 ---
 
-
-                    // --- 应用样式 (与之前 exceljs 示例类似) ---
-                    if (i < headerRowCount) {
-                        excelCell.style = JSON.parse(JSON.stringify(headerStyle));
-                    } else {
-                        if (typeof excelCell.value === 'number' && !cellText.includes('%')) {
-                            excelCell.style = JSON.parse(JSON.stringify(rightCellStyle));
-                        } else if (cellText.includes('%')) {
-                            excelCell.style = JSON.parse(JSON.stringify(rightCellStyle));
-                        } else {
-                            // 你可以添加更复杂的文本对齐逻辑
-                           excelCell.style = JSON.parse(JSON.stringify(cellStyle));
+                    try {
+                        // 2. 检查 ExcelJS 是否已加载
+                        if (typeof ExcelJS === 'undefined') {
+                            alert('错误：导出库 (ExcelJS) 未加载，请检查CDN链接或网络。');
+                            console.error("ExcelJS is not defined. Make sure the library is loaded via CDN.");
+                            return;
                         }
-                    }
-                    // --- 应用样式结束 ---
+
+                        console.log("ExcelJS library found, proceeding with export...");
+
+                        // 3. 创建 ExcelJS 工作簿和工作表
+                        const workbook = new ExcelJS.Workbook();
+                        const worksheet = workbook.addWorksheet(workshopName);
+
+                        // 4. 定义样式
+                        const headerStyle = {
+                            font: { name: '宋体', size: 12, bold: true, color: { argb: 'FF000000' } },
+                            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDDEBF7' } },
+                            alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
+                            border: { 
+                                top: { style: 'thin', color: { argb: 'FF000000' } }, bottom: { style: 'thin', color: { argb: 'FF000000' } },
+                                left: { style: 'thin', color: { argb: 'FF000000' } }, right: { style: 'thin', color: { argb: 'FF000000' } }
+                            }
+                        };
+                        const cellStyle = { 
+                            font: { name: '宋体', size: 11, color: { argb: 'FF000000' } },
+                            alignment: { vertical: 'middle', wrapText: true }, // 默认左对齐
+                            border: { 
+                                top: { style: 'thin', color: { argb: 'FFB2B2B2' } }, bottom: { style: 'thin', color: { argb: 'FFB2B2B2' } },
+                                left: { style: 'thin', color: { argb: 'FFB2B2B2' } }, right: { style: 'thin', color: { argb: 'FFB2B2B2' } }
+                            }
+                        };
+                        const rightCellStyle = JSON.parse(JSON.stringify(cellStyle));
+                        rightCellStyle.alignment = { ...rightCellStyle.alignment, horizontal: 'right' }; // 保留 vertical 和 wrapText
+                        const centerCellStyle = JSON.parse(JSON.stringify(cellStyle));
+                        centerCellStyle.alignment = { ...centerCellStyle.alignment, horizontal: 'center' };
 
 
-                    // --- 处理 colspan 和 rowspan ---
-                    const colspan = parseInt(htmlCell.getAttribute('colspan') || '1');
-                    const rowspan = parseInt(htmlCell.getAttribute('rowspan') || '1');
+                        // 5. 遍历 HTML 表格填充数据和样式
+                        const rows = tableElement.rows; // HTMLCollection of <tr> elements
+                        let headerRowCount = 0;
+                        if (tableElement.tHead && tableElement.tHead.rows.length > 0) {
+                            headerRowCount = tableElement.tHead.rows.length;
+                        } else if (rows.length > 0 && rows[0].querySelectorAll('th').length > 0) {
+                            headerRowCount = 1;
+                        }
 
-                    if (colspan > 1 || rowspan > 1) {
-                        worksheet.mergeCells(excelRowNumber, currentExcelCol, excelRowNumber + rowspan - 1, currentExcelCol + colspan - 1);
-                    }
-
-                    // 标记被这个单元格 (包括其rowspan和colspan) 占用的 Excel 单元格
-                    for (let rs = 0; rs < rowspan; rs++) {
-                        for (let cs = 0; cs < colspan; cs++) {
-                            if (i + rs < cellOccupied.length && currentExcelCol -1 + cs < cellOccupied[i+rs].length) {
-                                cellOccupied[i + rs][currentExcelCol - 1 + cs] = true;
+                        // 估算最大HTML列数，用于初始化 cellOccupied
+                        let maxHtmlCols = 0;
+                        if (rows.length > 0) {
+                            for (let k = 0; k < rows.length; k++) {
+                                let currentCellsLength = 0;
+                                for(let l=0; l < rows[k].cells.length; l++){
+                                    currentCellsLength += parseInt(rows[k].cells[l].getAttribute('colspan') || '1');
+                                }
+                                if (currentCellsLength > maxHtmlCols) {
+                                    maxHtmlCols = currentCellsLength;
+                                }
                             }
                         }
-                    }
-                    currentExcelCol += colspan; // 移动 Excel 列指针
-                    // --- 处理 colspan 和 rowspan 结束 ---
-                }
-            }
-            
-            // 6. (可选) 设置列宽 (与之前 exceljs 示例类似)
-            worksheet.columns.forEach((column, idx) => { // idx 是0-based
-                let maxLength = 0;
-                column.eachCell({ includeEmpty: true }, (cell) => {
-                    let textLength = 10; // 默认最小宽度对应的字符数
-                    if (cell.value) {
-                        const cellText = cell.text || cell.value.toString(); // cell.text 考虑了数字格式
-                        textLength = 0;
-                        for (let k = 0; k < cellText.length; k++) {
-                            textLength += (cellText.charCodeAt(k) > 255 ? 1.8 : 1); // 简单中英文宽度估算
+                        // 如果表格完全为空，给一个默认的小尺寸
+                        if (maxHtmlCols === 0 && rows.length > 0 && rows[0].cells.length > 0) maxHtmlCols = rows[0].cells.length;
+                        else if (maxHtmlCols === 0) maxHtmlCols = 1;
+
+
+                        const cellOccupied = Array(rows.length).fill(null).map(() => Array(maxHtmlCols + 20).fill(false)); // 增加 buffer
+
+                        for (let i = 0; i < rows.length; i++) { // HTML 行索引
+                            const htmlRow = rows[i];
+                            const excelRowNumber = i + 1; 
+                            
+                            let currentExcelCol = 1; 
+
+                            for (let j = 0; j < htmlRow.cells.length; j++) { 
+                                while (cellOccupied[i] && currentExcelCol <= maxHtmlCols && cellOccupied[i][currentExcelCol-1] ) { 
+                                    currentExcelCol++;
+                                }
+                                if (currentExcelCol > maxHtmlCols + 10 && htmlRow.cells.length > 0) { // 防止死循环或越界过多
+                                    console.warn(`Skipping further cells in HTML row ${i} due to excessive column offset.`);
+                                    break; 
+                                }
+
+
+                                const htmlCell = htmlRow.cells[j];
+                                const excelCell = worksheet.getCell(excelRowNumber, currentExcelCol);
+
+                                let cellText = (htmlCell.innerText || htmlCell.textContent || "").trim();
+                                let cellValue = cellText;
+                                let numFmt = undefined;
+
+                                // --- 数据类型和格式转换 ---
+                                if (cellText.includes('%')) {
+                                    const num = parseFloat(cellText.replace(/%/g, '')) / 100;
+                                    if (!isNaN(num)) { cellValue = num; numFmt = '0.00%';}
+                                } else if (/^-?[\d,]+(\.\d+)?$/.test(cellText.replace(/,/g, '')) && !isNaN(parseFloat(cellText.replace(/,/g, '')))) { // 检查是否是数字（可能带千分位）
+                                    cellValue = parseFloat(cellText.replace(/,/g, ''));
+                                    const parts = cellText.split('.');
+                                    if (parts.length > 1 && parts[1].length > 0) {
+                                        numFmt = `0.${'0'.repeat(parts[1].length)}`;
+                                    } else {
+                                       // numFmt = '0'; // 整数，或不设置让Excel自动判断
+                                    }
+                                }
+                                excelCell.value = cellValue;
+                                if (numFmt) excelCell.numFmt = numFmt;
+                                // --- 数据类型和格式转换结束 ---
+
+                                // --- 应用样式 ---
+                                if (i < headerRowCount) {
+                                    excelCell.style = JSON.parse(JSON.stringify(headerStyle));
+                                } else {
+                                    if (typeof excelCell.value === 'number' && !cellText.includes('%')) {
+                                        excelCell.style = JSON.parse(JSON.stringify(rightCellStyle));
+                                    } else if (cellText.includes('%')) {
+                                        excelCell.style = JSON.parse(JSON.stringify(rightCellStyle));
+                                    } else {
+                                        // 简单文本居中逻辑（可按需调整）
+                                        if (cellText.length < 10 && !/[\u4e00-\u9fa5]{5,}/.test(cellText) && !/\n/.test(cellText)) {
+                                            excelCell.style = JSON.parse(JSON.stringify(centerCellStyle));
+                                        } else {
+                                            excelCell.style = JSON.parse(JSON.stringify(cellStyle));
+                                        }
+                                    }
+                                }
+                                // --- 应用样式结束 ---
+
+                                // --- 处理 colspan 和 rowspan ---
+                                const colspan = parseInt(htmlCell.getAttribute('colspan') || '1');
+                                const rowspan = parseInt(htmlCell.getAttribute('rowspan') || '1');
+
+                                if (colspan > 1 || rowspan > 1) {
+                                    worksheet.mergeCells(excelRowNumber, currentExcelCol, excelRowNumber + rowspan - 1, currentExcelCol + colspan - 1);
+                                }
+                                
+                                for (let rs = 0; rs < rowspan; rs++) {
+                                    for (let cs = 0; cs < colspan; cs++) {
+                                        if (i + rs < cellOccupied.length && cellOccupied[i+rs] && currentExcelCol -1 + cs < cellOccupied[i+rs].length) {
+                                            cellOccupied[i + rs][currentExcelCol - 1 + cs] = true;
+                                        }
+                                    }
+                                }
+                                currentExcelCol += colspan; 
+                                // --- 处理 colspan 和 rowspan 结束 ---
+                            }
                         }
-                    }
-                    if (textLength > maxLength) {
-                        maxLength = textLength;
-                    }
-                });
-                column.width = Math.min(Math.max(maxLength + 2, 8), 50); // 加一点padding, 最小8，最大50
-            });
+                        
+                        // 6. (可选) 设置列宽
+                        worksheet.columns.forEach((column, idx) => { 
+                            let maxLength = 0;
+                            column.eachCell({ includeEmpty: true }, (cell) => {
+                                let textLength = 8; // 默认最小宽度对应的字符数 (给空单元格一个基础宽度)
+                                if (cell.value) {
+                                    const cellText = cell.text || cell.value.toString(); 
+                                    textLength = 0;
+                                    for (let k = 0; k < cellText.length; k++) {
+                                        textLength += (cellText.charCodeAt(k) > 255 ? 1.8 : 1); 
+                                    }
+                                }
+                                if (textLength > maxLength) {
+                                    maxLength = textLength;
+                                }
+                            });
+                            column.width = Math.min(Math.max(maxLength + 2, 8), 50); 
+                        });
 
-            // 7. 生成并下载文件
-            console.log("Preparing to write buffer..."); // 调试信息
-            const buffer = await workbook.xlsx.writeBuffer();
-            console.log("Buffer written, creating blob..."); // 调试信息
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
-            console.log("File download triggered."); // 调试信息
-            // alert(`工资表 "${filename}" (ExcelJS) 已开始下载。`); // 可选
-
-        } catch (error) {
-            console.error("使用 ExcelJS 导出 XLSX 时发生错误:", error);
-            alert("使用 ExcelJS 导出 XLSX 失败，详情请查看浏览器控制台。\n" + error.message);
-        }
-    });
-}
+                        // 7. 生成并下载文件
+                        console.log("Preparing to write buffer...");
+                        const buffer = await workbook.xlsx.writeBuffer();
+                        console.log("Buffer written, creating blob...");
+                        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(link.href);
+                        console.log("File download triggered.");
+                        
+                    } catch (error) {
+                        console.error("使用 ExcelJS 导出 XLSX 时发生错误:", error);
+                        alert("使用 ExcelJS 导出 XLSX 失败，详情请查看浏览器控制台。\n" + error.message);
+                    }
+                }); 
+            } // end if (exportButton)
 
             // 以下用于CSV导出的旧函数不再需要，已被移除或注释
             /*

@@ -947,16 +947,24 @@ if (exportButton) {
                 headerRowCount = 1;
             }
 
+           // 估算最大HTML列数，用于初始化 cellOccupied
+            let maxHtmlCols = 0;
+            if (rows.length > 0) { // 确保 rows 存在且有内容
+                for (let k = 0; k < rows.length; k++) { // 使用不同的循环变量 k
+                    if (rows[k].cells.length > maxHtmlCols) {
+                        maxHtmlCols = rows[k].cells.length;
+                    }
+                }
+            }
+             // 如果表格完全为空，给一个默认的小尺寸，避免 maxHtmlCols 为 0
+            if (maxHtmlCols === 0 && rows.length > 0) maxHtmlCols = rows[0].cells.length || 1;
+            else if (maxHtmlCols === 0) maxHtmlCols = 1;
+
+
             // 用于处理 rowspan 的辅助二维数组 (标记单元格是否已被占用)
             // true 表示 (row, col) 在 Excel 中已被占用
-            const cellOccupied = Array(rows.length).fill(null).map(() => Array(htmlRow.cells.length + 10).fill(false)); // 多给一些列的 buffer
-
-            for (let i = 0; i < rows.length; i++) { // HTML 行索引
-                const htmlRow = rows[i];
-                const excelRowNumber = i + 1; // ExcelJS 行号从1开始
-                // worksheet.addRow([]); // exceljs 会在 getCell 时自动创建行，或者可以显式添加
-                
-                let currentExcelCol = 1; // 当前 Excel 列的指针
+            // 使用估算的 maxHtmlCols，并增加一些 buffer
+            const cellOccupied = Array(rows.length).fill(null).map(() => Array(maxHtmlCols + 20).fill(false)); 
 
                 for (let j = 0; j < htmlRow.cells.length; j++) { // HTML 单元格索引
                     while (cellOccupied[i][currentExcelCol-1]) { // 如果 Excel 单元格已被 rowspan 占用，则跳到下一列

@@ -941,6 +941,18 @@
                         const centerCellStyle = JSON.parse(JSON.stringify(cellStyle));
                         centerCellStyle.alignment = { ...centerCellStyle.alignment, horizontal: 'center' };
 
+                                 // ▼▼▼ 【“小计”行样式 - 确保居中】 ▼▼▼
+                       const subtotalStyle = {
+                       font: { name: '宋体', size: 11, bold: true, color: { argb: 'FFFF0000' } }, // 红色、加粗
+                       alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, // 确保水平居中
+                       border: { 
+                       top: { style: 'thin', color: { argb: 'FFB2B2B2' } }, bottom: { style: 'thin', color: { argb: 'FFB2B2B2' } },
+                       left: { style: 'thin', color: { argb: 'FFB2B2B2' } }, right: { style: 'thin', color: { argb: 'FFB2B2B2' } }
+                    }
+                    // 可选：fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFCC' } } // 例如淡黄色背景
+                 };
+                          // ▲▲▲ 【样式定义结束】 ▲▲▲
+
 
                         // 5. 遍历 HTML 表格填充数据和样式
                         const rows = tableElement.rows; // HTMLCollection of <tr> elements
@@ -1015,9 +1027,23 @@
                                 if (i < headerRowCount) { // 表头行
                                     excelCell.style = JSON.parse(JSON.stringify(headerStyle));
                                 } else { // 数据行
-                                    // ▼▼▼ 所有数据单元格都应用居中的 cellStyle ▼▼▼
-                                    excelCell.style = JSON.parse(JSON.stringify(cellStyle)); 
-                                    // ▲▲▲ 修改结束 ▲▲▲
+                                     // ▼▼▼ 【修改点：简化为 小计行 vs 普通数据行】 ▼▼▼
+                        let isSubtotalRow = false;
+                        // 假设“小计”文字通常在行的前几个单元格，例如第一个或第二个
+                        // 你需要根据你的实际表格结构调整这里的判断条件
+                        if (htmlRow.cells[0] && (htmlRow.cells[0].innerText || htmlRow.cells[0].textContent || "").includes("小计")) {
+                            isSubtotalRow = true;
+                        } else if (htmlRow.cells[1] && (htmlRow.cells[1].innerText || htmlRow.cells[1].textContent || "").includes("小计")) {
+                            isSubtotalRow = true;
+                        }
+                        // 你也可以根据需要添加更复杂的“小计”行识别逻辑
+
+                        if (isSubtotalRow) {
+                            // “小计”行所有单元格（包括文字和数字）都应用 subtotalStyle (已包含居中)
+                            excelCell.style = JSON.parse(JSON.stringify(subtotalStyle));
+                        } else {
+                            // 非小计数据行，所有单元格都应用居中的 cellStyle
+                            excelCell.style = JSON.parse(JSON.stringify(cellStyle));
                                 }
                                 // --- 应用样式结束 ---
 
